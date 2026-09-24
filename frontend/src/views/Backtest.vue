@@ -28,7 +28,20 @@ const sigRows = computed(() =>
 )
 const trades = computed<any[]>(() => current.value?.trades || [])
 const s = computed(() => current.value?.summary || {})
-const edge = computed(() => s.value.edge_ci)
+const edge = computed(() => s.value.matched_edge || s.value.edge_ci)
+const diagDim = ref('type_regime')
+const diagDims = computed<any[]>(() => s.value.diagnostics || [])
+const diagRows = computed<any[]>(() => diagDims.value.find((d: any) => d.key === diagDim.value)?.rows || [])
+const wf = computed(() => s.value.walk_forward)
+
+function verdict(m: any): { text: string; type: 'success' | 'danger' | 'info' | 'warning' } {
+  if (!m) return { text: '样本不足', type: 'info' }
+  if (m.significant) return m.edge > 0 ? { text: '显著跑赢', type: 'success' } : { text: '显著跑输', type: 'danger' }
+  return { text: '不显著', type: 'warning' }
+}
+function ci(m: any): string {
+  return m ? `[${num(m.ci_low, 2)}, ${num(m.ci_high, 2)}]` : '--'
+}
 const scopeRows = computed(() => Object.entries(s.value.by_scope || {}).map(([k, v]: any) => ({ key: k, ...v })))
 
 const sigChart = useChart(
@@ -212,11 +225,11 @@ onMounted(() => {
             />
             <StatCard label="随机对照 平均 R" :value="num(s.control?.avg_r)" :sub="s.control ? `${s.control.trades} 笔 · 胜率 ${ratioPct(s.control.win_rate, 1)}` : '本次未运行对照组'" />
             <StatCard
-              label="信号相对随机的优势"
+              :label="s.matched_edge ? '相对同期同市场状态随机组的优势' : '信号相对随机的优势'"
               :value="edge ? `${edge.edge > 0 ? '+' : ''}${num(edge.edge, 2)} R` : '--'"
               :value-class="edge ? colorClass(edge.edge) : ''"
-              :sub="edge ? `95% 置信区间 [${num(edge.ci_low, 2)}, ${num(edge.ci_high, 2)}] · ${edge.significant ? '显著' : '不显著'}` : '样本不足'"
-              hint="用自助法重复抽样估计信号组与随机组平均 R 之差的置信区间。区间不跨过 0 才能说买点有稳定优势。"
+              :sub="edge ? `95% 置信区间 ${ci(edge)} · ${edge.significant ? '显著' : '不显著'}` : '样本不足'"
+              hint="随机组按信号交易所在的年份和市场状态加权，剔除'信号恰好出现在大盘上涨期'的择时差异；置信区间用分层自助法估计。区间不跨过 0 才能说买点有稳定优势。"
             />
           </div>
 
@@ -245,6 +258,51 @@ onMounted(() => {
               <el-table-column label="平均 R"><template #default="{ row }"><span class="num" :class="colorClass(row.avg_r)">{{ num(row.avg_r) }}</span></template></el-table-column>
               <el-table-column label="平均超额"><template #default="{ row }"><span class="num" :class="colorClass(row.avg_excess)">{{ pct(row.avg_excess, 2) }}</span></template></el-table-column>
               <el-table-column label="盈亏比"><template #default="{ row }">{{ num(row.profit_factor) }}</template></el-table-column>
+            </el-table>
+          </SectionCard>
+
+          <SectionCard v-if="diagDims.length" title="信号诊断" subtitle="每组与同市场状态的随机入场比较，优势 = 信号平均 R − 随机平均 R" class="mt" flush>
+            <div class="diag-bar">
+              <el-radio-group v-model="diagDim" size="small">
+                <el-radio-button v-for="d in diagDims" :key="d.key" :value="d.key">{{ d.title }}</el-radio-button>
+              </el-radio-group>
+            </div>
+            <el-table :data="diagRows" size="small">
+              <el-table-column prop="name" label="分组" min-width="130" />
+              <el-table-column prop="trades" label="笔数" width="70" />
+              <el-table-column label="胜率" width="80"><template #default="{ row }">{{ ratioPct(row.win_rate, 1) }}</template></el-table-column>
+              <el-table-column label="平均 R" width="80"><template #default="{ row }"><span class="num" :class="colorClass(row.avg_r)">{{ num(row.avg_r) }}</span></template></el-table-column>
+              <el-table-column label="随机组 R" width="90"><template #default="{ row }"><span class="num">{{ num(row.matched?.control_avg_r) }}</span></template></el-table-column>
+              <el-table-column label="优势" width="80"><template #default="{ row }"><span class="num" :class="colorClass(row.matched?.edge)">{{ num(row.matched?.edge, 2) }}</span></template></el-table-column>
+              <el-table-column label="95% 区间" width="130"><template #default="{ row }"><span class="num muted">{{ ci(row.matched) }}</span></template></el-table-column>
+              <el-table-column label="超额优势" width="90"><template #default="{ row }"><span class="num" :class="colorClass(row.matched?.excess_edge)">{{ pct(row.matched?.excess_edge, 2) }}</span></template></el-table-column>
+              <el-table-column label="结论" width="96"><template #default="{ row }"><el-tag size="small" :type="verdict(row.matched).type" effect="light">{{ verdict(row.matched).text }}</el-tag></template></el-table-column>
+            </el-table>
+          </SectionCard>
+
+          <SectionCard v-if="wf?.folds?.length" title="逐年滚动检验" :subtitle="`每年只用此前年份的交易，挑出跑赢随机组的'信号 × 市场状态'组合（训练样本至少 ${wf.min_n} 笔），在当年检验`" class="mt" flush>
+            <div class="wf-overall">
+              <span>全部检验年份合计：入选组合 <b class="num">{{ wf.overall.selected.trades || 0 }}</b> 笔，平均 R
+                <b class="num" :class="colorClass(wf.overall.selected.avg_r)">{{ num(wf.overall.selected.avg_r) }}</b>，相对随机组优势
+                <b class="num" :class="colorClass(wf.overall.edge?.edge)">{{ num(wf.overall.edge?.edge, 2) }}</b> {{ ci(wf.overall.edge) }}</span>
+              <el-tag size="small" :type="verdict(wf.overall.edge).type" effect="light">{{ verdict(wf.overall.edge).text }}</el-tag>
+            </div>
+            <el-table :data="wf.folds" size="small">
+              <el-table-column prop="year" label="检验年份" width="90" />
+              <el-table-column prop="train_trades" label="训练笔数" width="90" />
+              <el-table-column label="入选组合" min-width="220">
+                <template #default="{ row }">
+                  <span v-if="!row.selected.length" class="muted">无组合跑赢随机组</span>
+                  <el-tag v-for="u in row.selected" :key="u" size="small" effect="plain" class="wf-tag">{{ u }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="当年全部信号" width="170">
+                <template #default="{ row }">{{ row.test_all.trades || 0 }} 笔 · <span class="num" :class="colorClass(row.edge_all?.edge)">优势 {{ num(row.edge_all?.edge, 2) }}</span></template>
+              </el-table-column>
+              <el-table-column label="当年入选组合" width="170">
+                <template #default="{ row }">{{ row.test_selected.trades || 0 }} 笔 · <span class="num" :class="colorClass(row.edge_selected?.edge)">优势 {{ num(row.edge_selected?.edge, 2) }}</span></template>
+              </el-table-column>
+              <el-table-column label="结论" width="96"><template #default="{ row }"><el-tag size="small" :type="verdict(row.edge_selected).type" effect="light">{{ verdict(row.edge_selected).text }}</el-tag></template></el-table-column>
             </el-table>
           </SectionCard>
 
@@ -325,5 +383,21 @@ onMounted(() => {
 }
 .weight b {
   font-size: 16px;
+}
+.diag-bar {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--c-border);
+}
+.wf-overall {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--c-border);
+}
+.wf-tag {
+  margin: 2px 4px 2px 0;
 }
 </style>

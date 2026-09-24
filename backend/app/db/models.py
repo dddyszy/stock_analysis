@@ -497,3 +497,4 @@ class BacktestTrade(Base):
     excess: Mapped[float | None] = mapped_column(Double)  # 相对中证 1000 的超额（%）
     segment: Mapped[str | None] = mapped_column(String(8))  # in / out（样本内 / 样本外）
     is_control: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    tags: Mapped[dict | None] = mapped_column(JSON)  # 入场时的市场状态 / 周线共振 / 背驰强度

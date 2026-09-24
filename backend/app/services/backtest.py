@@ -11,26 +11,32 @@
 - 指数基准：每笔交易计算同期中证 1000 的收益和超额；
 - 样本内外：按 split_date 切分，建议权重只用样本内数据计算。
 
+诊断：每笔交易记录入场时的市场状态（中证 1000 相对 60 日均线）、周线共振和背驰强度，
+按维度与同市场状态下的随机组比较；逐年滚动检验只用此前年份挑选"信号 × 市场状态"组合，再在下一年验证。
+
 已知局限：股票池是当前在市的股票，已退市股票的历史拿不到，存在幸存者偏差（会高估一买类信号）。
-个股周线共振、基本面和市场温度不参与回测。
+基本面和风险标签只有当前快照，不参与回测。
 """
 
 import asyncio
+import bisect
 import logging
 import random
 import statistics
 from dataclasses import dataclass, field
 from datetime import date, datetime
 
+import numpy as np
 from sqlalchemy import select
 
-from app.chan import TYPE_NAMES, analyze
+from app.chan import TYPE_NAMES, analyze, combine
 from app.chan.types import UP
 from app.db.models import BacktestRun, BacktestTrade, KlineDaily, StockBasic
 from app.db.session import session_scope
 from app.services.ashare_rules import is_one_price_limit_down, is_one_price_limit_up
 from app.services.chan_service import chan_config
 from app.services.jobs import JobContext
+from app.services.kline_utils import resample_weekly
 from app.services.strategy_config import get_active_params, save_config
 from app.services.sync import load_bars
 
@@ -57,6 +63,7 @@ class _Pos:
     target_hit: bool = False
     trail_reduced: bool = False
     handled_sells: set = field(default_factory=set)
+    tags: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -102,6 +109,7 @@ def backtest_series(code: str, bars: list, params: dict, warmup: int = 250, entr
                 "stop_pct": pos.r / pos.entry_price,
                 "rr": (pos.target1 - pos.entry_price) / pos.r if pos.target1 and pos.r else None,
                 "is_control": control is not None,
+                "tags": dict(pos.tags),
             })
             pos = None
 
@@ -204,7 +212,7 @@ def backtest_series(code: str, bars: list, params: dict, warmup: int = 250, entr
                 continue
             if r / entry > params["max_stop_distance"] and params["wide_stop_action"] == "skip":
                 continue
-            pos = _Pos(s.type, s.scope, t + 1, entry, stop, r, s.target1)
+            pos = _Pos(s.type, s.scope, t + 1, entry, stop, r, s.target1, tags=_entry_tags(bars, t, res, s, cfg))
             pending_exit = None
             break
 
@@ -212,6 +220,36 @@ def backtest_series(code: str, bars: list, params: dict, warmup: int = 250, entr
         last = bars[-1]
         close_part(n - 1, last.close, pos.remaining, "回测结束平仓")
     return trades
+
+
+def _entry_tags(bars: list, t: int, res, s, cfg) -> dict:
+    """入场时可见的周线共振与背驰强度（周线由截至当天的日线合成，最后一周可能不完整）。"""
+    weekly = resample_weekly(bars[: t + 1])
+    wres = analyze(weekly, "week", cfg) if len(weekly) >= 30 else None
+    reso = combine(res, wres).resonance
+    div = s.extra.get("divergence")
+    return {
+        "week": "up" if reso >= 0.2 else "down" if reso <= -0.2 else "flat",
+        "div": ("strong" if div.get("strong") else "normal") if div else "none",
+    }
+
+
+def regime_map(bench_bars: list) -> dict[date, str]:
+    """按中证 1000 收盘价相对 60 日均线及均线 20 日斜率划分市场状态。"""
+    closes = [b.close for b in bench_bars]
+    out: dict[date, str] = {}
+    for i, b in enumerate(bench_bars):
+        if i < 80:
+            continue
+        ma = sum(closes[i - 59 : i + 1]) / 60
+        ma_prev = sum(closes[i - 79 : i - 19]) / 60
+        if b.close > ma and ma > ma_prev:
+            out[b.dt] = "up"
+        elif b.close < ma and ma < ma_prev:
+            out[b.dt] = "down"
+        else:
+            out[b.dt] = "range"
+    return out
 
 
 # ---------- 统计 ----------
@@ -253,6 +291,127 @@ def bootstrap_edge(a: list[float], b: list[float], n: int = 1000, seed: int = 7)
     return {"edge": round(edge, 3), "ci_low": round(lo, 3), "ci_high": round(hi, 3), "significant": lo > 0 or hi < 0}
 
 
+REGIME_NAMES = {"up": "上涨", "down": "下跌", "range": "震荡", "unknown": "未知"}
+WEEK_NAMES = {"up": "周线共振向上", "flat": "周线中性", "down": "周线向下"}
+DIV_NAMES = {"strong": "强背驰", "normal": "普通背驰", "none": "无背驰数据"}
+SCOPE_NAMES = {"bi": "笔级别", "seg": "线段级别"}
+
+
+def _regime(t: dict) -> str:
+    return (t.get("tags") or {}).get("regime", "unknown")
+
+
+def _year_regime(t: dict) -> str:
+    return f"{t['entry_date'].year}|{_regime(t)}"
+
+
+def matched_edge(sig: list[dict], control: list[dict], strata=_regime, n: int = 500, seed: int = 7) -> dict | None:
+    """信号组与同分层随机组的平均 R 之差。随机组按信号组在各分层的占比加权，剔除择时带来的差异；
+    置信区间用分层自助法估计。分层内随机组少于 5 笔的信号交易不参与比较。"""
+    groups: dict[str, list[dict]] = {}
+    for t in control:
+        groups.setdefault(strata(t), []).append(t)
+    covered = [t for t in sig if len(groups.get(strata(t), [])) >= 5]
+    if len(covered) < 5:
+        return None
+    weights: dict[str, int] = {}
+    for t in covered:
+        weights[strata(t)] = weights.get(strata(t), 0) + 1
+    rng = np.random.default_rng(seed)
+    a = np.array([t["r_multiple"] for t in covered])
+    sig_means = a[rng.integers(0, len(a), (n, len(a)))].mean(axis=1)
+    ctrl_means = np.zeros(n)
+    ctrl_r = ctrl_ex = 0.0
+    for k, w in weights.items():
+        share = w / len(covered)
+        c = np.array([t["r_multiple"] for t in groups[k]])
+        ctrl_r += share * float(c.mean())
+        ex = [t["excess"] for t in groups[k] if t.get("excess") is not None]
+        ctrl_ex += share * (sum(ex) / len(ex) if ex else 0.0)
+        ctrl_means += share * c[rng.integers(0, len(c), (n, len(c)))].mean(axis=1)
+    diffs = np.sort(sig_means - ctrl_means)
+    lo, hi = float(diffs[int(n * 0.025)]), float(diffs[int(n * 0.975) - 1])
+    sig_ex = [t["excess"] for t in covered if t.get("excess") is not None]
+    return {
+        "trades": len(covered),
+        "edge": round(float(a.mean()) - ctrl_r, 3), "ci_low": round(lo, 3), "ci_high": round(hi, 3),
+        "significant": lo > 0 or hi < 0,
+        "control_avg_r": round(ctrl_r, 3),
+        "excess_edge": round((sum(sig_ex) / len(sig_ex) if sig_ex else 0.0) - ctrl_ex, 2),
+    }
+
+
+def _unit(t: dict) -> str:
+    return f"{t['signal_type']}|{_regime(t)}"
+
+
+def _unit_name(u: str) -> str:
+    sig, reg = u.split("|")
+    return f"{TYPE_NAMES.get(sig, sig)} · {REGIME_NAMES.get(reg, reg)}"
+
+
+def diagnose(trades: list[dict], control: list[dict]) -> list[dict]:
+    """按维度拆分信号交易，每组与同市场状态的随机组比较。"""
+    tag = lambda k, default: (lambda t: (t.get("tags") or {}).get(k, default))  # noqa: E731
+    dims = [
+        ("signal_type", "信号类型", lambda t: t["signal_type"], lambda v: TYPE_NAMES.get(v, v), _regime),
+        ("regime", "市场状态", _regime, lambda v: REGIME_NAMES.get(v, v), _regime),
+        ("type_regime", "信号 × 市场状态", _unit, _unit_name, _regime),
+        ("year", "年份", lambda t: str(t["entry_date"].year), lambda v: f"{v} 年", _year_regime),
+        ("week", "周线共振", tag("week", "flat"), lambda v: WEEK_NAMES.get(v, v), _regime),
+        ("div", "背驰强度", tag("div", "none"), lambda v: DIV_NAMES.get(v, v), _regime),
+        ("scope", "信号级别", lambda t: t.get("scope") or "bi", lambda v: SCOPE_NAMES.get(v, v), _regime),
+    ]
+    out = []
+    for key, title, fn, name, strata in dims:
+        buckets: dict[str, list[dict]] = {}
+        for t in trades:
+            buckets.setdefault(fn(t), []).append(t)
+        rows = [
+            {"key": v, "name": name(v), **_stat(ts), "matched": matched_edge(ts, control, strata)}
+            for v, ts in sorted(buckets.items())
+        ]
+        out.append({"key": key, "title": title, "rows": rows})
+    return out
+
+
+def walk_forward(trades: list[dict], control: list[dict], min_n: int = 10) -> dict:
+    """逐年滚动：只用此前年份的交易挑出跑赢同市场状态随机组的"信号 × 市场状态"组合，在当年检验。"""
+    year = lambda t: t["entry_date"].year  # noqa: E731
+    years = sorted({year(t) for t in trades})
+    folds, picked = [], []
+    for y in years[1:]:
+        train = [t for t in trades if year(t) < y]
+        ctrl_avg: dict[str, list[float]] = {}
+        for t in control:
+            if year(t) < y:
+                ctrl_avg.setdefault(_regime(t), []).append(t["r_multiple"])
+        units: dict[str, list[float]] = {}
+        for t in train:
+            units.setdefault(_unit(t), []).append(t["r_multiple"])
+        selected = sorted(
+            u for u, rs in units.items()
+            if len(rs) >= min_n and len(ctrl_avg.get(u.split("|")[1], [])) >= 5
+            and sum(rs) / len(rs) > sum(ctrl_avg[u.split("|")[1]]) / len(ctrl_avg[u.split("|")[1]])
+        )
+        test = [t for t in trades if year(t) == y]
+        ctest = [t for t in control if year(t) == y]
+        sel = [t for t in test if _unit(t) in selected]
+        picked.extend(sel)
+        folds.append({
+            "year": y, "train_trades": len(train), "selected": [_unit_name(u) for u in selected],
+            "test_all": _stat(test), "edge_all": matched_edge(test, ctest),
+            "test_selected": _stat(sel), "edge_selected": matched_edge(sel, ctest),
+        })
+    test_years = set(years[1:])
+    ctrl_test = [t for t in control if year(t) in test_years]
+    return {
+        "min_n": min_n,
+        "folds": folds,
+        "overall": {"selected": _stat(picked), "edge": matched_edge(picked, ctrl_test, _year_regime)},
+    }
+
+
 def _by(trades: list[dict], key: str, values: list[str], names: dict[str, str]) -> dict:
     return {v: {**_stat([t for t in trades if t[key] == v]), "name": names.get(v, v)} for v in values}
 
@@ -282,6 +441,10 @@ def summarize(trades: list[dict], control: list[dict] | None = None) -> tuple[di
     if control is not None:
         summary["control"] = _stat(control)
         summary["edge_ci"] = bootstrap_edge([t["r_multiple"] for t in trades], [t["r_multiple"] for t in control])
+        if all("regime" in t.get("tags", {}) for t in trades + control):
+            summary["matched_edge"] = matched_edge(trades, control, _year_regime)
+            summary["diagnostics"] = diagnose(trades, control)
+            summary["walk_forward"] = walk_forward(trades, control)
     summary["note"] = SURVIVORSHIP_NOTE
     suggested = suggest_weights(summary["in_sample"]["by_signal"] if ins else by_sig)
     return summary, by_sig, suggested
@@ -300,18 +463,23 @@ def _pick_codes(sample_size: int, codes: list[str] | None, seed: int) -> list[st
     return pool[:sample_size]
 
 
-def _attach_bench(trades: list[dict], bench: dict[date, float], bench_dates: list[date], split_date: date) -> None:
+def _attach_bench(trades: list[dict], bench: dict[date, float], bench_dates: list[date], split_date: date,
+                  regimes: dict[date, str] | None = None) -> None:
     def close_on(d: date) -> float | None:
         if d in bench:
             return bench[d]
-        prior = [x for x in bench_dates if x <= d]
-        return bench[prior[-1]] if prior else None
+        i = bisect.bisect_right(bench_dates, d)
+        return bench[bench_dates[i - 1]] if i else None
 
     for t in trades:
         b0, b1 = close_on(t["entry_date"]), close_on(t["exit_date"])
         t["bench_ret"] = (b1 / b0 - 1) * 100 if b0 and b1 else None
         t["excess"] = t["pnl_pct"] - t["bench_ret"] if t["bench_ret"] is not None else None
         t["segment"] = "in" if t["entry_date"] < split_date else "out"
+        if regimes is not None:
+            # 入场在次日开盘，市场状态取入场日之前最后一个交易日，避免用到当天收盘
+            i = bisect.bisect_left(bench_dates, t["entry_date"])
+            t.setdefault("tags", {})["regime"] = regimes.get(bench_dates[i - 1], "unknown") if i else "unknown"
 
 
 async def run_backtest(ctx: JobContext, sample_size: int = 50, codes: list[str] | None = None, lookback_bars: int = 750,
@@ -321,11 +489,12 @@ async def run_backtest(ctx: JobContext, sample_size: int = 50, codes: list[str] 
     if slippage is not None:
         params["slippage"] = slippage
     codes = _pick_codes(sample_size, codes, seed)
-    bench_bars = load_bars(KlineDaily, BENCH_CODE, lookback_bars + 250)
+    bench_bars = load_bars(KlineDaily, BENCH_CODE, lookback_bars + 350)
     bench = {b.dt: b.close for b in bench_bars}
+    regimes = regime_map(bench_bars)
     bench_dates = sorted(bench)
     if split_date is None:
-        tail = bench_dates[250:] or bench_dates
+        tail = bench_dates[350:] or bench_dates
         split_date = tail[int(len(tail) * params.get("backtest_split_ratio", 0.7))] if tail else date.today()
     with session_scope() as db:
         st_codes = set(db.execute(select(StockBasic.code).where(StockBasic.is_st.is_(True))).scalars())
@@ -383,9 +552,9 @@ async def run_backtest(ctx: JobContext, sample_size: int = 50, codes: list[str] 
             )
             control = await asyncio.to_thread(_control_pass, spec)
             run_params["control_spec"] = spec.__dict__
-        _attach_bench(trades, bench, bench_dates, split_date)
+        _attach_bench(trades, bench, bench_dates, split_date, regimes)
         if control:
-            _attach_bench(control, bench, bench_dates, split_date)
+            _attach_bench(control, bench, bench_dates, split_date, regimes)
         summary, by_sig, suggested = summarize(trades, control)
         cols = {c.name for c in BacktestTrade.__table__.columns} - {"id", "run_id"}
         with session_scope() as db:
@@ -431,7 +600,8 @@ def run_to_dict(r: BacktestRun, with_trades: bool = False) -> dict:
                 {"code": t.code, "signal_type": t.signal_type, "scope": t.scope, "entry_date": t.entry_date.isoformat(),
                  "entry_price": t.entry_price, "exit_date": t.exit_date.isoformat() if t.exit_date else None,
                  "exit_price": t.exit_price, "r_multiple": t.r_multiple, "pnl_pct": t.pnl_pct, "bench_ret": t.bench_ret,
-                 "excess": t.excess, "segment": t.segment, "exit_reason": t.exit_reason, "holding_days": t.holding_days}
+                 "excess": t.excess, "segment": t.segment, "exit_reason": t.exit_reason, "holding_days": t.holding_days,
+                 "tags": t.tags or {}}
                 for t in rows
             ]
             ctrl = db.execute(
