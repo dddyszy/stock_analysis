@@ -65,6 +65,8 @@ export const api = {
   backtestRuns: () => get('/backtest/runs'),
   backtestRun: (id: number) => get(`/backtest/runs/${id}`),
   backtestApply: (id: number, activate: boolean) => post(`/backtest/runs/${id}/apply`, { activate }),
+  backtestExperimentStart: (body: Any) => post('/backtest/experiments/exit', body),
+  backtestExperimentLatest: () => get('/backtest/experiments/latest'),
   // 设置
   overview: () => get('/settings/overview'),
   jobs: (limit = 30) => get('/settings/jobs', { limit }),

@@ -45,6 +45,8 @@ DEFAULT_PARAMS: dict = {
     # 信号质量
     "recommend_confirmed_only": True,  # 主推荐只收已确认信号，未确认的进观察池
     "scope_weight": 1.2,  # 线段级别信号相对笔级别的加权
+    "resonance_weight": 0.0,  # 周线共振在缠论分中的权重；回测显示共振向上时入场反而更差，默认不加分
+    "regime_block": ["B1|up", "B3|down"],  # 这些"信号|指数市场状态"组合回测显著跑输随机组，只进观察池
     "watch_top_n": 30,
     # 回测
     "slippage": 0.001,  # 单边滑点

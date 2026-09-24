@@ -22,6 +22,9 @@ from app.services.sync import load_bars
 logger = logging.getLogger(__name__)
 
 REGIME_NAMES = {"strong": "强势", "neutral": "震荡", "weak": "弱势"}
+# 回测诊断和信号降级使用的指数市场状态（中证 1000 相对 60 日均线）
+INDEX_REGIME_CODE = "sh000852"
+INDEX_REGIME_NAMES = {"up": "上涨", "down": "下跌", "range": "震荡", "unknown": "未知"}
 
 
 def index_state(code: str, end: date | None = None) -> dict | None:
@@ -227,6 +230,30 @@ async def compute_market_env(provider: DataProvider | None = None, end: date | N
         stmt = stmt.on_duplicate_key_update(**{k: stmt.inserted[k] for k in row if k != "trade_date"})
         db.execute(stmt)
     return {**row, "trade_date": end.isoformat()}
+
+
+def index_regime_map(bench_bars: list) -> dict[date, str]:
+    """按中证 1000 收盘价相对 60 日均线及均线 20 日斜率划分市场状态。"""
+    closes = [b.close for b in bench_bars]
+    out: dict[date, str] = {}
+    for i, b in enumerate(bench_bars):
+        if i < 80:
+            continue
+        ma = sum(closes[i - 59 : i + 1]) / 60
+        ma_prev = sum(closes[i - 79 : i - 19]) / 60
+        if b.close > ma and ma > ma_prev:
+            out[b.dt] = "up"
+        elif b.close < ma and ma < ma_prev:
+            out[b.dt] = "down"
+        else:
+            out[b.dt] = "range"
+    return out
+
+
+def latest_index_regime() -> str:
+    """最近交易日的指数市场状态（与回测同一口径）。"""
+    m = index_regime_map(load_bars(KlineDaily, INDEX_REGIME_CODE, 120))
+    return m[max(m)] if m else "unknown"
 
 
 def latest_market_env() -> dict | None:

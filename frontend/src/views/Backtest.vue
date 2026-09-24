@@ -20,9 +20,28 @@ const poller = useJobPoller((job) => {
     ElMessage[job.status === 'success' ? 'success' : 'error'](job.message || '回测结束')
     loadRuns(true)
   }
+  if (job.job_name === 'backtest_experiment') {
+    ElMessage[job.status === 'success' ? 'success' : 'error'](job.status === 'success' ? '出场规则实验完成' : job.message || '实验失败')
+    loadRuns()
+    loadExp()
+  }
 })
 
 const running = computed(() => poller.running.value.backtest)
+const expRunning = computed(() => poller.running.value.backtest_experiment)
+const exp = ref<any>(null)
+const bestExp = computed(() => {
+  const items: any[] = exp.value?.items || []
+  return items.length ? items.reduce((a, b) => ((b.avg_r ?? -99) > (a.avg_r ?? -99) ? b : a)) : null
+})
+async function loadExp() {
+  exp.value = await api.backtestExperimentLatest()
+}
+async function startExp() {
+  await api.backtestExperimentStart({ sample_size: 1000, lookback_bars: 950 })
+  ElMessage.success('出场规则实验已开始：1000 只股票 × 5 组规则')
+  poller.start('backtest_experiment')
+}
 const sigRows = computed(() =>
   ['B1', 'B2', 'B3'].map((k) => ({ type: k, ...(current.value?.by_signal?.[k] || { trades: 0 }) })),
 )
@@ -140,8 +159,9 @@ async function apply() {
 
 onMounted(() => {
   loadRuns()
+  loadExp()
   poller.tick().then(() => {
-    if (poller.running.value.backtest) poller.start()
+    if (poller.running.value.backtest || poller.running.value.backtest_experiment) poller.start()
   })
 })
 </script>
@@ -154,7 +174,7 @@ onMounted(() => {
       <div class="left">
         <SectionCard title="回测参数">
           <el-form label-position="top" size="small">
-            <el-form-item label="样本数量（从通过基本面过滤的股票中随机抽取）">
+            <el-form-item label="样本数量（从全部在市股票中随机抽取）">
               <el-input-number v-model="form.sample_size" :min="5" :max="2000" :step="50" style="width: 100%" />
             </el-form-item>
             <el-form-item label="回看 K 线数（另加 250 根预热）">
@@ -185,6 +205,13 @@ onMounted(() => {
           <el-progress v-if="running && running.total" :percentage="Math.round((running.progress / running.total) * 100)" :stroke-width="6" class="mt-8" />
         </SectionCard>
 
+        <SectionCard title="出场规则实验" class="mt">
+          <p class="muted small exp-desc">同一批 1000 只股票、同一随机种子，比较 5 组出场规则：基线、取消盈亏比过滤、目标一封顶 2R，以及两者组合。</p>
+          <el-button style="width: 100%" :loading="!!expRunning" :disabled="!!running" @click="startExp">
+            {{ expRunning ? expRunning.message || '实验进行中' : '运行实验' }}
+          </el-button>
+        </SectionCard>
+
         <SectionCard title="历史回测" class="mt" flush>
           <div v-if="runs.length" class="runs">
             <div v-for="r in runs" :key="r.id" class="run" :class="{ active: current?.id === r.id }" @click="open(r.id)">
@@ -193,6 +220,7 @@ onMounted(() => {
                 <el-tag size="small" :type="r.status === 'success' ? 'success' : r.status === 'failed' ? 'danger' : 'warning'" effect="plain">{{ r.status }}</el-tag>
               </div>
               <div class="muted small">{{ dt(r.created_at) }} · {{ r.params?.sample_size }} 只 · {{ r.params?.entry_mode === 'early' ? '提前入场' : '确认入场' }}</div>
+              <div v-if="r.params?.label" class="small run-label">{{ r.params.label }}</div>
               <div class="row small">
                 <span>{{ r.summary?.trades ?? 0 }} 笔</span>
                 <span>胜率 {{ ratioPct(r.summary?.win_rate) }}</span>
@@ -205,6 +233,27 @@ onMounted(() => {
       </div>
 
       <div class="right">
+        <SectionCard v-if="exp?.items?.length" title="出场规则实验对比" :subtitle="`${exp.sample_size} 只股票 · 同一样本同一种子 · 点击行查看该组详情`" class="exp-card" flush>
+          <el-table :data="exp.items" size="small" highlight-current-row @row-click="(row: any) => open(row.id)">
+            <el-table-column label="规则" min-width="170">
+              <template #default="{ row }">
+                {{ row.label }}
+                <el-tag v-if="bestExp && row.id === bestExp.id" size="small" type="success" effect="light">平均 R 最高</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="trades" label="笔数" width="64" />
+            <el-table-column label="胜率" width="70"><template #default="{ row }">{{ ratioPct(row.win_rate, 1) }}</template></el-table-column>
+            <el-table-column label="平均 R" width="72"><template #default="{ row }"><span class="num" :class="colorClass(row.avg_r)">{{ num(row.avg_r) }}</span></template></el-table-column>
+            <el-table-column label="平均收益" width="80"><template #default="{ row }"><span class="num" :class="colorClass(row.avg_pnl_pct)">{{ pct(row.avg_pnl_pct, 2) }}</span></template></el-table-column>
+            <el-table-column label="平均超额" width="80"><template #default="{ row }"><span class="num" :class="colorClass(row.avg_excess)">{{ pct(row.avg_excess, 2) }}</span></template></el-table-column>
+            <el-table-column label="触及目标一" width="90"><template #default="{ row }">{{ ratioPct(row.target_hit_ratio, 1) }}</template></el-table-column>
+            <el-table-column label="持有天数" width="80"><template #default="{ row }">{{ num(row.avg_holding_days, 1) }}</template></el-table-column>
+            <el-table-column label="相对随机组" width="150">
+              <template #default="{ row }"><span class="num" :class="colorClass(row.matched_edge?.edge)">{{ num(row.matched_edge?.edge, 2) }}</span> <span class="muted small">{{ ci(row.matched_edge) }}</span></template>
+            </el-table-column>
+            <el-table-column label="样本外 R" width="80"><template #default="{ row }"><span class="num" :class="colorClass(row.out_sample?.avg_r)">{{ num(row.out_sample?.avg_r) }}</span></template></el-table-column>
+          </el-table>
+        </SectionCard>
         <template v-if="current">
           <div class="grid grid-4">
             <StatCard label="交易笔数" :value="s.trades ?? 0" :sub="current.message" />
@@ -383,6 +432,16 @@ onMounted(() => {
 }
 .weight b {
   font-size: 16px;
+}
+.exp-desc {
+  margin: 0 0 10px;
+  line-height: 1.6;
+}
+.exp-card {
+  margin-bottom: 16px;
+}
+.run-label {
+  color: var(--c-primary);
 }
 .diag-bar {
   padding: 10px 16px;

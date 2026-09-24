@@ -12,7 +12,14 @@ from datetime import date
 from sqlalchemy import func, select
 
 from app.analysis.fundamental import FundamentalView, load_views
-from app.analysis.market_env import REGIME_NAMES, compute_market_env, latest_market_env, sector_strength_map
+from app.analysis.market_env import (
+    INDEX_REGIME_NAMES,
+    REGIME_NAMES,
+    compute_market_env,
+    latest_index_regime,
+    latest_market_env,
+    sector_strength_map,
+)
 from app.chan import TYPE_NAMES, Signal
 from app.db.models import KlineDaily, RecommendItem, RecommendRun, StockBasic
 from app.db.session import session_scope
@@ -59,7 +66,7 @@ def _pick_signal(a: StockAnalysis, params: dict, confirmed: bool | None) -> Sign
 
 
 def score_candidate(a: StockAnalysis, fund: FundamentalView, sector_strength: float, params: dict, regime: str,
-                    signal: Signal | None = None) -> dict | None:
+                    signal: Signal | None = None, index_regime: str = "unknown") -> dict | None:
     best = signal
     pool = "main"
     if best is None:
@@ -81,17 +88,23 @@ def score_candidate(a: StockAnalysis, fund: FundamentalView, sector_strength: fl
     div = best.extra.get("divergence") or {}
     strong = bool(div.get("strong"))
     type_w = params["signal_weights"].get(best.type, 0.5) * (params["scope_weight"] if best.scope == "seg" else 1.0)
+    reso_w = float(params.get("resonance_weight", 0.0))
     chan = 100 * _clamp(
-        0.45 * _clamp(type_w)
-        + 0.25 * best.strength
-        + 0.20 * (a.view.resonance + 1) / 2
-        + 0.10 * (1.0 if best.confirmed else 0.0)
+        (0.45 * _clamp(type_w)
+         + 0.25 * best.strength
+         + reso_w * (a.view.resonance + 1) / 2
+         + 0.10 * (1.0 if best.confirmed else 0.0)) / (0.80 + reso_w)
     )
+    blocked = f"{best.type}|{index_regime}" in (params.get("regime_block") or [])
+    if blocked:
+        pool = "watch"
     reasons = [f"日线{SCOPE_NAMES.get(best.scope, '')}{TYPE_NAMES[best.type]}（{best.dt.isoformat()}）：{best.desc}"]
     if strong:
         reasons.append(f"强背驰：{div.get('agree', 0)} 项指标同时背驰")
     if not best.confirmed:
         reasons.append("信号所在的笔或线段尚未确认，放入观察池")
+    if blocked:
+        reasons.append(f"大盘处于{INDEX_REGIME_NAMES.get(index_regime, index_regime)}期的{TYPE_NAMES[best.type]}，回测显著跑输随机入场，放入观察池")
     reasons.extend(a.view.notes)
     if rr < params["min_reward_risk"]:
         chan *= 0.8
@@ -125,7 +138,8 @@ def score_candidate(a: StockAnalysis, fund: FundamentalView, sector_strength: fl
 
 
 def _scan(codes: list[str], views: dict[str, FundamentalView], sectors: dict[str, float], industries: dict[str, str | None],
-          params: dict, regime: str, calc_date: date, ctx: JobContext, stats: dict) -> list[tuple[dict, StockAnalysis]]:
+          params: dict, regime: str, calc_date: date, ctx: JobContext, stats: dict,
+          index_regime: str = "unknown") -> list[tuple[dict, StockAnalysis]]:
     cfg = chan_config(params)
     results = []
     for i, code in enumerate(codes):
@@ -147,7 +161,8 @@ def _scan(codes: list[str], views: dict[str, FundamentalView], sectors: dict[str
             elif float_mv is not None and float_mv < params["min_float_mv"]:
                 stats["small_cap"] += 1
             else:
-                cand = score_candidate(a, views[code], sectors.get(industries.get(code) or "", 50.0), params, regime)
+                cand = score_candidate(a, views[code], sectors.get(industries.get(code) or "", 50.0), params, regime,
+                                       index_regime=index_regime)
                 if cand:
                     results.append((cand, a))
         ctx.update(done=i + 1, message=f"缠论扫描 {i + 1}/{len(codes)}，候选 {len(results)}")
@@ -167,6 +182,7 @@ async def run_recommendation(ctx: JobContext) -> dict:
             await compute_market_env(provider)
         env = latest_market_env()
     regime = env["regime"]
+    index_regime = latest_index_regime()
 
     with session_scope() as db:
         run = RecommendRun(run_date=latest_bar, status="running", market_regime=regime, position_cap=env["position_cap"],
@@ -182,7 +198,7 @@ async def run_recommendation(ctx: JobContext) -> dict:
     industries = {c: s.industry for c, s in basics.items()}
     stats = {"illiquid": 0, "small_cap": 0}
     ctx.update(done=0, total=len(passed), message=f"基本面与风险通过 {len(passed)}/{len(views)}，开始缠论扫描", force=True)
-    results = await asyncio.to_thread(_scan, passed, views, sectors, industries, params, regime, latest_bar, ctx, stats)
+    results = await asyncio.to_thread(_scan, passed, views, sectors, industries, params, regime, latest_bar, ctx, stats, index_regime)
     main = sorted([x for x in results if x[0]["pool"] == "main"], key=lambda x: x[0]["score"], reverse=True)
     watch = sorted([x for x in results if x[0]["pool"] == "watch"], key=lambda x: x[0]["score"], reverse=True)
     scan_count = len(results)
@@ -202,7 +218,8 @@ async def run_recommendation(ctx: JobContext) -> dict:
             fv = fresh_views.get(cand["code"])
             if fv is None or not fv.passed:
                 continue
-            new = score_candidate(a, fv, sectors.get(industries.get(cand["code"]) or "", 50.0), params, regime, cand["signal"])
+            new = score_candidate(a, fv, sectors.get(industries.get(cand["code"]) or "", 50.0), params, regime, cand["signal"],
+                                  index_regime=index_regime)
             if new:
                 rescored.append((new, a))
         main = sorted(rescored, key=lambda x: x[0]["score"], reverse=True)

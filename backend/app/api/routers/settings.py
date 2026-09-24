@@ -36,7 +36,7 @@ JOBS = {
 }
 
 
-OTHER_LABELS = {"backtest": "策略回测", "market_env": "计算市场环境", "mcp_probe": "探测 MCP 工具", "full_initialize": "首次初始化"}
+OTHER_LABELS = {"backtest": "策略回测", "backtest_experiment": "出场规则实验", "market_env": "计算市场环境", "mcp_probe": "探测 MCP 工具", "full_initialize": "首次初始化"}
 
 
 def _job_dict(j: JobLog) -> dict:

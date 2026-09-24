@@ -34,7 +34,7 @@ const SECTIONS = [
 ]
 
 // 策略参数：分组、中文名、说明、控件类型
-type Param = { key: string; label: string; desc: string; kind?: 'ratio' | 'int' | 'num' | 'select' | 'dict' | 'list' | 'bool'; step?: number; max?: number }
+type Param = { key: string; label: string; desc: string; kind?: 'ratio' | 'int' | 'num' | 'select' | 'dict' | 'list' | 'bool' | 'units'; step?: number; max?: number }
 const GROUPS: { title: string; items: Param[] }[] = [
   {
     title: '开仓风控',
@@ -91,6 +91,8 @@ const GROUPS: { title: string; items: Param[] }[] = [
       { key: 'finance_time_budget', label: '财报补拉时限（秒）', desc: '每次推荐为候选股补拉财报的最长时间（受 MCP 限频）', kind: 'int', step: 60 },
       { key: 'recommend_confirmed_only', label: '主推荐只收已确认信号', desc: '开启后，信号所在的笔或线段尚未确认的放入观察池，不进主推荐、不写回 App', kind: 'bool' },
       { key: 'scope_weight', label: '线段级别信号加权', desc: '线段级别买点是真正的日线级别买点，相对笔级别给更高权重', kind: 'num', step: 0.05 },
+      { key: 'resonance_weight', label: '周线共振权重', desc: '周线共振在缠论分中的权重。1000 只股票回测显示共振向上时入场反而更差，默认 0（只展示不加分）', kind: 'num', step: 0.05 },
+      { key: 'regime_block', label: '按大盘状态降级的信号', desc: '勾选的"信号 × 大盘状态"组合只进观察池。大盘状态按中证 1000 相对 60 日均线划分，与回测口径一致', kind: 'units' },
       { key: 'watch_top_n', label: '观察池数量', desc: '每次推荐保留的观察池股票数', kind: 'int', step: 5 },
     ],
   },
@@ -109,6 +111,12 @@ const GROUPS: { title: string; items: Param[] }[] = [
     ],
   },
 ]
+const UNIT_OPTIONS = ['B1', 'B2', 'B3'].flatMap((sig) =>
+  [['up', '上涨'], ['range', '震荡'], ['down', '下跌']].map(([reg, name]) => ({
+    value: `${sig}|${reg}`,
+    label: `${{ B1: '一买', B2: '二买', B3: '三买' }[sig]} · ${name}`,
+  })),
+)
 const OPTIONS: Record<string, { value: string; label: string }[]> = {
   wide_stop_action: [
     { value: 'half', label: '仓位减半' },
@@ -429,6 +437,9 @@ onMounted(async () => {
                     <span class="num ratio-v">{{ (editing[p.key] * 100).toFixed(1) }}%</span>
                   </template>
                   <el-switch v-else-if="p.kind === 'bool'" v-model="editing[p.key]" />
+                  <el-checkbox-group v-else-if="p.kind === 'units'" v-model="editing[p.key]" class="units">
+                    <el-checkbox v-for="u in UNIT_OPTIONS" :key="u.value" :value="u.value" size="small">{{ u.label }}</el-checkbox>
+                  </el-checkbox-group>
                   <el-select v-else-if="p.kind === 'select'" v-model="editing[p.key]" style="width: 220px">
                     <el-option v-for="o in OPTIONS[p.key]" :key="o.value" :value="o.value" :label="o.label" />
                   </el-select>
@@ -638,5 +649,10 @@ onMounted(async () => {
   background: var(--c-surface);
   padding-top: 12px;
   border-top: 1px solid var(--c-border);
+}
+.units {
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  column-gap: 12px;
 }
 </style>

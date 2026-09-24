@@ -6,7 +6,7 @@ from sqlalchemy import select
 
 from app.db.models import BacktestRun
 from app.db.session import session_scope
-from app.services.backtest import apply_suggested_weights, run_backtest, run_to_dict
+from app.services.backtest import apply_suggested_weights, compare_runs, run_backtest, run_exit_experiment, run_to_dict
 from app.services.jobs import start_job
 
 router = APIRouter(prefix="/api/backtest", tags=["backtest"])
@@ -28,6 +28,23 @@ async def start(req: BacktestRequest) -> dict:
     start_job("backtest", lambda ctx: run_backtest(ctx, req.sample_size, req.codes, req.lookback_bars, req.entry_mode, req.seed,
                                                    req.split_date, req.slippage, req.with_control))
     return {"started": True}
+
+
+class ExperimentRequest(BaseModel):
+    sample_size: int = 1000
+    lookback_bars: int = 950
+    seed: int = 2026
+
+
+@router.post("/experiments/exit")
+async def start_exit_experiment(req: ExperimentRequest) -> dict:
+    start_job("backtest_experiment", lambda ctx: run_exit_experiment(ctx, req.sample_size, req.lookback_bars, req.seed))
+    return {"started": True}
+
+
+@router.get("/experiments/latest")
+def latest_experiment(experiment: str | None = None) -> dict:
+    return compare_runs(experiment)
 
 
 @router.get("/runs")

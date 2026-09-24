@@ -2,7 +2,8 @@ import random
 from datetime import date, timedelta
 
 from app.providers.base import Bar
-from app.services.backtest import diagnose, matched_edge, regime_map, walk_forward
+from app.analysis.market_env import index_regime_map as regime_map
+from app.services.backtest import diagnose, matched_edge, walk_forward
 
 
 def _t(sig: str, regime: str, r: float, year: int = 2024, excess: float = 0.0, **tags) -> dict:
@@ -63,3 +64,17 @@ def test_regime_map():
     down = [Bar(d0 + timedelta(days=120 + i), 0, 0, 0, 219 - 2 * i) for i in range(100)]
     m = regime_map(up + down)
     assert m[up[100].dt] == "up" and m[down[-1].dt] == "down" and up[10].dt not in m
+
+
+def test_target_hit_recorded_even_if_final_exit_is_stop():
+    from app.services.backtest import _ControlSpec, _stat, backtest_series
+    from app.services.strategy_config import DEFAULT_PARAMS
+
+    d0 = date(2024, 1, 1)
+    closes = [10.0] * 6 + [10.2, 10.5, 10.8, 10.6, 10.3, 10.0, 9.7, 9.4, 9.2, 9.0]
+    bars = [Bar(d0 + timedelta(days=i), c, c * 1.01, c * 0.99, c, 1e5) for i, c in enumerate(closes)]
+    params = {**DEFAULT_PARAMS, "slippage": 0.0}
+    trades = backtest_series("sz000001", bars, params, warmup=5, control=_ControlSpec(prob=1.0, stop_pct=0.05, rr=1.0))
+    first = trades[0]
+    assert first["tags"]["target_hit"] and first["exit_reason"] != "目标一"
+    assert _stat(trades)["target_hit_ratio"] > 0

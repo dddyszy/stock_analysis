@@ -21,14 +21,17 @@
 import asyncio
 import bisect
 import logging
+import os
 import random
 import statistics
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import date, datetime
 
 import numpy as np
 from sqlalchemy import select
 
+from app.analysis.market_env import INDEX_REGIME_CODE, INDEX_REGIME_NAMES, index_regime_map
 from app.chan import TYPE_NAMES, analyze, combine
 from app.chan.types import UP
 from app.db.models import BacktestRun, BacktestTrade, KlineDaily, StockBasic
@@ -43,7 +46,7 @@ from app.services.sync import load_bars
 logger = logging.getLogger(__name__)
 
 WINDOW = 400
-BENCH_CODE = "sh000852"  # 中证 1000
+BENCH_CODE = INDEX_REGIME_CODE  # 中证 1000
 SURVIVORSHIP_NOTE = "股票池为当前在市股票，已退市股票的历史无法获取，结果存在幸存者偏差，一买类信号可能被高估。"
 
 
@@ -109,7 +112,7 @@ def backtest_series(code: str, bars: list, params: dict, warmup: int = 250, entr
                 "stop_pct": pos.r / pos.entry_price,
                 "rr": (pos.target1 - pos.entry_price) / pos.r if pos.target1 and pos.r else None,
                 "is_control": control is not None,
-                "tags": dict(pos.tags),
+                "tags": {**pos.tags, "target_hit": pos.target_hit},
             })
             pos = None
 
@@ -212,7 +215,11 @@ def backtest_series(code: str, bars: list, params: dict, warmup: int = 250, entr
                 continue
             if r / entry > params["max_stop_distance"] and params["wide_stop_action"] == "skip":
                 continue
-            pos = _Pos(s.type, s.scope, t + 1, entry, stop, r, s.target1, tags=_entry_tags(bars, t, res, s, cfg))
+            target1 = s.target1
+            cap = params.get("target_cap_r")
+            if cap and target1:
+                target1 = min(target1, entry + cap * r)
+            pos = _Pos(s.type, s.scope, t + 1, entry, stop, r, target1, tags=_entry_tags(bars, t, res, s, cfg))
             pending_exit = None
             break
 
@@ -234,24 +241,6 @@ def _entry_tags(bars: list, t: int, res, s, cfg) -> dict:
     }
 
 
-def regime_map(bench_bars: list) -> dict[date, str]:
-    """按中证 1000 收盘价相对 60 日均线及均线 20 日斜率划分市场状态。"""
-    closes = [b.close for b in bench_bars]
-    out: dict[date, str] = {}
-    for i, b in enumerate(bench_bars):
-        if i < 80:
-            continue
-        ma = sum(closes[i - 59 : i + 1]) / 60
-        ma_prev = sum(closes[i - 79 : i - 19]) / 60
-        if b.close > ma and ma > ma_prev:
-            out[b.dt] = "up"
-        elif b.close < ma and ma < ma_prev:
-            out[b.dt] = "down"
-        else:
-            out[b.dt] = "range"
-    return out
-
-
 # ---------- 统计 ----------
 
 
@@ -271,6 +260,7 @@ def _stat(ts: list[dict]) -> dict:
         "profit_factor": round(sum(wins) / sum(losses), 2) if losses else None,
         "avg_holding_days": round(sum(t["holding_days"] for t in ts) / len(ts), 1),
         "max_loss_r": round(min(rs), 2),
+        "target_hit_ratio": round(sum(1 for t in ts if (t.get("tags") or {}).get("target_hit")) / len(ts), 3),
         "max_win_r": round(max(rs), 2),
     }
 
@@ -291,7 +281,7 @@ def bootstrap_edge(a: list[float], b: list[float], n: int = 1000, seed: int = 7)
     return {"edge": round(edge, 3), "ci_low": round(lo, 3), "ci_high": round(hi, 3), "significant": lo > 0 or hi < 0}
 
 
-REGIME_NAMES = {"up": "上涨", "down": "下跌", "range": "震荡", "unknown": "未知"}
+REGIME_NAMES = INDEX_REGIME_NAMES
 WEEK_NAMES = {"up": "周线共振向上", "flat": "周线中性", "down": "周线向下"}
 DIV_NAMES = {"strong": "强背驰", "normal": "普通背驰", "none": "无背驰数据"}
 SCOPE_NAMES = {"bi": "笔级别", "seg": "线段级别"}
@@ -452,6 +442,30 @@ def summarize(trades: list[dict], control: list[dict] | None = None) -> tuple[di
 
 # ---------- 运行 ----------
 
+WORKERS = max(1, min(6, (os.cpu_count() or 2) - 2))
+
+
+def _series_worker(args: tuple) -> list[dict]:
+    code, bars, params, kwargs, rng_seed = args
+    try:
+        return backtest_series(code, bars, params, rng=random.Random(rng_seed), **kwargs)
+    except Exception:
+        logger.exception("回测 %s 失败", code)
+        return []
+
+
+def _run_parallel(tasks: list[tuple], on_done) -> list[dict]:
+    """多进程逐只回测；每只股票的随机数种子由代码决定，结果与并行顺序无关。"""
+    out: list[dict] = []
+    with ProcessPoolExecutor(max_workers=WORKERS) as pool:
+        futures = [pool.submit(_series_worker, t) for t in tasks]
+        for i, f in enumerate(as_completed(futures)):
+            out.extend(f.result())
+            on_done(i + 1, len(out))
+    out.sort(key=lambda t: (t["entry_date"], t["code"]))
+    return out
+
+
 
 def _pick_codes(sample_size: int, codes: list[str] | None, seed: int) -> list[str]:
     if codes:
@@ -482,16 +496,23 @@ def _attach_bench(trades: list[dict], bench: dict[date, float], bench_dates: lis
             t.setdefault("tags", {})["regime"] = regimes.get(bench_dates[i - 1], "unknown") if i else "unknown"
 
 
+EXPERIMENT_KEYS = {"target_cap_r", "rr_filter", "min_reward_risk", "hard_stop_pct", "time_stop_bars"}
+
+
 async def run_backtest(ctx: JobContext, sample_size: int = 50, codes: list[str] | None = None, lookback_bars: int = 750,
                        entry_mode: str = "confirmed", seed: int = 42, split_date: date | None = None,
-                       slippage: float | None = None, with_control: bool = True) -> dict:
+                       slippage: float | None = None, with_control: bool = True, overrides: dict | None = None,
+                       label: str | None = None, experiment: str | None = None) -> dict:
     params = get_active_params()
     if slippage is not None:
         params["slippage"] = slippage
+    overrides = {k: v for k, v in (overrides or {}).items() if k in EXPERIMENT_KEYS}
+    params.update(overrides)
+    use_rr_filter = bool(params.pop("rr_filter", True))
     codes = _pick_codes(sample_size, codes, seed)
     bench_bars = load_bars(KlineDaily, BENCH_CODE, lookback_bars + 350)
     bench = {b.dt: b.close for b in bench_bars}
-    regimes = regime_map(bench_bars)
+    regimes = index_regime_map(bench_bars)
     bench_dates = sorted(bench)
     if split_date is None:
         tail = bench_dates[350:] or bench_dates
@@ -502,6 +523,7 @@ async def run_backtest(ctx: JobContext, sample_size: int = 50, codes: list[str] 
     run_params = {
         "sample_size": len(codes), "lookback_bars": lookback_bars, "entry_mode": entry_mode, "seed": seed,
         "split_date": split_date.isoformat(), "slippage": params["slippage"], "with_control": with_control,
+        "label": label, "overrides": overrides, "experiment": experiment,
         "strategy": {k: params[k] for k in ("hard_stop_pct", "min_reward_risk", "time_stop_bars", "batch_ratios", "signal_recent_bars")},
     }
     with session_scope() as db:
@@ -513,32 +535,19 @@ async def run_backtest(ctx: JobContext, sample_size: int = 50, codes: list[str] 
     ctx.update(done=0, total=total_steps, message=f"回测 {len(codes)} 只股票", force=True)
 
     series: dict[str, list] = {}
+    tag = f"{label}：" if label else ""
 
     def _signals_pass() -> list[dict]:
-        out = []
-        for i, code in enumerate(codes):
-            bars = load_bars(KlineDaily, code, lookback_bars + 250)
-            series[code] = bars
-            if len(bars) >= 400:
-                try:
-                    out.extend(backtest_series(code, bars, params, warmup=250, entry_mode=entry_mode, is_st=code in st_codes))
-                except Exception:
-                    logger.exception("回测 %s 失败", code)
-            ctx.update(done=i + 1, message=f"信号回测 {i + 1}/{len(codes)}，累计 {len(out)} 笔")
-        return out
+        for code in codes:
+            series[code] = load_bars(KlineDaily, code, lookback_bars + 250)
+        kw = {"warmup": 250, "entry_mode": entry_mode, "use_rr_filter": use_rr_filter}
+        tasks = [(c, b, params, {**kw, "is_st": c in st_codes}, f"{seed}-{c}") for c, b in series.items() if len(b) >= 400]
+        return _run_parallel(tasks, lambda i, n: ctx.update(done=i, message=f"{tag}信号回测 {i}/{len(tasks)}，累计 {n} 笔"))
 
     def _control_pass(spec: _ControlSpec) -> list[dict]:
-        out = []
-        rng = random.Random(seed + 1)
-        for i, code in enumerate(codes):
-            bars = series.get(code) or []
-            if len(bars) >= 400:
-                try:
-                    out.extend(backtest_series(code, bars, params, warmup=250, is_st=code in st_codes, control=spec, rng=rng))
-                except Exception:
-                    logger.exception("对照组回测 %s 失败", code)
-            ctx.update(done=len(codes) + i + 1, message=f"随机对照 {i + 1}/{len(codes)}，累计 {len(out)} 笔")
-        return out
+        tasks = [(c, b, params, {"warmup": 250, "is_st": c in st_codes, "control": spec}, f"{seed}-ctrl-{c}")
+                 for c, b in series.items() if len(b) >= 400]
+        return _run_parallel(tasks, lambda i, n: ctx.update(done=len(codes) + i, message=f"{tag}随机对照 {i}/{len(tasks)}，累计 {n} 笔"))
 
     try:
         trades = await asyncio.to_thread(_signals_pass)
@@ -564,7 +573,7 @@ async def run_backtest(ctx: JobContext, sample_size: int = 50, codes: list[str] 
             run.status, run.summary, run.by_signal, run.suggested_weights = "success", summary, by_sig, suggested
             run.params = run_params
             run.finished_at = datetime.now()
-            run.message = f"{len(codes)} 只股票，信号交易 {len(trades)} 笔，对照 {len(control or [])} 笔"
+            run.message = f"{label + '：' if label else ''}{len(codes)} 只股票，信号交易 {len(trades)} 笔，对照 {len(control or [])} 笔"
     except Exception as exc:
         with session_scope() as db:
             run = db.get(BacktestRun, run_id)
@@ -572,6 +581,54 @@ async def run_backtest(ctx: JobContext, sample_size: int = 50, codes: list[str] 
         raise
     ctx.update(message=f"回测完成：信号 {len(trades)} 笔，对照 {len(control or [])} 笔", force=True)
     return {"run_id": run_id, "trades": len(trades), "summary": {k: summary.get(k) for k in ("trades", "avg_r", "win_rate")}}
+
+
+EXIT_VARIANTS = [
+    ("基线：盈亏比过滤 + 缠论目标", {}),
+    ("取消盈亏比过滤", {"rr_filter": False}),
+    ("目标一封顶 2R", {"target_cap_r": 2.0}),
+    ("取消过滤 + 目标一封顶 2R", {"rr_filter": False, "target_cap_r": 2.0}),
+    ("取消过滤 + 目标一封顶 1.5R", {"rr_filter": False, "target_cap_r": 1.5}),
+]
+
+
+async def run_exit_experiment(ctx: JobContext, sample_size: int = 1000, lookback_bars: int = 950, seed: int = 2026) -> dict:
+    """同一批股票、同一随机种子下比较几组出场规则，每组存为一条回测记录。"""
+    experiment = f"exit-{datetime.now():%Y%m%d%H%M}"
+    codes = _pick_codes(sample_size, None, seed)
+    run_ids = []
+    for label, overrides in EXIT_VARIANTS:
+        res = await run_backtest(ctx, codes=codes, lookback_bars=lookback_bars, seed=seed, overrides=overrides,
+                                 label=label, experiment=experiment)
+        run_ids.append(res["run_id"])
+    return {"experiment": experiment, "run_ids": run_ids}
+
+
+def compare_runs(experiment: str | None = None) -> dict:
+    """一次实验内各组的关键指标；不指定时取最近一次实验。"""
+    with session_scope() as db:
+        rows = db.execute(select(BacktestRun).where(BacktestRun.status == "success").order_by(BacktestRun.id.desc()).limit(200)).scalars().all()
+        runs = [r for r in rows if (r.params or {}).get("experiment")]
+        if experiment is None and runs:
+            experiment = runs[0].params["experiment"]
+        runs = sorted((r for r in runs if r.params["experiment"] == experiment), key=lambda r: r.id)
+        items = []
+        for r in runs:
+            s = r.summary or {}
+            reasons = s.get("exit_reasons") or {}
+            n = s.get("trades") or 0
+            items.append({
+                "id": r.id, "label": r.params.get("label"), "overrides": r.params.get("overrides"),
+                "trades": n, "win_rate": s.get("win_rate"), "avg_r": s.get("avg_r"), "avg_pnl_pct": s.get("avg_pnl_pct"),
+                "avg_excess": s.get("avg_excess"), "profit_factor": s.get("profit_factor"),
+                "avg_holding_days": s.get("avg_holding_days"),
+                "target_hit_ratio": s.get("target_hit_ratio"),
+                "stop_ratio": round(sum(v for k, v in reasons.items() if "止损" in k) / n, 3) if n else None,
+                "matched_edge": s.get("matched_edge"),
+                "out_sample": {k: (s.get("out_sample") or {}).get(k) for k in ("trades", "avg_r", "avg_excess")},
+                "walk_forward": ((s.get("walk_forward") or {}).get("overall") or {}).get("edge"),
+            })
+    return {"experiment": experiment, "sample_size": runs[0].params.get("sample_size") if runs else None, "items": items}
 
 
 def apply_suggested_weights(run_id: int, activate: bool = False) -> int:
