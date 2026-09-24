@@ -7,6 +7,8 @@
 - 数据源：腾讯自选股 [westock-mcp](https://github.com/infometa/workbuddyskills/tree/main/connectors/westock-mcp)（streamable HTTP，OAuth 授权）+ 腾讯公开行情接口
 - 范围：沪深 A 股（`EXCHANGES=sh,sz`）
 
+文档：[使用指南](docs/使用指南.md) · [迭代计划](docs/迭代计划.md)
+
 ## 数据来源分工
 
 westock-mcp 的行情类工具（K 线、行情、财报等）实测每个约每分钟 3~5 次，全市场回填不可行，因此：
