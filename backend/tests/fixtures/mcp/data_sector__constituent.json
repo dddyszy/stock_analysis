@@ -1,0 +1,9 @@
+{
+  "tool": "data_sector",
+  "args": {
+    "mode": "constituent",
+    "code": "pt01801080",
+    "limit": 500
+  },
+  "payload": "查询板块成份股异常：error_type=2 suggest=3 msg=service error"
+}

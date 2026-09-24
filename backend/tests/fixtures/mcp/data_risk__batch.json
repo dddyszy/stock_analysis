@@ -1,0 +1,7 @@
+{
+  "tool": "data_risk",
+  "args": {
+    "codes": "sh600519,sz000001"
+  },
+  "payload": "风险事件-特别处理异常：error_type=2 suggest=2 msg=服务限频"
+}

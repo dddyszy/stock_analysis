@@ -1,0 +1,19 @@
+{
+  "tool": "portfolio_paper_portfolio",
+  "args": {},
+  "payload": {
+    "ok": true,
+    "data": {
+      "portfolio": {
+        "id": "practice_000",
+        "name": "练习赛组合",
+        "totalAssets": "1000000.00",
+        "marketValue": "0.00",
+        "availableCash": "1000000.00",
+        "initialCash": 1000000.00,
+        "totalProfit": "+0.00",
+        "totalProfitRate": 0
+      }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "tool": "data_technical",
+  "args": {
+    "code": "sh600519",
+    "indicator": "macd"
+  },
+  "payload": "查询技术指标异常：error_type=2 suggest=2 msg=服务限频"
+}

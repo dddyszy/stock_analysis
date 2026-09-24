@@ -1,0 +1,219 @@
+{
+  "tool": "tool_filter",
+  "args": {
+    "expression": "intersect([PE_TTM > 0, PE_TTM < 20, ROETTM > 15])",
+    "limit": 50
+  },
+  "payload": {
+    "ok": true,
+    "data": {
+      "totalStocks": 207,
+      "stockAmountInUniverse": "全市场",
+      "stocks": [
+        {
+          "code": "sz000656",
+          "name": "金科股份"
+        },
+        {
+          "code": "sh600841",
+          "name": "动力新科"
+        },
+        {
+          "code": "sz002582",
+          "name": "好想你"
+        },
+        {
+          "code": "sh601336",
+          "name": "新华保险"
+        },
+        {
+          "code": "sz002611",
+          "name": "东方精工"
+        },
+        {
+          "code": "sh601628",
+          "name": "中国人寿"
+        },
+        {
+          "code": "sh601601",
+          "name": "中国太保"
+        },
+        {
+          "code": "sz000415",
+          "name": "渤海租赁"
+        },
+        {
+          "code": "sh601318",
+          "name": "中国平安"
+        },
+        {
+          "code": "sh601319",
+          "name": "中国人保"
+        },
+        {
+          "code": "sh688330",
+          "name": "宏力达"
+        },
+        {
+          "code": "sz002432",
+          "name": "九安医疗"
+        },
+        {
+          "code": "sz300456",
+          "name": "赛微电子"
+        },
+        {
+          "code": "sz000913",
+          "name": "钱江摩托"
+        },
+        {
+          "code": "sz000612",
+          "name": "焦作万方"
+        },
+        {
+          "code": "sz000567",
+          "name": "海德股份"
+        },
+        {
+          "code": "sz002546",
+          "name": "新联电子"
+        },
+        {
+          "code": "sz000701",
+          "name": "厦门信达"
+        },
+        {
+          "code": "sz000651",
+          "name": "格力电器"
+        },
+        {
+          "code": "sz002532",
+          "name": "天山铝业"
+        },
+        {
+          "code": "sz000151",
+          "name": "中成股份"
+        },
+        {
+          "code": "sz000807",
+          "name": "云铝股份"
+        },
+        {
+          "code": "sh600595",
+          "name": "中孚实业"
+        },
+        {
+          "code": "sz000933",
+          "name": "神火股份"
+        },
+        {
+          "code": "sh600210",
+          "name": "紫江企业"
+        },
+        {
+          "code": "sz002379",
+          "name": "宏桥控股"
+        },
+        {
+          "code": "sz000672",
+          "name": "上峰材料"
+        },
+        {
+          "code": "sh601600",
+          "name": "中国铝业"
+        },
+        {
+          "code": "sz002452",
+          "name": "长高电气"
+        },
+        {
+          "code": "sz002612",
+          "name": "朗姿股份"
+        },
+        {
+          "code": "sh603049",
+          "name": "中策橡胶"
+        },
+        {
+          "code": "sz300926",
+          "name": "博俊科技"
+        },
+        {
+          "code": "sh600096",
+          "name": "云天化"
+        },
+        {
+          "code": "sh605599",
+          "name": "菜百股份"
+        },
+        {
+          "code": "sh688332",
+          "name": "中科蓝讯"
+        },
+        {
+          "code": "sz002668",
+          "name": "TCL智家"
+        },
+        {
+          "code": "sz002170",
+          "name": "芭田股份"
+        },
+        {
+          "code": "sz002357",
+          "name": "富临运业"
+        },
+        {
+          "code": "sz300773",
+          "name": "拉卡拉"
+        },
+        {
+          "code": "sz301219",
+          "name": "腾远钴业"
+        },
+        {
+          "code": "sh600346",
+          "name": "恒力石化"
+        },
+        {
+          "code": "sh600961",
+          "name": "株冶集团"
+        },
+        {
+          "code": "sz002648",
+          "name": "卫星化学"
+        },
+        {
+          "code": "sz000680",
+          "name": "山推股份"
+        },
+        {
+          "code": "sh603271",
+          "name": "永杰新材"
+        },
+        {
+          "code": "sz000792",
+          "name": "盐湖股份"
+        },
+        {
+          "code": "sh603558",
+          "name": "健盛集团"
+        },
+        {
+          "code": "sh600066",
+          "name": "宇通客车"
+        },
+        {
+          "code": "sh600710",
+          "name": "苏美达"
+        },
+        {
+          "code": "sh600989",
+          "name": "宝丰能源"
+        }
+      ],
+      "portfolioPath": "1233f79e-d67e-4bd0-8bc3-481a46da06a0",
+      "expression": "intersect([PE_TTM > 0, PE_TTM < 20, ROETTM > 15])",
+      "date": "2026-09-24 15:21:15"
+    }
+  }
+}

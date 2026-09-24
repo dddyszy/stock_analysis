@@ -1,0 +1,12 @@
+{
+  "tool": "portfolio_tips_query",
+  "args": {},
+  "payload": {
+    "ok": true,
+    "data": {
+      "code": 0,
+      "data": [],
+      "msg": ""
+    }
+  }
+}

@@ -1,0 +1,839 @@
+{
+  "tool": "tool_label",
+  "args": {
+    "names": "risk_st",
+    "limit": 500
+  },
+  "payload": {
+    "ok": true,
+    "data": {
+      "kyp_risk_st": {
+        "listCode": "kyp_risk_st",
+        "listName": "ST与*ST股",
+        "listGroup": "风险标签",
+        "date": "2026-09-23",
+        "stocks": [
+          {
+            "code": "sz002719",
+            "name": "ST麦趣"
+          },
+          {
+            "code": "sz300212",
+            "name": "*ST易录"
+          },
+          {
+            "code": "sz000911",
+            "name": "*ST广糖"
+          },
+          {
+            "code": "sh603838",
+            "name": "*ST四通"
+          },
+          {
+            "code": "sh603822",
+            "name": "ST嘉澳"
+          },
+          {
+            "code": "sz000669",
+            "name": "ST金鸿"
+          },
+          {
+            "code": "sz300245",
+            "name": "ST天玑"
+          },
+          {
+            "code": "sh600302",
+            "name": "ST标准"
+          },
+          {
+            "code": "sz002726",
+            "name": "ST龙大"
+          },
+          {
+            "code": "sh601010",
+            "name": "ST文峰"
+          },
+          {
+            "code": "sz002717",
+            "name": "*ST岭南"
+          },
+          {
+            "code": "bj920575",
+            "name": "*ST康乐"
+          },
+          {
+            "code": "sz002650",
+            "name": "ST加加"
+          },
+          {
+            "code": "sz002542",
+            "name": "*ST中岩"
+          },
+          {
+            "code": "sz300044",
+            "name": "*ST赛为"
+          },
+          {
+            "code": "sz002822",
+            "name": "ST中装"
+          },
+          {
+            "code": "sh600080",
+            "name": "ST金花"
+          },
+          {
+            "code": "sh603378",
+            "name": "*ST亚士"
+          },
+          {
+            "code": "sh600734",
+            "name": "*ST实达"
+          },
+          {
+            "code": "sz002547",
+            "name": "*ST春兴"
+          },
+          {
+            "code": "sz002217",
+            "name": "ST合力泰"
+          },
+          {
+            "code": "sz300027",
+            "name": "ST华谊"
+          },
+          {
+            "code": "sh603718",
+            "name": "*ST海利"
+          },
+          {
+            "code": "sh688496",
+            "name": "*ST清越"
+          },
+          {
+            "code": "sz002227",
+            "name": "*ST特迅"
+          },
+          {
+            "code": "sz000056",
+            "name": "*ST皇庭"
+          },
+          {
+            "code": "sz300147",
+            "name": "*ST香雪"
+          },
+          {
+            "code": "sz002198",
+            "name": "ST嘉应"
+          },
+          {
+            "code": "sz300352",
+            "name": "ST信源"
+          },
+          {
+            "code": "sh603843",
+            "name": "*ST正平"
+          },
+          {
+            "code": "sz002569",
+            "name": "*ST步森"
+          },
+          {
+            "code": "sh600169",
+            "name": "ST太重"
+          },
+          {
+            "code": "sh603789",
+            "name": "ST星农"
+          },
+          {
+            "code": "sz300477",
+            "name": "ST合纵"
+          },
+          {
+            "code": "sz000793",
+            "name": "ST华闻"
+          },
+          {
+            "code": "sz300462",
+            "name": "ST华铭"
+          },
+          {
+            "code": "sz002102",
+            "name": "ST能特"
+          },
+          {
+            "code": "sz300167",
+            "name": "ST迪威迅"
+          },
+          {
+            "code": "sh600678",
+            "name": "ST金顶"
+          },
+          {
+            "code": "sh688121",
+            "name": "*ST卓然"
+          },
+          {
+            "code": "sz002122",
+            "name": "ST汇洲"
+          },
+          {
+            "code": "sz301030",
+            "name": "*ST仕净"
+          },
+          {
+            "code": "sh603828",
+            "name": "*ST利达"
+          },
+          {
+            "code": "sh600107",
+            "name": "*ST尔雅"
+          },
+          {
+            "code": "sz300068",
+            "name": "ST南都"
+          },
+          {
+            "code": "sz002634",
+            "name": "*ST棒杰"
+          },
+          {
+            "code": "sz000010",
+            "name": "*ST美丽"
+          },
+          {
+            "code": "sz002883",
+            "name": "*ST中设"
+          },
+          {
+            "code": "sz002109",
+            "name": "ST兴化"
+          },
+          {
+            "code": "sh688622",
+            "name": "*ST禾信"
+          },
+          {
+            "code": "sz002485",
+            "name": "ST雪发"
+          },
+          {
+            "code": "sh688189",
+            "name": "ST南新"
+          },
+          {
+            "code": "sz000677",
+            "name": "ST海龙"
+          },
+          {
+            "code": "sh688089",
+            "name": "ST嘉必优"
+          },
+          {
+            "code": "sh600180",
+            "name": "*ST瑞茂"
+          },
+          {
+            "code": "sz002211",
+            "name": "ST宏达"
+          },
+          {
+            "code": "sz300237",
+            "name": "ST美晨"
+          },
+          {
+            "code": "sz300123",
+            "name": "ST亚光"
+          },
+          {
+            "code": "sz300173",
+            "name": "ST福能"
+          },
+          {
+            "code": "sh601718",
+            "name": "ST际华"
+          },
+          {
+            "code": "sz002689",
+            "name": "ST远智"
+          },
+          {
+            "code": "sh603377",
+            "name": "ST东时"
+          },
+          {
+            "code": "sz000821",
+            "name": "ST京机"
+          },
+          {
+            "code": "sh600370",
+            "name": "*ST三房"
+          },
+          {
+            "code": "sz300010",
+            "name": "ST豆神"
+          },
+          {
+            "code": "sh600568",
+            "name": "ST中珠"
+          },
+          {
+            "code": "sz300831",
+            "name": "ST派瑞"
+          },
+          {
+            "code": "sz002598",
+            "name": "ST章鼓"
+          },
+          {
+            "code": "sz002024",
+            "name": "ST易购"
+          },
+          {
+            "code": "sh600759",
+            "name": "ST洲际"
+          },
+          {
+            "code": "sh600537",
+            "name": "*ST亿晶"
+          },
+          {
+            "code": "sh603557",
+            "name": "*ST起步"
+          },
+          {
+            "code": "sz000610",
+            "name": "*ST西旅"
+          },
+          {
+            "code": "sz002431",
+            "name": "ST棕榈"
+          },
+          {
+            "code": "sh688053",
+            "name": "ST思科瑞"
+          },
+          {
+            "code": "sz002789",
+            "name": "*ST建艺"
+          },
+          {
+            "code": "sz300326",
+            "name": "ST凯利"
+          },
+          {
+            "code": "sz000826",
+            "name": "*ST启环"
+          },
+          {
+            "code": "sz002731",
+            "name": "*ST萃华"
+          },
+          {
+            "code": "sh600238",
+            "name": "ST椰岛"
+          },
+          {
+            "code": "sh603959",
+            "name": "ST百利"
+          },
+          {
+            "code": "sh603429",
+            "name": "*ST集友"
+          },
+          {
+            "code": "sh600239",
+            "name": "ST云城"
+          },
+          {
+            "code": "sh603359",
+            "name": "*ST东珠"
+          },
+          {
+            "code": "sh603729",
+            "name": "ST龙韵"
+          },
+          {
+            "code": "sz300096",
+            "name": "ST易联众"
+          },
+          {
+            "code": "sz000615",
+            "name": "*ST美谷"
+          },
+          {
+            "code": "sz002306",
+            "name": "ST云网"
+          },
+          {
+            "code": "sz300338",
+            "name": "*ST开元"
+          },
+          {
+            "code": "sz300460",
+            "name": "ST惠伦"
+          },
+          {
+            "code": "sh600745",
+            "name": "*ST闻泰"
+          },
+          {
+            "code": "sh600079",
+            "name": "ST人福"
+          },
+          {
+            "code": "sh600381",
+            "name": "*ST春天"
+          },
+          {
+            "code": "sh600735",
+            "name": "ST新华锦"
+          },
+          {
+            "code": "sz000609",
+            "name": "*ST中迪"
+          },
+          {
+            "code": "sh603008",
+            "name": "ST喜临门"
+          },
+          {
+            "code": "sz300091",
+            "name": "*ST金灵"
+          },
+          {
+            "code": "sz002592",
+            "name": "ST八菱"
+          },
+          {
+            "code": "sz002501",
+            "name": "*ST利源"
+          },
+          {
+            "code": "bj920023",
+            "name": "*ST田野"
+          },
+          {
+            "code": "sh600119",
+            "name": "*ST长投"
+          },
+          {
+            "code": "sz000632",
+            "name": "ST三木"
+          },
+          {
+            "code": "sh600753",
+            "name": "ST海钦"
+          },
+          {
+            "code": "sz002872",
+            "name": "ST天圣"
+          },
+          {
+            "code": "sz002856",
+            "name": "*ST美芝"
+          },
+          {
+            "code": "sz002082",
+            "name": "ST万邦"
+          },
+          {
+            "code": "sh600581",
+            "name": "*ST八钢"
+          },
+          {
+            "code": "sz300366",
+            "name": "ST创意"
+          },
+          {
+            "code": "sh600187",
+            "name": "*ST国中"
+          },
+          {
+            "code": "sz000639",
+            "name": "ST西王"
+          },
+          {
+            "code": "sz000078",
+            "name": "ST海王"
+          },
+          {
+            "code": "sh600889",
+            "name": "*ST京化"
+          },
+          {
+            "code": "sh603825",
+            "name": "ST华扬"
+          },
+          {
+            "code": "sh600423",
+            "name": "*ST柳化"
+          },
+          {
+            "code": "sh600730",
+            "name": "*ST高科"
+          },
+          {
+            "code": "sz300290",
+            "name": "ST荣科"
+          },
+          {
+            "code": "sh688270",
+            "name": "ST臻镭"
+          },
+          {
+            "code": "sh688033",
+            "name": "*ST天宜"
+          },
+          {
+            "code": "sz300198",
+            "name": "*ST纳川"
+          },
+          {
+            "code": "sh600965",
+            "name": "*ST福成"
+          },
+          {
+            "code": "sh600439",
+            "name": "ST瑞贝卡"
+          },
+          {
+            "code": "sh600084",
+            "name": "*ST尼雅"
+          },
+          {
+            "code": "sz300211",
+            "name": "*ST亿通"
+          },
+          {
+            "code": "sz002977",
+            "name": "*ST天箭"
+          },
+          {
+            "code": "sh605199",
+            "name": "ST葫芦娃"
+          },
+          {
+            "code": "sz002691",
+            "name": "*ST冀凯"
+          },
+          {
+            "code": "sz300152",
+            "name": "*ST动力"
+          },
+          {
+            "code": "sh603595",
+            "name": "ST东尼"
+          },
+          {
+            "code": "sh688184",
+            "name": "ST帕瓦"
+          },
+          {
+            "code": "sz002620",
+            "name": "*ST瑞和"
+          },
+          {
+            "code": "sz002175",
+            "name": "*ST东智"
+          },
+          {
+            "code": "sh603922",
+            "name": "ST金鸿顺"
+          },
+          {
+            "code": "sz002759",
+            "name": "ST天际"
+          },
+          {
+            "code": "sz300301",
+            "name": "ST长方"
+          },
+          {
+            "code": "sz301117",
+            "name": "ST佳缘"
+          },
+          {
+            "code": "sh688201",
+            "name": "ST信安"
+          },
+          {
+            "code": "sh603869",
+            "name": "ST智知"
+          },
+          {
+            "code": "sz000752",
+            "name": "*ST西发"
+          },
+          {
+            "code": "sz000838",
+            "name": "*ST发展"
+          },
+          {
+            "code": "sz002207",
+            "name": "*ST准油"
+          },
+          {
+            "code": "sh600265",
+            "name": "*ST景谷"
+          },
+          {
+            "code": "sz000909",
+            "name": "*ST数源"
+          },
+          {
+            "code": "sz002528",
+            "name": "*ST英飞"
+          },
+          {
+            "code": "sh605336",
+            "name": "*ST帅电"
+          },
+          {
+            "code": "sh688022",
+            "name": "ST瀚川"
+          },
+          {
+            "code": "sz002581",
+            "name": "*ST未名"
+          },
+          {
+            "code": "sh600624",
+            "name": "ST复华"
+          },
+          {
+            "code": "sz002424",
+            "name": "ST百灵"
+          },
+          {
+            "code": "sz002743",
+            "name": "ST富煌"
+          },
+          {
+            "code": "sz000698",
+            "name": "ST沈化"
+          },
+          {
+            "code": "sz300020",
+            "name": "ST银江"
+          },
+          {
+            "code": "sz002932",
+            "name": "*ST明德"
+          },
+          {
+            "code": "sz300076",
+            "name": "*ST宁视"
+          },
+          {
+            "code": "sz002538",
+            "name": "ST司特"
+          },
+          {
+            "code": "sh600289",
+            "name": "ST信通"
+          },
+          {
+            "code": "sh600818",
+            "name": "ST中路"
+          },
+          {
+            "code": "sz300087",
+            "name": "ST荃银"
+          },
+          {
+            "code": "sz300430",
+            "name": "*ST益通"
+          },
+          {
+            "code": "sz002514",
+            "name": "*ST宝馨"
+          },
+          {
+            "code": "sz300716",
+            "name": "*ST泉为"
+          },
+          {
+            "code": "sz002323",
+            "name": "*ST雅博"
+          },
+          {
+            "code": "sz300385",
+            "name": "ST雪浪"
+          },
+          {
+            "code": "sz002630",
+            "name": "*ST华西"
+          },
+          {
+            "code": "sh600491",
+            "name": "ST龙元"
+          },
+          {
+            "code": "sz002168",
+            "name": "ST惠程"
+          },
+          {
+            "code": "sh688066",
+            "name": "*ST航图"
+          },
+          {
+            "code": "sh600337",
+            "name": "ST美克"
+          },
+          {
+            "code": "sh600543",
+            "name": "*ST莫高"
+          },
+          {
+            "code": "sz300295",
+            "name": "*ST三六五"
+          },
+          {
+            "code": "sz300555",
+            "name": "ST路通"
+          },
+          {
+            "code": "sh600053",
+            "name": "*ST九鼎"
+          },
+          {
+            "code": "sh688076",
+            "name": "ST诺泰"
+          },
+          {
+            "code": "sh603398",
+            "name": "*ST沐邦"
+          },
+          {
+            "code": "sz301139",
+            "name": "*ST元道"
+          },
+          {
+            "code": "sh603517",
+            "name": "ST绝味"
+          },
+          {
+            "code": "sz000903",
+            "name": "ST云动"
+          },
+          {
+            "code": "sz300205",
+            "name": "*ST天喻"
+          },
+          {
+            "code": "sz002667",
+            "name": "*ST威领"
+          },
+          {
+            "code": "sz300081",
+            "name": "ST恒信"
+          },
+          {
+            "code": "sz300396",
+            "name": "ST迪瑞"
+          },
+          {
+            "code": "sz002694",
+            "name": "*ST顾地"
+          },
+          {
+            "code": "sh600082",
+            "name": "ST海泰"
+          },
+          {
+            "code": "sz300419",
+            "name": "ST浩丰"
+          },
+          {
+            "code": "sz300527",
+            "name": "ST应急"
+          },
+          {
+            "code": "sh603189",
+            "name": "*ST网达"
+          },
+          {
+            "code": "sh600530",
+            "name": "ST交昂"
+          },
+          {
+            "code": "sh600243",
+            "name": "*ST海华"
+          },
+          {
+            "code": "sz002305",
+            "name": "*ST南置"
+          },
+          {
+            "code": "sz002360",
+            "name": "ST同德"
+          },
+          {
+            "code": "sh600136",
+            "name": "ST明诚"
+          },
+          {
+            "code": "sz002193",
+            "name": "ST如意"
+          },
+          {
+            "code": "sh600340",
+            "name": "*ST华幸"
+          },
+          {
+            "code": "sh600476",
+            "name": "*ST湘邮"
+          },
+          {
+            "code": "sz002816",
+            "name": "*ST和科"
+          },
+          {
+            "code": "sz300594",
+            "name": "ST朗进"
+          },
+          {
+            "code": "sh603021",
+            "name": "*ST华鹏"
+          },
+          {
+            "code": "sz000016",
+            "name": "*ST康佳A"
+          },
+          {
+            "code": "bj920090",
+            "name": "*ST同辉"
+          },
+          {
+            "code": "sz002055",
+            "name": "ST得润"
+          },
+          {
+            "code": "sz000488",
+            "name": "ST晨鸣"
+          },
+          {
+            "code": "sz002512",
+            "name": "ST达华"
+          },
+          {
+            "code": "sh600365",
+            "name": "ST通葡"
+          },
+          {
+            "code": "sh603272",
+            "name": "*ST联翔"
+          },
+          {
+            "code": "sz300472",
+            "name": "ST新元"
+          }
+        ],
+        "totalStocks": 204,
+        "offset": 0,
+        "limit": 500
+      }
+    }
+  }
+}

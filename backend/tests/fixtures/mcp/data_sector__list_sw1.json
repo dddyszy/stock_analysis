@@ -1,0 +1,175 @@
+{
+  "tool": "data_sector",
+  "args": {
+    "mode": "list",
+    "scope": "sw1",
+    "limit": 100
+  },
+  "payload": {
+    "ok": true,
+    "data": {
+      "industry_list_sw1": {
+        "items": [
+          {
+            "code": "pt01801170",
+            "name": "交通运输",
+            "sectorCode": "sw1_pt01801170"
+          },
+          {
+            "code": "pt01801200",
+            "name": "商贸零售",
+            "sectorCode": "sw1_pt01801200"
+          },
+          {
+            "code": "pt01801230",
+            "name": "综合",
+            "sectorCode": "sw1_pt01801230"
+          },
+          {
+            "code": "pt01801030",
+            "name": "基础化工",
+            "sectorCode": "sw1_pt01801030"
+          },
+          {
+            "code": "pt01801710",
+            "name": "建筑材料",
+            "sectorCode": "sw1_pt01801710"
+          },
+          {
+            "code": "pt01801740",
+            "name": "国防军工",
+            "sectorCode": "sw1_pt01801740"
+          },
+          {
+            "code": "pt01801970",
+            "name": "环保",
+            "sectorCode": "sw1_pt01801970"
+          },
+          {
+            "code": "pt01801040",
+            "name": "钢铁",
+            "sectorCode": "sw1_pt01801040"
+          },
+          {
+            "code": "pt01801180",
+            "name": "房地产",
+            "sectorCode": "sw1_pt01801180"
+          },
+          {
+            "code": "pt01801950",
+            "name": "煤炭",
+            "sectorCode": "sw1_pt01801950"
+          },
+          {
+            "code": "pt01801770",
+            "name": "通信",
+            "sectorCode": "sw1_pt01801770"
+          },
+          {
+            "code": "pt01801050",
+            "name": "有色金属",
+            "sectorCode": "sw1_pt01801050"
+          },
+          {
+            "code": "pt01801140",
+            "name": "轻工制造",
+            "sectorCode": "sw1_pt01801140"
+          },
+          {
+            "code": "pt01801760",
+            "name": "传媒",
+            "sectorCode": "sw1_pt01801760"
+          },
+          {
+            "code": "pt01801780",
+            "name": "银行",
+            "sectorCode": "sw1_pt01801780"
+          },
+          {
+            "code": "pt01801960",
+            "name": "石油石化",
+            "sectorCode": "sw1_pt01801960"
+          },
+          {
+            "code": "pt01801790",
+            "name": "非银金融",
+            "sectorCode": "sw1_pt01801790"
+          },
+          {
+            "code": "pt01801880",
+            "name": "汽车",
+            "sectorCode": "sw1_pt01801880"
+          },
+          {
+            "code": "pt01801750",
+            "name": "计算机",
+            "sectorCode": "sw1_pt01801750"
+          },
+          {
+            "code": "pt01801890",
+            "name": "机械设备",
+            "sectorCode": "sw1_pt01801890"
+          },
+          {
+            "code": "pt01801160",
+            "name": "公用事业",
+            "sectorCode": "sw1_pt01801160"
+          },
+          {
+            "code": "pt01801980",
+            "name": "美容护理",
+            "sectorCode": "sw1_pt01801980"
+          },
+          {
+            "code": "pt01801080",
+            "name": "电子",
+            "sectorCode": "sw1_pt01801080"
+          },
+          {
+            "code": "pt01801110",
+            "name": "家用电器",
+            "sectorCode": "sw1_pt01801110"
+          },
+          {
+            "code": "pt01801130",
+            "name": "纺织服饰",
+            "sectorCode": "sw1_pt01801130"
+          },
+          {
+            "code": "pt01801210",
+            "name": "社会服务",
+            "sectorCode": "sw1_pt01801210"
+          },
+          {
+            "code": "pt01801010",
+            "name": "农林牧渔",
+            "sectorCode": "sw1_pt01801010"
+          },
+          {
+            "code": "pt01801730",
+            "name": "电力设备",
+            "sectorCode": "sw1_pt01801730"
+          },
+          {
+            "code": "pt01801150",
+            "name": "医药生物",
+            "sectorCode": "sw1_pt01801150"
+          },
+          {
+            "code": "pt01801720",
+            "name": "建筑装饰",
+            "sectorCode": "sw1_pt01801720"
+          },
+          {
+            "code": "pt01801120",
+            "name": "食品饮料",
+            "sectorCode": "sw1_pt01801120"
+          }
+        ],
+        "listCode": "industry_list_sw1",
+        "listName": "申万一级行业清单",
+        "total": 31
+      }
+    }
+  }
+}

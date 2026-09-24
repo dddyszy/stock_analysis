@@ -1,0 +1,7 @@
+{
+  "tool": "data_profile",
+  "args": {
+    "code": "sh600519"
+  },
+  "payload": "查询股票简况异常：error_type=2 suggest=2 msg=服务限频"
+}

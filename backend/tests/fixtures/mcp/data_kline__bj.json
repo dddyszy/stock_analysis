@@ -1,0 +1,10 @@
+{
+  "tool": "data_kline",
+  "args": {
+    "code": "bj830799",
+    "period": "day",
+    "fq": "qfq",
+    "limit": 10
+  },
+  "payload": "查询K线数据异常：error_type=2 suggest=2 msg=服务限频"
+}

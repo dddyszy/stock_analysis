@@ -1,0 +1,76 @@
+{
+  "tool": "data_changedist",
+  "args": {},
+  "payload": {
+    "ok": true,
+    "data": {
+      "upCount": 1120,
+      "downCount": 4306,
+      "flatCount": 143,
+      "upLimitCount": 53,
+      "downLimitCount": 16,
+      "suspensionCount": 12,
+      "upRatio": 20,
+      "upRatioComment": "当前市场上涨家数占比全市场20%，市场情绪低。过去一年有26%交易日处于该热度区间。",
+      "detail": [
+        {
+          "section": "涨停",
+          "count": 53,
+          "flag": 1
+        },
+        {
+          "section": ">7%",
+          "count": 23,
+          "flag": 1
+        },
+        {
+          "section": "7~5%",
+          "count": 37,
+          "flag": 1
+        },
+        {
+          "section": "5~2%",
+          "count": 215,
+          "flag": 1
+        },
+        {
+          "section": "2~0%",
+          "count": 792,
+          "flag": 1
+        },
+        {
+          "section": "平",
+          "count": 143,
+          "flag": 0
+        },
+        {
+          "section": "0~2%",
+          "count": 2425,
+          "flag": -1
+        },
+        {
+          "section": "2~5%",
+          "count": 1623,
+          "flag": -1
+        },
+        {
+          "section": "5~7%",
+          "count": 179,
+          "flag": -1
+        },
+        {
+          "section": "7%<",
+          "count": 63,
+          "flag": -1
+        },
+        {
+          "section": "跌停",
+          "count": 16,
+          "flag": -1
+        }
+      ],
+      "totalAmount": 1653357362340.5093,
+      "amountChange": -111619053688.70068
+    }
+  }
+}

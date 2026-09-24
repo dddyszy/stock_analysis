@@ -1,0 +1,10 @@
+{
+  "tool": "data_kline",
+  "args": {
+    "code": "sh600519",
+    "period": "day",
+    "fq": "qfq",
+    "limit": 30
+  },
+  "payload": "查询dayK线异常：error_type=2 suggest=2 msg=服务限频"
+}

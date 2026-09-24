@@ -1,0 +1,2249 @@
+{
+  "tool": "data_sector",
+  "args": {
+    "mode": "ranking",
+    "limit": 50
+  },
+  "payload": {
+    "ok": true,
+    "data": {
+      "kind": "industry",
+      "type": "changepct",
+      "order": "desc",
+      "rows": [
+        {
+          "code": "pt01801131",
+          "name": "纺织制造",
+          "changePct": 1.54,
+          "turnover": 359803,
+          "turnoverRate": 2.56,
+          "upCount": "23/32",
+          "mainInflow": 110785.43,
+          "mainOutflow": 83812.22,
+          "mainNetInflow": 26973.21,
+          "mainNetInflow5d": 5987,
+          "mainNetInflow20d": -55558.84,
+          "leader": {
+            "code": "sz000850",
+            "name": "华茂股份",
+            "changePct": 10.11
+          }
+        },
+        {
+          "code": "pt01801952",
+          "name": "焦炭Ⅱ",
+          "changePct": 1.48,
+          "turnover": 183645,
+          "turnoverRate": 2.98,
+          "upCount": "6/7",
+          "mainInflow": 100241.25,
+          "mainOutflow": 53244.47,
+          "mainNetInflow": 46996.79,
+          "mainNetInflow5d": 37961.86,
+          "mainNetInflow20d": 76822.63,
+          "leader": {
+            "code": "sh600792",
+            "name": "云煤能源",
+            "changePct": 10.04
+          }
+        },
+        {
+          "code": "pt01801736",
+          "name": "风电设备",
+          "changePct": 1.25,
+          "turnover": 1316332,
+          "turnoverRate": 3.82,
+          "upCount": "22/31",
+          "mainInflow": 480740.16,
+          "mainOutflow": 395266.49,
+          "mainNetInflow": 85473.67,
+          "mainNetInflow5d": -63447.83,
+          "mainNetInflow20d": -17769.92,
+          "leader": {
+            "code": "sz301699",
+            "name": "洛轴股份",
+            "changePct": 19.99
+          }
+        },
+        {
+          "code": "pt01801994",
+          "name": "教育",
+          "changePct": 0.84,
+          "turnover": 414039,
+          "turnoverRate": 3.46,
+          "upCount": "9/17",
+          "mainInflow": 130143.37,
+          "mainOutflow": 140762.41,
+          "mainNetInflow": -10619.04,
+          "mainNetInflow5d": -33727.44,
+          "mainNetInflow20d": -66465.93,
+          "leader": {
+            "code": "sz300192",
+            "name": "科德教育",
+            "changePct": 10.28
+          }
+        },
+        {
+          "code": "pt01801784",
+          "name": "城商行Ⅱ",
+          "changePct": 0.81,
+          "turnover": 708586,
+          "turnoverRate": 0.66,
+          "upCount": "11/17",
+          "mainInflow": 270837.16,
+          "mainOutflow": 286534.01,
+          "mainNetInflow": -15696.85,
+          "mainNetInflow5d": 19926.33,
+          "mainNetInflow20d": -163614.14,
+          "leader": {
+            "code": "sh601963",
+            "name": "重庆银行",
+            "changePct": 2.04
+          }
+        },
+        {
+          "code": "pt01801782",
+          "name": "国有大型银行Ⅱ",
+          "changePct": 0.64,
+          "turnover": 878111,
+          "turnoverRate": 0.13,
+          "upCount": "6/6",
+          "mainInflow": 448780.51,
+          "mainOutflow": 409048.87,
+          "mainNetInflow": 39731.64,
+          "mainNetInflow5d": -127542.42,
+          "mainNetInflow20d": -290973.84,
+          "leader": {
+            "code": "sh601939",
+            "name": "建设银行",
+            "changePct": 1.39
+          }
+        },
+        {
+          "code": "pt01801951",
+          "name": "煤炭开采",
+          "changePct": 0.57,
+          "turnover": 799209,
+          "turnoverRate": 0.94,
+          "upCount": "14/26",
+          "mainInflow": 211552.12,
+          "mainOutflow": 203273.44,
+          "mainNetInflow": 8278.67,
+          "mainNetInflow5d": 20433.2,
+          "mainNetInflow20d": -202874.26,
+          "leader": {
+            "code": "sh600758",
+            "name": "辽宁能源",
+            "changePct": 3.7
+          }
+        },
+        {
+          "code": "pt01801769",
+          "name": "出版",
+          "changePct": 0.49,
+          "turnover": 832786,
+          "turnoverRate": 2.49,
+          "upCount": "12/29",
+          "mainInflow": 273377.44,
+          "mainOutflow": 240508.35,
+          "mainNetInflow": 32869.1,
+          "mainNetInflow5d": 14451.74,
+          "mainNetInflow20d": 103991.57,
+          "leader": {
+            "code": "sh600825",
+            "name": "新华传媒",
+            "changePct": 10.06
+          }
+        },
+        {
+          "code": "pt01801981",
+          "name": "个护用品",
+          "changePct": 0.34,
+          "turnover": 172102,
+          "turnoverRate": 2.19,
+          "upCount": "6/12",
+          "mainInflow": 53625,
+          "mainOutflow": 31094.54,
+          "mainNetInflow": 22530.46,
+          "mainNetInflow5d": 102900.42,
+          "mainNetInflow20d": 214892.47,
+          "leader": {
+            "code": "sz003006",
+            "name": "百亚股份",
+            "changePct": 4.86
+          }
+        },
+        {
+          "code": "pt01801962",
+          "name": "油服工程",
+          "changePct": 0.34,
+          "turnover": 202515,
+          "turnoverRate": 0.79,
+          "upCount": "6/13",
+          "mainInflow": 55966.28,
+          "mainOutflow": 54142.26,
+          "mainNetInflow": 1824.03,
+          "mainNetInflow5d": -31642.61,
+          "mainNetInflow20d": -69479.93,
+          "leader": {
+            "code": "sh600583",
+            "name": "海油工程",
+            "changePct": 2.52
+          }
+        },
+        {
+          "code": "pt01801992",
+          "name": "航运港口",
+          "changePct": 0.27,
+          "turnover": 894504,
+          "turnoverRate": 0.66,
+          "upCount": "15/34",
+          "mainInflow": 302280.06,
+          "mainOutflow": 301353.16,
+          "mainNetInflow": 926.9,
+          "mainNetInflow5d": -171668.39,
+          "mainNetInflow20d": -67159.66,
+          "leader": {
+            "code": "sz000905",
+            "name": "厦门港务",
+            "changePct": 9.98
+          }
+        },
+        {
+          "code": "pt01801204",
+          "name": "专业连锁Ⅱ",
+          "changePct": 0.2,
+          "turnover": 81366,
+          "turnoverRate": 1.79,
+          "upCount": "3/7",
+          "mainInflow": 21415.47,
+          "mainOutflow": 16075.83,
+          "mainNetInflow": 5339.64,
+          "mainNetInflow5d": 5158.1,
+          "mainNetInflow20d": -5441.1,
+          "leader": {
+            "code": "sz000829",
+            "name": "天音控股",
+            "changePct": 2.87
+          }
+        },
+        {
+          "code": "pt01801132",
+          "name": "服装家纺",
+          "changePct": 0.18,
+          "turnover": 603734,
+          "turnoverRate": 1.8,
+          "upCount": "29/59",
+          "mainInflow": 169019.75,
+          "mainOutflow": 137895.73,
+          "mainNetInflow": 31124.02,
+          "mainNetInflow5d": 6738.34,
+          "mainNetInflow20d": 11029.76,
+          "leader": {
+            "code": "sz001234",
+            "name": "泰慕士",
+            "changePct": 10.01
+          }
+        },
+        {
+          "code": "pt01801881",
+          "name": "摩托车及其他",
+          "changePct": 0.17,
+          "turnover": 210929,
+          "turnoverRate": 1.13,
+          "upCount": "6/16",
+          "mainInflow": 69255.24,
+          "mainOutflow": 61338.2,
+          "mainNetInflow": 7917.04,
+          "mainNetInflow5d": 16461.01,
+          "mainNetInflow20d": 13927.84,
+          "leader": {
+            "code": "sh601777",
+            "name": "千里科技",
+            "changePct": 7.39
+          }
+        },
+        {
+          "code": "pt01801111",
+          "name": "白色家电",
+          "changePct": 0.17,
+          "turnover": 296213,
+          "turnoverRate": 0.39,
+          "upCount": "5/11",
+          "mainInflow": 102910.35,
+          "mainOutflow": 81776.41,
+          "mainNetInflow": 21133.95,
+          "mainNetInflow5d": -42562.03,
+          "mainNetInflow20d": 4876.91,
+          "leader": {
+            "code": "sh600336",
+            "name": "澳柯玛",
+            "changePct": 0.47
+          }
+        },
+        {
+          "code": "pt01801741",
+          "name": "航天装备Ⅱ",
+          "changePct": 0.07,
+          "turnover": 369884,
+          "turnoverRate": 1.36,
+          "upCount": "3/9",
+          "mainInflow": 120622.59,
+          "mainOutflow": 103466.96,
+          "mainNetInflow": 17155.63,
+          "mainNetInflow5d": -20498.25,
+          "mainNetInflow20d": -170009.71,
+          "leader": {
+            "code": "sh688282",
+            "name": "理工导航",
+            "changePct": 2.77
+          }
+        },
+        {
+          "code": "pt01801114",
+          "name": "厨卫电器",
+          "changePct": 0.02,
+          "turnover": 114216,
+          "turnoverRate": 2.44,
+          "upCount": "4/9",
+          "mainInflow": 33212.77,
+          "mainOutflow": 27966.75,
+          "mainNetInflow": 5246.01,
+          "mainNetInflow5d": 17446.21,
+          "mainNetInflow20d": 56716.82,
+          "leader": {
+            "code": "sz002035",
+            "name": "华帝股份",
+            "changePct": 3.21
+          }
+        },
+        {
+          "code": "pt01801161",
+          "name": "电力",
+          "changePct": 0,
+          "turnover": 2409540,
+          "turnoverRate": 0.82,
+          "upCount": "27/109",
+          "mainInflow": 750250.27,
+          "mainOutflow": 776008.04,
+          "mainNetInflow": -25757.77,
+          "mainNetInflow5d": -265239.69,
+          "mainNetInflow20d": -342089.19,
+          "leader": {
+            "code": "sh603105",
+            "name": "芯能科技",
+            "changePct": 5.98
+          }
+        },
+        {
+          "code": "pt01801115",
+          "name": "照明设备Ⅱ",
+          "changePct": -0.02,
+          "turnover": 219299,
+          "turnoverRate": 2.91,
+          "upCount": "6/12",
+          "mainInflow": 63120.69,
+          "mainOutflow": 50817.03,
+          "mainNetInflow": 12303.66,
+          "mainNetInflow5d": 39220.81,
+          "mainNetInflow20d": 43847.01,
+          "leader": {
+            "code": "sz002638",
+            "name": "勤上股份",
+            "changePct": 4.01
+          }
+        },
+        {
+          "code": "pt01801223",
+          "name": "通信服务",
+          "changePct": -0.03,
+          "turnover": 914273,
+          "turnoverRate": 0.54,
+          "upCount": "9/37",
+          "mainInflow": 289976.74,
+          "mainOutflow": 303695.19,
+          "mainNetInflow": -13718.45,
+          "mainNetInflow5d": 26292.71,
+          "mainNetInflow20d": -243379.23,
+          "leader": {
+            "code": "sz300081",
+            "name": "ST恒信",
+            "changePct": 3.58
+          }
+        },
+        {
+          "code": "pt01801785",
+          "name": "农商行Ⅱ",
+          "changePct": -0.1,
+          "turnover": 187310,
+          "turnoverRate": 0.89,
+          "upCount": "5/10",
+          "mainInflow": 74140.08,
+          "mainOutflow": 75701.54,
+          "mainNetInflow": -1561.46,
+          "mainNetInflow5d": 25547.04,
+          "mainNetInflow20d": -13248.19,
+          "leader": {
+            "code": "sh601077",
+            "name": "渝农商行",
+            "changePct": 1.53
+          }
+        },
+        {
+          "code": "pt01801179",
+          "name": "铁路公路",
+          "changePct": -0.13,
+          "turnover": 351315,
+          "turnoverRate": 0.44,
+          "upCount": "17/33",
+          "mainInflow": 112090.19,
+          "mainOutflow": 110680.91,
+          "mainNetInflow": 1409.28,
+          "mainNetInflow5d": 22954.31,
+          "mainNetInflow20d": 31329.32,
+          "leader": {
+            "code": "sz001317",
+            "name": "三羊马",
+            "changePct": 10.01
+          }
+        },
+        {
+          "code": "pt01801145",
+          "name": "文娱用品",
+          "changePct": -0.16,
+          "turnover": 177340,
+          "turnoverRate": 1.91,
+          "upCount": "8/20",
+          "mainInflow": 39830.07,
+          "mainOutflow": 37995,
+          "mainNetInflow": 1835.07,
+          "mainNetInflow5d": 1210.19,
+          "mainNetInflow20d": 6165.91,
+          "leader": {
+            "code": "sz002301",
+            "name": "齐心集团",
+            "changePct": 1.71
+          }
+        },
+        {
+          "code": "pt01801783",
+          "name": "股份制银行Ⅱ",
+          "changePct": -0.2,
+          "turnover": 665937,
+          "turnoverRate": 0.29,
+          "upCount": "3/9",
+          "mainInflow": 270971.72,
+          "mainOutflow": 281493.77,
+          "mainNetInflow": -10522.04,
+          "mainNetInflow5d": 32432.17,
+          "mainNetInflow20d": -250302.43,
+          "leader": {
+            "code": "sh600000",
+            "name": "浦发银行",
+            "changePct": 0.22
+          }
+        },
+        {
+          "code": "pt01801116",
+          "name": "家电零部件Ⅱ",
+          "changePct": -0.21,
+          "turnover": 731530,
+          "turnoverRate": 2.35,
+          "upCount": "10/29",
+          "mainInflow": 218276.23,
+          "mainOutflow": 206358.34,
+          "mainNetInflow": 11917.89,
+          "mainNetInflow5d": 11442.31,
+          "mainNetInflow20d": -165776.4,
+          "leader": {
+            "code": "sh601956",
+            "name": "东贝集团",
+            "changePct": 3.84
+          }
+        },
+        {
+          "code": "pt01801995",
+          "name": "电视广播Ⅱ",
+          "changePct": -0.22,
+          "turnover": 279947,
+          "turnoverRate": 2.23,
+          "upCount": "4/14",
+          "mainInflow": 84388.46,
+          "mainOutflow": 85700.83,
+          "mainNetInflow": -1312.37,
+          "mainNetInflow5d": 8954.51,
+          "mainNetInflow20d": -17305.27,
+          "leader": {
+            "code": "sz002238",
+            "name": "天威视讯",
+            "changePct": 10.05
+          }
+        },
+        {
+          "code": "pt01801982",
+          "name": "化妆品",
+          "changePct": -0.25,
+          "turnover": 214679,
+          "turnoverRate": 2.02,
+          "upCount": "4/13",
+          "mainInflow": 69506.11,
+          "mainOutflow": 60424.72,
+          "mainNetInflow": 9081.39,
+          "mainNetInflow5d": -18886.86,
+          "mainNetInflow20d": -52485.78,
+          "leader": {
+            "code": "sz300849",
+            "name": "锦盛新材",
+            "changePct": 3.45
+          }
+        },
+        {
+          "code": "pt01801972",
+          "name": "环保设备Ⅱ",
+          "changePct": -0.27,
+          "turnover": 263409,
+          "turnoverRate": 1.9,
+          "upCount": "7/26",
+          "mainInflow": 79664.6,
+          "mainOutflow": 76142.57,
+          "mainNetInflow": 3522.03,
+          "mainNetInflow5d": -4846.04,
+          "mainNetInflow20d": -70976.17,
+          "leader": {
+            "code": "sz300203",
+            "name": "聚光科技",
+            "changePct": 3.27
+          }
+        },
+        {
+          "code": "pt01801096",
+          "name": "商用车",
+          "changePct": -0.27,
+          "turnover": 643322,
+          "turnoverRate": 1.85,
+          "upCount": "3/13",
+          "mainInflow": 246377.87,
+          "mainOutflow": 243886.21,
+          "mainNetInflow": 2491.66,
+          "mainNetInflow5d": 149322.02,
+          "mainNetInflow20d": 113595.33,
+          "leader": {
+            "code": "sh600066",
+            "name": "宇通客车",
+            "changePct": 3.01
+          }
+        },
+        {
+          "code": "pt01801178",
+          "name": "物流",
+          "changePct": -0.33,
+          "turnover": 405149,
+          "turnoverRate": 0.91,
+          "upCount": "24/47",
+          "mainInflow": 108087.8,
+          "mainOutflow": 97829.67,
+          "mainNetInflow": 10258.13,
+          "mainNetInflow5d": -5819.24,
+          "mainNetInflow20d": -47590.48,
+          "leader": {
+            "code": "sh603813",
+            "name": "原尚股份",
+            "changePct": 4.78
+          }
+        },
+        {
+          "code": "pt01801154",
+          "name": "医药商业",
+          "changePct": -0.46,
+          "turnover": 481364,
+          "turnoverRate": 1.92,
+          "upCount": "8/32",
+          "mainInflow": 113654.02,
+          "mainOutflow": 102210.7,
+          "mainNetInflow": 11443.31,
+          "mainNetInflow5d": 49057.09,
+          "mainNetInflow20d": 46994.94,
+          "leader": {
+            "code": "sh603122",
+            "name": "合富中国",
+            "changePct": 10.02
+          }
+        },
+        {
+          "code": "pt01801045",
+          "name": "特钢Ⅱ",
+          "changePct": -0.47,
+          "turnover": 157983,
+          "turnoverRate": 0.76,
+          "upCount": "4/12",
+          "mainInflow": 43485.56,
+          "mainOutflow": 44352.82,
+          "mainNetInflow": -867.26,
+          "mainNetInflow5d": -42320.33,
+          "mainNetInflow20d": -42298.47,
+          "leader": {
+            "code": "sz002478",
+            "name": "常宝股份",
+            "changePct": 3.86
+          }
+        },
+        {
+          "code": "pt01801731",
+          "name": "电机Ⅱ",
+          "changePct": -0.49,
+          "turnover": 308633,
+          "turnoverRate": 1.43,
+          "upCount": "9/26",
+          "mainInflow": 75444.48,
+          "mainOutflow": 73143.15,
+          "mainNetInflow": 2301.33,
+          "mainNetInflow5d": -9664.8,
+          "mainNetInflow20d": -99233.14,
+          "leader": {
+            "code": "sz301226",
+            "name": "祥明智能",
+            "changePct": 4.98
+          }
+        },
+        {
+          "code": "pt01801076",
+          "name": "轨交设备Ⅱ",
+          "changePct": -0.53,
+          "turnover": 299117,
+          "turnoverRate": 0.52,
+          "upCount": "14/30",
+          "mainInflow": 125820.11,
+          "mainOutflow": 115149.64,
+          "mainNetInflow": 10670.46,
+          "mainNetInflow5d": 19933.66,
+          "mainNetInflow20d": -52777.93,
+          "leader": {
+            "code": "sh603500",
+            "name": "祥和实业",
+            "changePct": 10.03
+          }
+        },
+        {
+          "code": "pt01801963",
+          "name": "炼化及贸易",
+          "changePct": -0.56,
+          "turnover": 821320,
+          "turnoverRate": 0.27,
+          "upCount": "11/30",
+          "mainInflow": 285000.82,
+          "mainOutflow": 276987.29,
+          "mainNetInflow": 8013.53,
+          "mainNetInflow5d": -28016.06,
+          "mainNetInflow20d": 86504.92,
+          "leader": {
+            "code": "sh600506",
+            "name": "统一股份",
+            "changePct": 6.32
+          }
+        },
+        {
+          "code": "pt01801141",
+          "name": "包装印刷",
+          "changePct": -0.6,
+          "turnover": 548303,
+          "turnoverRate": 2.38,
+          "upCount": "14/40",
+          "mainInflow": 145978.73,
+          "mainOutflow": 138538.93,
+          "mainNetInflow": 7439.8,
+          "mainNetInflow5d": -10457.84,
+          "mainNetInflow20d": 59037.28,
+          "leader": {
+            "code": "sz002836",
+            "name": "新宏泽",
+            "changePct": 10.04
+          }
+        },
+        {
+          "code": "pt01801113",
+          "name": "小家电",
+          "changePct": -0.63,
+          "turnover": 172079,
+          "turnoverRate": 1.53,
+          "upCount": "7/20",
+          "mainInflow": 38433.08,
+          "mainOutflow": 35246.66,
+          "mainNetInflow": 3186.42,
+          "mainNetInflow5d": 972.76,
+          "mainNetInflow20d": 12961.37,
+          "leader": {
+            "code": "sz002005",
+            "name": "德豪润达",
+            "changePct": 5.26
+          }
+        },
+        {
+          "code": "pt01801723",
+          "name": "基础建设",
+          "changePct": -0.65,
+          "turnover": 324745,
+          "turnoverRate": 0.59,
+          "upCount": "7/40",
+          "mainInflow": 120010.16,
+          "mainOutflow": 129072.98,
+          "mainNetInflow": -9062.82,
+          "mainNetInflow5d": -41999.14,
+          "mainNetInflow20d": -146168.83,
+          "leader": {
+            "code": "sz000498",
+            "name": "山东路桥",
+            "changePct": 9.92
+          }
+        },
+        {
+          "code": "pt01801128",
+          "name": "休闲食品",
+          "changePct": -0.66,
+          "turnover": 105168,
+          "turnoverRate": 1.08,
+          "upCount": "6/22",
+          "mainInflow": 18329.51,
+          "mainOutflow": 21101.37,
+          "mainNetInflow": -2771.86,
+          "mainNetInflow5d": -10195.67,
+          "mainNetInflow20d": -36211.07,
+          "leader": {
+            "code": "sh605339",
+            "name": "南侨食品",
+            "changePct": 0.77
+          }
+        },
+        {
+          "code": "pt01801126",
+          "name": "非白酒",
+          "changePct": -0.66,
+          "turnover": 498948,
+          "turnoverRate": 2.73,
+          "upCount": "3/16",
+          "mainInflow": 148179,
+          "mainOutflow": 164660.78,
+          "mainNetInflow": -16481.79,
+          "mainNetInflow5d": -8930.74,
+          "mainNetInflow20d": 63288.37,
+          "leader": {
+            "code": "sh601579",
+            "name": "会稽山",
+            "changePct": 3.51
+          }
+        },
+        {
+          "code": "pt01801112",
+          "name": "黑色家电",
+          "changePct": -0.73,
+          "turnover": 138467,
+          "turnoverRate": 0.98,
+          "upCount": "1/9",
+          "mainInflow": 36822.84,
+          "mainOutflow": 35973.66,
+          "mainNetInflow": 849.18,
+          "mainNetInflow5d": -20666.71,
+          "mainNetInflow20d": -113091,
+          "leader": {
+            "code": "sz002429",
+            "name": "兆驰股份",
+            "changePct": 0.73
+          }
+        },
+        {
+          "code": "pt01801743",
+          "name": "地面兵装Ⅱ",
+          "changePct": -0.77,
+          "turnover": 342341,
+          "turnoverRate": 2.56,
+          "upCount": "4/12",
+          "mainInflow": 89519.43,
+          "mainOutflow": 82510.74,
+          "mainNetInflow": 7008.69,
+          "mainNetInflow5d": -38957.35,
+          "mainNetInflow20d": 47708.59,
+          "leader": {
+            "code": "sz002519",
+            "name": "银河电子",
+            "changePct": 2.25
+          }
+        },
+        {
+          "code": "pt01801037",
+          "name": "橡胶",
+          "changePct": -0.78,
+          "turnover": 323275,
+          "turnoverRate": 2.75,
+          "upCount": "6/17",
+          "mainInflow": 108310.96,
+          "mainOutflow": 94181.58,
+          "mainNetInflow": 14129.37,
+          "mainNetInflow5d": 4837.25,
+          "mainNetInflow20d": 102591.73,
+          "leader": {
+            "code": "sz001207",
+            "name": "联科科技",
+            "changePct": 1.87
+          }
+        },
+        {
+          "code": "pt01801127",
+          "name": "饮料乳品",
+          "changePct": -0.82,
+          "turnover": 345343,
+          "turnoverRate": 1.05,
+          "upCount": "3/26",
+          "mainInflow": 95153.43,
+          "mainOutflow": 88489.02,
+          "mainNetInflow": 6664.42,
+          "mainNetInflow5d": 40166.66,
+          "mainNetInflow20d": 34107.13,
+          "leader": {
+            "code": "sh600189",
+            "name": "泉阳泉",
+            "changePct": 10.04
+          }
+        },
+        {
+          "code": "pt01801744",
+          "name": "航海装备Ⅱ",
+          "changePct": -0.86,
+          "turnover": 512653,
+          "turnoverRate": 1.48,
+          "upCount": "4/10",
+          "mainInflow": 181716.82,
+          "mainOutflow": 188065.64,
+          "mainNetInflow": -6348.82,
+          "mainNetInflow5d": -65911.86,
+          "mainNetInflow20d": -90523.87,
+          "leader": {
+            "code": "sz300008",
+            "name": "天海防务",
+            "changePct": 0.64
+          }
+        },
+        {
+          "code": "pt01801077",
+          "name": "工程机械",
+          "changePct": -0.97,
+          "turnover": 666311,
+          "turnoverRate": 1.48,
+          "upCount": "10/28",
+          "mainInflow": 229007,
+          "mainOutflow": 239131.76,
+          "mainNetInflow": -10124.76,
+          "mainNetInflow5d": -43263.31,
+          "mainNetInflow20d": -264336.57,
+          "leader": {
+            "code": "sh600815",
+            "name": "厦工股份",
+            "changePct": 9.93
+          }
+        },
+        {
+          "code": "pt01801231",
+          "name": "综合Ⅱ",
+          "changePct": -0.98,
+          "turnover": 291318,
+          "turnoverRate": 2.61,
+          "upCount": "5/20",
+          "mainInflow": 91874.08,
+          "mainOutflow": 86611.43,
+          "mainNetInflow": 5262.66,
+          "mainNetInflow5d": -11565.93,
+          "mainNetInflow20d": -64906.75,
+          "leader": {
+            "code": "sz000753",
+            "name": "漳州发展",
+            "changePct": 10.08
+          }
+        },
+        {
+          "code": "pt01801044",
+          "name": "普钢",
+          "changePct": -0.99,
+          "turnover": 305898,
+          "turnoverRate": 0.83,
+          "upCount": "2/22",
+          "mainInflow": 132035.3,
+          "mainOutflow": 136109.44,
+          "mainNetInflow": -4074.14,
+          "mainNetInflow5d": 26508.93,
+          "mainNetInflow20d": -36517.9,
+          "leader": {
+            "code": "sh600019",
+            "name": "宝钢股份",
+            "changePct": 1.57
+          }
+        },
+        {
+          "code": "pt01801203",
+          "name": "一般零售",
+          "changePct": -1.02,
+          "turnover": 839536,
+          "turnoverRate": 1.52,
+          "upCount": "11/60",
+          "mainInflow": 223974.72,
+          "mainOutflow": 240682.89,
+          "mainNetInflow": -16708.17,
+          "mainNetInflow5d": -14103.91,
+          "mainNetInflow20d": 9805.75,
+          "leader": {
+            "code": "sz000417",
+            "name": "合百集团",
+            "changePct": 2.81
+          }
+        },
+        {
+          "code": "pt01801191",
+          "name": "多元金融",
+          "changePct": -1.04,
+          "turnover": 359457,
+          "turnoverRate": 0.71,
+          "upCount": "3/24",
+          "mainInflow": 99008.62,
+          "mainOutflow": 111541.12,
+          "mainNetInflow": -12532.49,
+          "mainNetInflow5d": -21636.3,
+          "mainNetInflow20d": -209917.07,
+          "leader": {
+            "code": "sh600901",
+            "name": "江苏金租",
+            "changePct": 1.8
+          }
+        },
+        {
+          "code": "pt01801142",
+          "name": "家居用品",
+          "changePct": -1.05,
+          "turnover": 947337,
+          "turnoverRate": 2.87,
+          "upCount": "22/73",
+          "mainInflow": 256375.2,
+          "mainOutflow": 269843.55,
+          "mainNetInflow": -13468.35,
+          "mainNetInflow5d": -52741.86,
+          "mainNetInflow20d": -34295.02,
+          "leader": {
+            "code": "sz301356",
+            "name": "天振股份",
+            "changePct": 4.92
+          }
+        },
+        {
+          "code": "pt01801745",
+          "name": "军工电子Ⅱ",
+          "changePct": -1.09,
+          "turnover": 1871348,
+          "turnoverRate": 3.28,
+          "upCount": "15/60",
+          "mainInflow": 613730.5,
+          "mainOutflow": 519030.51,
+          "mainNetInflow": 94700,
+          "mainNetInflow5d": -46454.22,
+          "mainNetInflow20d": -228541.21,
+          "leader": {
+            "code": "sh688682",
+            "name": "霍莱沃",
+            "changePct": 19.99
+          }
+        },
+        {
+          "code": "pt01801713",
+          "name": "装修建材",
+          "changePct": -1.09,
+          "turnover": 403740,
+          "turnoverRate": 1.71,
+          "upCount": "12/35",
+          "mainInflow": 115804.65,
+          "mainOutflow": 121232.97,
+          "mainNetInflow": -5428.31,
+          "mainNetInflow5d": 698.22,
+          "mainNetInflow20d": -62635.84,
+          "leader": {
+            "code": "sz300599",
+            "name": "雄塑科技",
+            "changePct": 10.85
+          }
+        },
+        {
+          "code": "pt01801143",
+          "name": "造纸",
+          "changePct": -1.09,
+          "turnover": 180985,
+          "turnoverRate": 1.36,
+          "upCount": "3/23",
+          "mainInflow": 42556.2,
+          "mainOutflow": 42291.89,
+          "mainNetInflow": 264.31,
+          "mainNetInflow5d": -14850.09,
+          "mainNetInflow20d": -62571.81,
+          "leader": {
+            "code": "sh600235",
+            "name": "民丰特纸",
+            "changePct": 0.69
+          }
+        },
+        {
+          "code": "pt01801015",
+          "name": "渔业",
+          "changePct": -1.1,
+          "turnover": 44710,
+          "turnoverRate": 2.5,
+          "upCount": "0/6",
+          "mainInflow": 8501.5,
+          "mainOutflow": 6969.31,
+          "mainNetInflow": 1532.19,
+          "mainNetInflow5d": -10291.32,
+          "mainNetInflow20d": -8091.49,
+          "leader": {
+            "code": "sz002069",
+            "name": "獐子岛",
+            "changePct": -0.27
+          }
+        },
+        {
+          "code": "pt01801766",
+          "name": "影视院线",
+          "changePct": -1.12,
+          "turnover": 481937,
+          "turnoverRate": 3.41,
+          "upCount": "3/19",
+          "mainInflow": 136851.36,
+          "mainOutflow": 139842.91,
+          "mainNetInflow": -2991.55,
+          "mainNetInflow5d": -16765.61,
+          "mainNetInflow20d": 20140.03,
+          "leader": {
+            "code": "sz001330",
+            "name": "博纳影业",
+            "changePct": 0.52
+          }
+        },
+        {
+          "code": "pt01801764",
+          "name": "游戏Ⅱ",
+          "changePct": -1.12,
+          "turnover": 648091,
+          "turnoverRate": 1.63,
+          "upCount": "3/26",
+          "mainInflow": 188748.2,
+          "mainOutflow": 232471.67,
+          "mainNetInflow": -43723.47,
+          "mainNetInflow5d": -108243.45,
+          "mainNetInflow20d": -344778.2,
+          "leader": {
+            "code": "sh600715",
+            "name": "文投控股",
+            "changePct": 2.42
+          }
+        },
+        {
+          "code": "pt01801093",
+          "name": "汽车零部件",
+          "changePct": -1.12,
+          "turnover": 4358942,
+          "turnoverRate": 2.13,
+          "upCount": "66/244",
+          "mainInflow": 1352281.22,
+          "mainOutflow": 1254745.1,
+          "mainNetInflow": 97536.12,
+          "mainNetInflow5d": -49268.73,
+          "mainNetInflow20d": -27603.26,
+          "leader": {
+            "code": "sz301560",
+            "name": "众捷股份",
+            "changePct": 10.98
+          }
+        },
+        {
+          "code": "pt01801721",
+          "name": "房屋建设Ⅱ",
+          "changePct": -1.22,
+          "turnover": 177035,
+          "turnoverRate": 0.72,
+          "upCount": "0/8",
+          "mainInflow": 70354.14,
+          "mainOutflow": 81731.09,
+          "mainNetInflow": -11376.95,
+          "mainNetInflow5d": -8988.33,
+          "mainNetInflow20d": -43029.85,
+          "leader": {
+            "code": "sh600939",
+            "name": "重庆建工",
+            "changePct": -0.38
+          }
+        },
+        {
+          "code": "pt01801202",
+          "name": "贸易Ⅱ",
+          "changePct": -1.24,
+          "turnover": 105197,
+          "turnoverRate": 0.98,
+          "upCount": "5/12",
+          "mainInflow": 24940.64,
+          "mainOutflow": 23761.44,
+          "mainNetInflow": 1179.2,
+          "mainNetInflow5d": -4227.29,
+          "mainNetInflow20d": -35190.03,
+          "leader": {
+            "code": "sz000701",
+            "name": "厦门信达",
+            "changePct": 6.43
+          }
+        },
+        {
+          "code": "pt01801033",
+          "name": "化学原料",
+          "changePct": -1.24,
+          "turnover": 1444680,
+          "turnoverRate": 1.28,
+          "upCount": "9/57",
+          "mainInflow": 447435.83,
+          "mainOutflow": 486235.12,
+          "mainNetInflow": -38799.29,
+          "mainNetInflow5d": 3578.45,
+          "mainNetInflow20d": -131143.65,
+          "leader": {
+            "code": "sh603067",
+            "name": "振华股份",
+            "changePct": 2.58
+          }
+        },
+        {
+          "code": "pt01801971",
+          "name": "环境治理",
+          "changePct": -1.25,
+          "turnover": 898802,
+          "turnoverRate": 1.2,
+          "upCount": "28/104",
+          "mainInflow": 259330.34,
+          "mainOutflow": 262532.19,
+          "mainNetInflow": -3201.84,
+          "mainNetInflow5d": -11137.65,
+          "mainNetInflow20d": -254796.45,
+          "leader": {
+            "code": "sh603817",
+            "name": "海峡环保",
+            "changePct": 6.39
+          }
+        },
+        {
+          "code": "pt01801163",
+          "name": "燃气Ⅱ",
+          "changePct": -1.26,
+          "turnover": 281230,
+          "turnoverRate": 1.1,
+          "upCount": "6/28",
+          "mainInflow": 63457.75,
+          "mainOutflow": 72894.03,
+          "mainNetInflow": -9436.28,
+          "mainNetInflow5d": -10917.23,
+          "mainNetInflow20d": -37649.14,
+          "leader": {
+            "code": "sz000407",
+            "name": "胜利股份",
+            "changePct": 1.71
+          }
+        },
+        {
+          "code": "pt01801133",
+          "name": "饰品",
+          "changePct": -1.36,
+          "turnover": 109848,
+          "turnoverRate": 1.32,
+          "upCount": "0/15",
+          "mainInflow": 21578.11,
+          "mainOutflow": 27717.19,
+          "mainNetInflow": -6139.08,
+          "mainNetInflow5d": -18529.33,
+          "mainNetInflow20d": -69058.65,
+          "leader": {
+            "code": "sz002721",
+            "name": "金一文化",
+            "changePct": 0
+          }
+        },
+        {
+          "code": "pt01801014",
+          "name": "饲料",
+          "changePct": -1.36,
+          "turnover": 172829,
+          "turnoverRate": 1.26,
+          "upCount": "3/18",
+          "mainInflow": 40196.66,
+          "mainOutflow": 41250.69,
+          "mainNetInflow": -1054.03,
+          "mainNetInflow5d": -20564.39,
+          "mainNetInflow20d": 6789.44,
+          "leader": {
+            "code": "sz002696",
+            "name": "百洋股份",
+            "changePct": 0.91
+          }
+        },
+        {
+          "code": "pt01801711",
+          "name": "水泥",
+          "changePct": -1.37,
+          "turnover": 283797,
+          "turnoverRate": 1.2,
+          "upCount": "7/21",
+          "mainInflow": 81912.65,
+          "mainOutflow": 80849.25,
+          "mainNetInflow": 1063.4,
+          "mainNetInflow5d": 31793.01,
+          "mainNetInflow20d": -9594.72,
+          "leader": {
+            "code": "sz002205",
+            "name": "国统股份",
+            "changePct": 9.98
+          }
+        },
+        {
+          "code": "pt01801194",
+          "name": "保险Ⅱ",
+          "changePct": -1.38,
+          "turnover": 637779,
+          "turnoverRate": 0.26,
+          "upCount": "0/5",
+          "mainInflow": 231853.31,
+          "mainOutflow": 268155.58,
+          "mainNetInflow": -36302.27,
+          "mainNetInflow5d": 91137.46,
+          "mainNetInflow20d": -190739.32,
+          "leader": {
+            "code": "sh601319",
+            "name": "中国人保",
+            "changePct": 0
+          }
+        },
+        {
+          "code": "pt01801125",
+          "name": "白酒Ⅱ",
+          "changePct": -1.42,
+          "turnover": 814908,
+          "turnoverRate": 0.96,
+          "upCount": "0/19",
+          "mainInflow": 285484.94,
+          "mainOutflow": 390545.46,
+          "mainNetInflow": -105060.52,
+          "mainNetInflow5d": -93099.48,
+          "mainNetInflow20d": -413069.36,
+          "leader": {
+            "code": "sz000858",
+            "name": "五 粮 液",
+            "changePct": -0.95
+          }
+        },
+        {
+          "code": "pt01801103",
+          "name": "IT服务Ⅱ",
+          "changePct": -1.47,
+          "turnover": 2749147,
+          "turnoverRate": 2.17,
+          "upCount": "14/122",
+          "mainInflow": 855649.39,
+          "mainOutflow": 946308.11,
+          "mainNetInflow": -90658.71,
+          "mainNetInflow5d": -52135.73,
+          "mainNetInflow20d": -912119.12,
+          "leader": {
+            "code": "sz300300",
+            "name": "海峡创新",
+            "changePct": 19.98
+          }
+        },
+        {
+          "code": "pt01801092",
+          "name": "汽车服务",
+          "changePct": -1.48,
+          "turnover": 84422,
+          "turnoverRate": 2.34,
+          "upCount": "2/9",
+          "mainInflow": 22817.91,
+          "mainOutflow": 24229.45,
+          "mainNetInflow": -1411.54,
+          "mainNetInflow5d": -3351.15,
+          "mainNetInflow20d": -1856.68,
+          "leader": {
+            "code": "sh600676",
+            "name": "久事动娱",
+            "changePct": 1.2
+          }
+        },
+        {
+          "code": "pt01801993",
+          "name": "旅游及景区",
+          "changePct": -1.5,
+          "turnover": 357144,
+          "turnoverRate": 2.43,
+          "upCount": "2/25",
+          "mainInflow": 84409.99,
+          "mainOutflow": 95619.58,
+          "mainNetInflow": -11209.59,
+          "mainNetInflow5d": -14531.62,
+          "mainNetInflow20d": -81394.48,
+          "leader": {
+            "code": "sh603099",
+            "name": "长白山",
+            "changePct": 3.14
+          }
+        },
+        {
+          "code": "pt01801738",
+          "name": "电网设备",
+          "changePct": -1.5,
+          "turnover": 2467005,
+          "turnoverRate": 1.86,
+          "upCount": "29/126",
+          "mainInflow": 645488.69,
+          "mainOutflow": 740603.41,
+          "mainNetInflow": -95114.72,
+          "mainNetInflow5d": -261923.02,
+          "mainNetInflow20d": -1121177.65,
+          "leader": {
+            "code": "sh601567",
+            "name": "三星电气",
+            "changePct": 10.02
+          }
+        },
+        {
+          "code": "pt01801036",
+          "name": "塑料",
+          "changePct": -1.53,
+          "turnover": 2250009,
+          "turnoverRate": 3.36,
+          "upCount": "18/72",
+          "mainInflow": 719879.95,
+          "mainOutflow": 709993.78,
+          "mainNetInflow": 9886.17,
+          "mainNetInflow5d": -35156.72,
+          "mainNetInflow20d": -21993.45,
+          "leader": {
+            "code": "sz002395",
+            "name": "双象股份",
+            "changePct": 10.02
+          }
+        },
+        {
+          "code": "pt01801733",
+          "name": "其他电源设备Ⅱ",
+          "changePct": -1.58,
+          "turnover": 1343239,
+          "turnoverRate": 1.2,
+          "upCount": "4/32",
+          "mainInflow": 483958.9,
+          "mainOutflow": 478422.16,
+          "mainNetInflow": 5536.74,
+          "mainNetInflow5d": 103862.03,
+          "mainNetInflow20d": 139795.78,
+          "leader": {
+            "code": "sh600212",
+            "name": "绿能慧充",
+            "changePct": 4.66
+          }
+        },
+        {
+          "code": "pt01801206",
+          "name": "互联网电商",
+          "changePct": -1.58,
+          "turnover": 352952,
+          "turnoverRate": 2.65,
+          "upCount": "6/18",
+          "mainInflow": 90089.25,
+          "mainOutflow": 89532.71,
+          "mainNetInflow": 556.54,
+          "mainNetInflow5d": -55868.82,
+          "mainNetInflow20d": -13122.94,
+          "leader": {
+            "code": "sh600539",
+            "name": "狮头股份",
+            "changePct": 2.6
+          }
+        },
+        {
+          "code": "pt01801129",
+          "name": "调味发酵品Ⅱ",
+          "changePct": -1.58,
+          "turnover": 409755,
+          "turnoverRate": 1.91,
+          "upCount": "3/14",
+          "mainInflow": 123129.09,
+          "mainOutflow": 134922.09,
+          "mainNetInflow": -11793,
+          "mainNetInflow5d": -270.63,
+          "mainNetInflow20d": -17913.42,
+          "leader": {
+            "code": "sh603755",
+            "name": "日辰股份",
+            "changePct": 4.39
+          }
+        },
+        {
+          "code": "pt01801724",
+          "name": "专业工程",
+          "changePct": -1.59,
+          "turnover": 552106,
+          "turnoverRate": 1.08,
+          "upCount": "7/37",
+          "mainInflow": 158588.2,
+          "mainOutflow": 158920.88,
+          "mainNetInflow": -332.68,
+          "mainNetInflow5d": 35030.76,
+          "mainNetInflow20d": -61795.11,
+          "leader": {
+            "code": "sz002743",
+            "name": "ST富煌",
+            "changePct": 3.94
+          }
+        },
+        {
+          "code": "pt01801095",
+          "name": "乘用车",
+          "changePct": -1.66,
+          "turnover": 379797,
+          "turnoverRate": 0.67,
+          "upCount": "0/8",
+          "mainInflow": 113100.35,
+          "mainOutflow": 148968.18,
+          "mainNetInflow": -35867.83,
+          "mainNetInflow5d": -23337.69,
+          "mainNetInflow20d": -338111.99,
+          "leader": {
+            "code": "sh601238",
+            "name": "广汽集团",
+            "changePct": 0
+          }
+        },
+        {
+          "code": "pt01801043",
+          "name": "冶钢原料",
+          "changePct": -1.66,
+          "turnover": 153698,
+          "turnoverRate": 0.91,
+          "upCount": "0/10",
+          "mainInflow": 36398.69,
+          "mainOutflow": 42069.43,
+          "mainNetInflow": -5670.74,
+          "mainNetInflow5d": -5783.32,
+          "mainNetInflow20d": -31687.08,
+          "leader": {
+            "code": "sh600516",
+            "name": "方大炭素",
+            "changePct": 0
+          }
+        },
+        {
+          "code": "pt01801219",
+          "name": "酒店餐饮",
+          "changePct": -1.68,
+          "turnover": 65391,
+          "turnoverRate": 1.69,
+          "upCount": "1/9",
+          "mainInflow": 10508.61,
+          "mainOutflow": 15721.57,
+          "mainNetInflow": -5212.96,
+          "mainNetInflow5d": -11152.84,
+          "mainNetInflow20d": -6561.74,
+          "leader": {
+            "code": "sh601007",
+            "name": "金陵饭店",
+            "changePct": 0.29
+          }
+        },
+        {
+          "code": "pt01801101",
+          "name": "计算机设备",
+          "changePct": -1.72,
+          "turnover": 1728507,
+          "turnoverRate": 1.96,
+          "upCount": "9/82",
+          "mainInflow": 459291.53,
+          "mainOutflow": 556758.04,
+          "mainNetInflow": -97466.52,
+          "mainNetInflow5d": 23797.4,
+          "mainNetInflow20d": -1217406.56,
+          "leader": {
+            "code": "sz301339",
+            "name": "通行宝",
+            "changePct": 11.16
+          }
+        },
+        {
+          "code": "pt01801072",
+          "name": "通用设备",
+          "changePct": -1.72,
+          "turnover": 6071206,
+          "turnoverRate": 3.13,
+          "upCount": "60/220",
+          "mainInflow": 2067758.6,
+          "mainOutflow": 2025313.59,
+          "mainNetInflow": 42445.01,
+          "mainNetInflow5d": 242729.87,
+          "mainNetInflow20d": -131319.55,
+          "leader": {
+            "code": "sz301311",
+            "name": "昆船智能",
+            "changePct": 20.03
+          }
+        },
+        {
+          "code": "pt01801155",
+          "name": "中药Ⅱ",
+          "changePct": -1.78,
+          "turnover": 875791,
+          "turnoverRate": 1.5,
+          "upCount": "5/66",
+          "mainInflow": 213323.35,
+          "mainOutflow": 233947.27,
+          "mainNetInflow": -20623.92,
+          "mainNetInflow5d": 9296.29,
+          "mainNetInflow20d": -146162.43,
+          "leader": {
+            "code": "sz000790",
+            "name": "华神科技",
+            "changePct": 10.12
+          }
+        },
+        {
+          "code": "pt01801153",
+          "name": "医疗器械",
+          "changePct": -1.81,
+          "turnover": 1859825,
+          "turnoverRate": 1.84,
+          "upCount": "17/129",
+          "mainInflow": 441727.31,
+          "mainOutflow": 512606.59,
+          "mainNetInflow": -70879.28,
+          "mainNetInflow5d": -106120.67,
+          "mainNetInflow20d": -552965.59,
+          "leader": {
+            "code": "sz301122",
+            "name": "采纳股份",
+            "changePct": 3.65
+          }
+        },
+        {
+          "code": "pt01801032",
+          "name": "化学纤维",
+          "changePct": -1.81,
+          "turnover": 250987,
+          "turnoverRate": 1.1,
+          "upCount": "8/26",
+          "mainInflow": 58484.01,
+          "mainOutflow": 65838.36,
+          "mainNetInflow": -7354.35,
+          "mainNetInflow5d": -5532.66,
+          "mainNetInflow20d": -91025.58,
+          "leader": {
+            "code": "sh603073",
+            "name": "彩蝶实业",
+            "changePct": 4.31
+          }
+        },
+        {
+          "code": "pt01801218",
+          "name": "专业服务",
+          "changePct": -1.84,
+          "turnover": 340370,
+          "turnoverRate": 1.52,
+          "upCount": "6/29",
+          "mainInflow": 91841.6,
+          "mainOutflow": 95877.16,
+          "mainNetInflow": -4035.56,
+          "mainNetInflow5d": -660.11,
+          "mainNetInflow20d": -24146.16,
+          "leader": {
+            "code": "sh603373",
+            "name": "安邦护卫",
+            "changePct": 5.92
+          }
+        },
+        {
+          "code": "pt01801086",
+          "name": "电子化学品Ⅱ",
+          "changePct": -1.84,
+          "turnover": 3220188,
+          "turnoverRate": 4.79,
+          "upCount": "3/35",
+          "mainInflow": 1318260.51,
+          "mainOutflow": 1288275.11,
+          "mainNetInflow": 29985.4,
+          "mainNetInflow5d": -88977.64,
+          "mainNetInflow20d": -220082.61,
+          "leader": {
+            "code": "sz002741",
+            "name": "光华科技",
+            "changePct": 4.11
+          }
+        },
+        {
+          "code": "pt01801193",
+          "name": "证券Ⅱ",
+          "changePct": -1.87,
+          "turnover": 1671145,
+          "turnoverRate": 0.59,
+          "upCount": "0/50",
+          "mainInflow": 549388.52,
+          "mainOutflow": 736214.3,
+          "mainNetInflow": -186825.77,
+          "mainNetInflow5d": -245320.8,
+          "mainNetInflow20d": -1480804.45,
+          "leader": {
+            "code": "sh601059",
+            "name": "信达证券",
+            "changePct": 0
+          }
+        },
+        {
+          "code": "pt01801124",
+          "name": "食品加工",
+          "changePct": -1.9,
+          "turnover": 208944,
+          "turnoverRate": 1.71,
+          "upCount": "4/25",
+          "mainInflow": 50519.21,
+          "mainOutflow": 56057.07,
+          "mainNetInflow": -5537.86,
+          "mainNetInflow5d": 1359.35,
+          "mainNetInflow20d": -40344.02,
+          "leader": {
+            "code": "sh605089",
+            "name": "味知香",
+            "changePct": 2.06
+          }
+        },
+        {
+          "code": "pt01801017",
+          "name": "养殖业",
+          "changePct": -1.9,
+          "turnover": 420090,
+          "turnoverRate": 1.83,
+          "upCount": "3/22",
+          "mainInflow": 138172.97,
+          "mainOutflow": 135366.37,
+          "mainNetInflow": 2806.6,
+          "mainNetInflow5d": -48431.58,
+          "mainNetInflow20d": -130930.38,
+          "leader": {
+            "code": "sz002321",
+            "name": "华英农业",
+            "changePct": 10.19
+          }
+        },
+        {
+          "code": "pt01801765",
+          "name": "广告营销",
+          "changePct": -1.95,
+          "turnover": 1054621,
+          "turnoverRate": 3.35,
+          "upCount": "5/28",
+          "mainInflow": 322604.79,
+          "mainOutflow": 364244.91,
+          "mainNetInflow": -41640.13,
+          "mainNetInflow5d": -12168.39,
+          "mainNetInflow20d": -175383.09,
+          "leader": {
+            "code": "sz002264",
+            "name": "新 华 都",
+            "changePct": 10.01
+          }
+        },
+        {
+          "code": "pt01801104",
+          "name": "软件开发",
+          "changePct": -1.95,
+          "turnover": 2402956,
+          "turnoverRate": 1.87,
+          "upCount": "10/130",
+          "mainInflow": 656013.89,
+          "mainOutflow": 806156.76,
+          "mainNetInflow": -150142.87,
+          "mainNetInflow5d": -199935.79,
+          "mainNetInflow20d": -887406.61,
+          "leader": {
+            "code": "sh688171",
+            "name": "纬德信息",
+            "changePct": 3.29
+          }
+        },
+        {
+          "code": "pt01801012",
+          "name": "农产品加工",
+          "changePct": -2.01,
+          "turnover": 760899,
+          "turnoverRate": 4.05,
+          "upCount": "1/23",
+          "mainInflow": 263331.55,
+          "mainOutflow": 316044.88,
+          "mainNetInflow": -52713.33,
+          "mainNetInflow5d": -3147.22,
+          "mainNetInflow20d": -171350.43,
+          "leader": {
+            "code": "sz002852",
+            "name": "道道全",
+            "changePct": 0.12
+          }
+        },
+        {
+          "code": "pt01801034",
+          "name": "化学制品",
+          "changePct": -2.13,
+          "turnover": 3629358,
+          "turnoverRate": 2.35,
+          "upCount": "33/172",
+          "mainInflow": 1067377.63,
+          "mainOutflow": 1214685.69,
+          "mainNetInflow": -147308.06,
+          "mainNetInflow5d": -235264.12,
+          "mainNetInflow20d": -1027380.79,
+          "leader": {
+            "code": "sh603065",
+            "name": "宿迁联盛",
+            "changePct": 10.01
+          }
+        },
+        {
+          "code": "pt01801074",
+          "name": "专用设备",
+          "changePct": -2.17,
+          "turnover": 3585256,
+          "turnoverRate": 1.93,
+          "upCount": "42/181",
+          "mainInflow": 1013188.33,
+          "mainOutflow": 1071323.74,
+          "mainNetInflow": -58135.41,
+          "mainNetInflow5d": -103797.18,
+          "mainNetInflow20d": -369259.94,
+          "leader": {
+            "code": "sh600843",
+            "name": "上工申贝",
+            "changePct": 9.99
+          }
+        },
+        {
+          "code": "pt01801726",
+          "name": "工程咨询服务Ⅱ",
+          "changePct": -2.18,
+          "turnover": 587817,
+          "turnoverRate": 2.44,
+          "upCount": "11/40",
+          "mainInflow": 127653.27,
+          "mainOutflow": 179156.21,
+          "mainNetInflow": -51502.94,
+          "mainNetInflow5d": -147537.71,
+          "mainNetInflow20d": -110616.05,
+          "leader": {
+            "code": "sz301136",
+            "name": "招标股份",
+            "changePct": 12.33
+          }
+        },
+        {
+          "code": "pt01801018",
+          "name": "动物保健Ⅱ",
+          "changePct": -2.21,
+          "turnover": 40790,
+          "turnoverRate": 0.75,
+          "upCount": "0/9",
+          "mainInflow": 9503.41,
+          "mainOutflow": 10042.39,
+          "mainNetInflow": -538.98,
+          "mainNetInflow5d": -4971.98,
+          "mainNetInflow20d": -4402.25,
+          "leader": {
+            "code": "sh603566",
+            "name": "普莱柯",
+            "changePct": -0.29
+          }
+        },
+        {
+          "code": "pt01801078",
+          "name": "自动化设备",
+          "changePct": -2.23,
+          "turnover": 3230841,
+          "turnoverRate": 1.99,
+          "upCount": "15/82",
+          "mainInflow": 1115231.76,
+          "mainOutflow": 1252420.92,
+          "mainNetInflow": -137189.16,
+          "mainNetInflow5d": -264923.25,
+          "mainNetInflow20d": -979285.15,
+          "leader": {
+            "code": "sh688835",
+            "name": "高凯技术",
+            "changePct": 7.32
+          }
+        },
+        {
+          "code": "pt01801767",
+          "name": "数字媒体",
+          "changePct": -2.26,
+          "turnover": 438025,
+          "turnoverRate": 4.02,
+          "upCount": "1/14",
+          "mainInflow": 105389.49,
+          "mainOutflow": 134723.33,
+          "mainNetInflow": -29333.84,
+          "mainNetInflow5d": -38050.72,
+          "mainNetInflow20d": 102243.06,
+          "leader": {
+            "code": "sz002095",
+            "name": "生 意 宝",
+            "changePct": 2.1
+          }
+        },
+        {
+          "code": "pt01801181",
+          "name": "房地产开发",
+          "changePct": -2.28,
+          "turnover": 1746197,
+          "turnoverRate": 2.43,
+          "upCount": "7/83",
+          "mainInflow": 598866.84,
+          "mainOutflow": 696958.45,
+          "mainNetInflow": -98091.61,
+          "mainNetInflow5d": 112356.04,
+          "mainNetInflow20d": -39792.64,
+          "leader": {
+            "code": "sz000668",
+            "name": "荣丰控股",
+            "changePct": 5.22
+          }
+        },
+        {
+          "code": "pt01801991",
+          "name": "航空机场",
+          "changePct": -2.32,
+          "turnover": 282084,
+          "turnoverRate": 0.68,
+          "upCount": "1/12",
+          "mainInflow": 101771.87,
+          "mainOutflow": 120971.5,
+          "mainNetInflow": -19199.63,
+          "mainNetInflow5d": -14807.75,
+          "mainNetInflow20d": -73225.78,
+          "leader": {
+            "code": "sh600897",
+            "name": "厦门空港",
+            "changePct": 7.97
+          }
+        },
+        {
+          "code": "pt01801742",
+          "name": "航空装备Ⅱ",
+          "changePct": -2.36,
+          "turnover": 1342395,
+          "turnoverRate": 1.41,
+          "upCount": "4/46",
+          "mainInflow": 422529.75,
+          "mainOutflow": 425252.88,
+          "mainNetInflow": -2723.13,
+          "mainNetInflow5d": -89944.3,
+          "mainNetInflow20d": -207299.02,
+          "leader": {
+            "code": "sz002297",
+            "name": "博云新材",
+            "changePct": 5.49
+          }
+        },
+        {
+          "code": "pt01801038",
+          "name": "农化制品",
+          "changePct": -2.36,
+          "turnover": 1006268,
+          "turnoverRate": 1.55,
+          "upCount": "7/59",
+          "mainInflow": 318107.96,
+          "mainOutflow": 383844.53,
+          "mainNetInflow": -65736.57,
+          "mainNetInflow5d": -139507.93,
+          "mainNetInflow20d": -432596.25,
+          "leader": {
+            "code": "sh603970",
+            "name": "中农立华",
+            "changePct": 10.04
+          }
+        },
+        {
+          "code": "pt01801084",
+          "name": "光学光电子",
+          "changePct": -2.42,
+          "turnover": 4091237,
+          "turnoverRate": 2.36,
+          "upCount": "12/93",
+          "mainInflow": 1510877.32,
+          "mainOutflow": 1638306.18,
+          "mainNetInflow": -127428.86,
+          "mainNetInflow5d": 139390.06,
+          "mainNetInflow20d": -501823.14,
+          "leader": {
+            "code": "sz300301",
+            "name": "ST长方",
+            "changePct": 4.96
+          }
+        },
+        {
+          "code": "pt01801737",
+          "name": "电池",
+          "changePct": -2.44,
+          "turnover": 4198312,
+          "turnoverRate": 1.98,
+          "upCount": "7/97",
+          "mainInflow": 1418403.95,
+          "mainOutflow": 1621081.6,
+          "mainNetInflow": -202677.65,
+          "mainNetInflow5d": -225341.43,
+          "mainNetInflow20d": -2033084.58,
+          "leader": {
+            "code": "sh688772",
+            "name": "珠海冠宇",
+            "changePct": 3.01
+          }
+        },
+        {
+          "code": "pt01801051",
+          "name": "金属新材料",
+          "changePct": -2.45,
+          "turnover": 689318,
+          "turnoverRate": 1.86,
+          "upCount": "4/32",
+          "mainInflow": 190572.4,
+          "mainOutflow": 191873.1,
+          "mainNetInflow": -1300.7,
+          "mainNetInflow5d": 45103.58,
+          "mainNetInflow20d": 419.13,
+          "leader": {
+            "code": "sz000795",
+            "name": "英洛华",
+            "changePct": 2.4
+          }
+        },
+        {
+          "code": "pt01801735",
+          "name": "光伏设备",
+          "changePct": -2.5,
+          "turnover": 1959452,
+          "turnoverRate": 1.42,
+          "upCount": "14/67",
+          "mainInflow": 543353.13,
+          "mainOutflow": 681398.12,
+          "mainNetInflow": -138044.99,
+          "mainNetInflow5d": -64192.07,
+          "mainNetInflow20d": -881623.43,
+          "leader": {
+            "code": "sh603396",
+            "name": "金辰股份",
+            "changePct": 10
+          }
+        },
+        {
+          "code": "pt01801054",
+          "name": "小金属",
+          "changePct": -2.52,
+          "turnover": 1694055,
+          "turnoverRate": 1.76,
+          "upCount": "2/27",
+          "mainInflow": 509857.21,
+          "mainOutflow": 622875.43,
+          "mainNetInflow": -113018.23,
+          "mainNetInflow5d": -259464.92,
+          "mainNetInflow20d": -1277174.37,
+          "leader": {
+            "code": "sz000831",
+            "name": "中国稀土",
+            "changePct": 0.5
+          }
+        },
+        {
+          "code": "pt01801081",
+          "name": "半导体",
+          "changePct": -2.59,
+          "turnover": 20704963,
+          "turnoverRate": 3.19,
+          "upCount": "20/181",
+          "mainInflow": 8705709.89,
+          "mainOutflow": 9653890.03,
+          "mainNetInflow": -948180.14,
+          "mainNetInflow5d": 37859.78,
+          "mainNetInflow20d": -5795145.79,
+          "leader": {
+            "code": "sh603375",
+            "name": "盛景微",
+            "changePct": 10.01
+          }
+        },
+        {
+          "code": "pt01801183",
+          "name": "房地产服务",
+          "changePct": -2.71,
+          "turnover": 612370,
+          "turnoverRate": 11.59,
+          "upCount": "2/12",
+          "mainInflow": 210104.44,
+          "mainOutflow": 236472.26,
+          "mainNetInflow": -26367.81,
+          "mainNetInflow5d": 52827.61,
+          "mainNetInflow20d": 113264.03,
+          "leader": {
+            "code": "sz002285",
+            "name": "世联行",
+            "changePct": 2.84
+          }
+        },
+        {
+          "code": "pt01801085",
+          "name": "消费电子",
+          "changePct": -2.84,
+          "turnover": 4701217,
+          "turnoverRate": 2.01,
+          "upCount": "9/91",
+          "mainInflow": 1569895.5,
+          "mainOutflow": 1828597.41,
+          "mainNetInflow": -258701.91,
+          "mainNetInflow5d": -337457.97,
+          "mainNetInflow20d": -1505156.44,
+          "leader": {
+            "code": "sz300647",
+            "name": "超频三",
+            "changePct": 11.81
+          }
+        },
+        {
+          "code": "pt01801152",
+          "name": "生物制品",
+          "changePct": -2.87,
+          "turnover": 1743901,
+          "turnoverRate": 1.74,
+          "upCount": "4/52",
+          "mainInflow": 494685.15,
+          "mainOutflow": 633616.36,
+          "mainNetInflow": -138931.21,
+          "mainNetInflow5d": -48843.39,
+          "mainNetInflow20d": -317000.74,
+          "leader": {
+            "code": "sh688137",
+            "name": "近岸蛋白",
+            "changePct": 1.96
+          }
+        },
+        {
+          "code": "pt01801016",
+          "name": "种植业",
+          "changePct": -2.92,
+          "turnover": 696265,
+          "turnoverRate": 4.46,
+          "upCount": "0/20",
+          "mainInflow": 167734.4,
+          "mainOutflow": 210102.17,
+          "mainNetInflow": -42367.76,
+          "mainNetInflow5d": -126739.28,
+          "mainNetInflow20d": -198470.94,
+          "leader": {
+            "code": "sz300087",
+            "name": "ST荃银",
+            "changePct": -0.18
+          }
+        },
+        {
+          "code": "pt01801156",
+          "name": "医疗服务",
+          "changePct": -3.06,
+          "turnover": 3311425,
+          "turnoverRate": 3.74,
+          "upCount": "11/51",
+          "mainInflow": 1002821,
+          "mainOutflow": 1188859.6,
+          "mainNetInflow": -186038.6,
+          "mainNetInflow5d": -239259.28,
+          "mainNetInflow20d": -141884.83,
+          "leader": {
+            "code": "sz002622",
+            "name": "皓宸医疗",
+            "changePct": 10.12
+          }
+        },
+        {
+          "code": "pt01801082",
+          "name": "其他电子Ⅱ",
+          "changePct": -3.09,
+          "turnover": 1610080,
+          "turnoverRate": 4.08,
+          "upCount": "4/33",
+          "mainInflow": 533775.32,
+          "mainOutflow": 585423.97,
+          "mainNetInflow": -51648.65,
+          "mainNetInflow5d": -49524.98,
+          "mainNetInflow20d": -34273.46,
+          "leader": {
+            "code": "sz000670",
+            "name": "盈方微",
+            "changePct": 4.89
+          }
+        },
+        {
+          "code": "pt01801722",
+          "name": "装修装饰Ⅱ",
+          "changePct": -3.1,
+          "turnover": 407929,
+          "turnoverRate": 3.42,
+          "upCount": "3/22",
+          "mainInflow": 109419.8,
+          "mainOutflow": 123212.41,
+          "mainNetInflow": -13792.61,
+          "mainNetInflow5d": 34271.11,
+          "mainNetInflow20d": 22833.06,
+          "leader": {
+            "code": "sz002789",
+            "name": "*ST建艺",
+            "changePct": 6.68
+          }
+        },
+        {
+          "code": "pt01801151",
+          "name": "化学制药",
+          "changePct": -3.11,
+          "turnover": 3612040,
+          "turnoverRate": 2.74,
+          "upCount": "7/149",
+          "mainInflow": 980089.12,
+          "mainOutflow": 1239235.44,
+          "mainNetInflow": -259146.32,
+          "mainNetInflow5d": -250873.33,
+          "mainNetInflow20d": -1441014.67,
+          "leader": {
+            "code": "sh605177",
+            "name": "东亚药业",
+            "changePct": 3.9
+          }
+        },
+        {
+          "code": "pt01801102",
+          "name": "通信设备",
+          "changePct": -3.11,
+          "turnover": 10461324,
+          "turnoverRate": 3.46,
+          "upCount": "10/85",
+          "mainInflow": 4024234.94,
+          "mainOutflow": 4989269.08,
+          "mainNetInflow": -965034.14,
+          "mainNetInflow5d": -1443741.45,
+          "mainNetInflow20d": -1128478.15,
+          "leader": {
+            "code": "sh603042",
+            "name": "华脉科技",
+            "changePct": 9.98
+          }
+        },
+        {
+          "code": "pt01801056",
+          "name": "能源金属",
+          "changePct": -3.26,
+          "turnover": 663289,
+          "turnoverRate": 1.91,
+          "upCount": "0/11",
+          "mainInflow": 181319.65,
+          "mainOutflow": 270926,
+          "mainNetInflow": -89606.35,
+          "mainNetInflow5d": -76615.98,
+          "mainNetInflow20d": -660692.94,
+          "leader": {
+            "code": "sh603799",
+            "name": "华友钴业",
+            "changePct": -2.07
+          }
+        },
+        {
+          "code": "pt01801055",
+          "name": "工业金属",
+          "changePct": -3.76,
+          "turnover": 3326529,
+          "turnoverRate": 1.45,
+          "upCount": "2/59",
+          "mainInflow": 1090559.28,
+          "mainOutflow": 1518569.7,
+          "mainNetInflow": -428010.42,
+          "mainNetInflow5d": -374760.55,
+          "mainNetInflow20d": -1976155.64,
+          "leader": {
+            "code": "sh603937",
+            "name": "丽岛新材",
+            "changePct": 4.47
+          }
+        },
+        {
+          "code": "pt01801039",
+          "name": "非金属材料Ⅱ",
+          "changePct": -4.28,
+          "turnover": 474519,
+          "turnoverRate": 3.44,
+          "upCount": "1/8",
+          "mainInflow": 163606.5,
+          "mainOutflow": 190175.78,
+          "mainNetInflow": -26569.28,
+          "mainNetInflow5d": -39438.93,
+          "mainNetInflow20d": -7506.2,
+          "leader": {
+            "code": "sh688598",
+            "name": "金博股份",
+            "changePct": 0.36
+          }
+        },
+        {
+          "code": "pt01801712",
+          "name": "玻璃玻纤",
+          "changePct": -4.36,
+          "turnover": 2444673,
+          "turnoverRate": 5.57,
+          "upCount": "2/16",
+          "mainInflow": 836940.66,
+          "mainOutflow": 1062564.3,
+          "mainNetInflow": -225623.64,
+          "mainNetInflow5d": -457035.44,
+          "mainNetInflow20d": -140594.68,
+          "leader": {
+            "code": "sh603601",
+            "name": "再升科技",
+            "changePct": 4.64
+          }
+        },
+        {
+          "code": "pt01801083",
+          "name": "元件",
+          "changePct": -4.48,
+          "turnover": 10442749,
+          "turnoverRate": 5.43,
+          "upCount": "2/61",
+          "mainInflow": 3521236.41,
+          "mainOutflow": 4416579.54,
+          "mainNetInflow": -895343.13,
+          "mainNetInflow5d": -1129667.24,
+          "mainNetInflow20d": -348040.66,
+          "leader": {
+            "code": "sz002579",
+            "name": "中京电子",
+            "changePct": 3.33
+          }
+        },
+        {
+          "code": "pt01801053",
+          "name": "贵金属",
+          "changePct": -5.03,
+          "turnover": 1164056,
+          "turnoverRate": 2.53,
+          "upCount": "0/11",
+          "mainInflow": 367647.21,
+          "mainOutflow": 481491.16,
+          "mainNetInflow": -113843.95,
+          "mainNetInflow5d": -377038.27,
+          "mainNetInflow20d": -994666.06,
+          "leader": {
+            "code": "sz000506",
+            "name": "招金黄金",
+            "changePct": -3.43
+          }
+        }
+      ]
+    }
+  }
+}

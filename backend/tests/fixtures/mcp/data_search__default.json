@@ -1,0 +1,16 @@
+{
+  "tool": "data_search",
+  "args": {
+    "query": "贵州茅台"
+  },
+  "payload": {
+    "ok": true,
+    "data": [
+      {
+        "code": "sh600519",
+        "name": "贵州茅台",
+        "type": "GP-A"
+      }
+    ]
+  }
+}

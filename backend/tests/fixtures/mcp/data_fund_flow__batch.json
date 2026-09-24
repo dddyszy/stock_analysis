@@ -1,0 +1,65 @@
+{
+  "tool": "data_fund_flow",
+  "args": {
+    "codes": "sh600519,sz000001"
+  },
+  "payload": {
+    "ok": true,
+    "data": {
+      "sh600519": {
+        "code": "sh600519",
+        "data": [
+          {
+            "BlockNetFlow": "-204601485",
+            "ClosePrice": "1237",
+            "EndDate": "2026-09-24",
+            "JumboNetFlow": "-314026198",
+            "MainInFlow": "1831873869",
+            "MainInflowCircRate": "0.03",
+            "MainInflowIndustryRank": "0",
+            "MainInflowRank": "5530",
+            "MainNetFlow": "-518627682",
+            "MainNetFlow10D": "-1267040749",
+            "MainNetFlow20D": "-1624519903",
+            "MainNetFlow5D": "-415182653",
+            "MainOutFlow": "2350501552",
+            "MidNetFlow": "518930453",
+            "RetailInFlow": "2036055551",
+            "RetailOutFlow": "1517427868",
+            "SecuCode": "sh600519",
+            "SmallNetFlow": "-302770",
+            "code": "sh600519",
+            "name": "贵州茅台"
+          }
+        ]
+      },
+      "sz000001": {
+        "code": "sz000001",
+        "data": [
+          {
+            "BlockNetFlow": "-52991378",
+            "ClosePrice": "11.30",
+            "EndDate": "2026-09-24",
+            "JumboNetFlow": "79019535",
+            "MainInFlow": "508459095",
+            "MainInflowCircRate": "0.01",
+            "MainInflowIndustryRank": "0",
+            "MainInflowRank": "313",
+            "MainNetFlow": "26028157",
+            "MainNetFlow10D": "331597657",
+            "MainNetFlow20D": "356170649",
+            "MainNetFlow5D": "306022210",
+            "MainOutFlow": "482430938",
+            "MidNetFlow": "-64728730",
+            "RetailInFlow": "678277801",
+            "RetailOutFlow": "704305958",
+            "SecuCode": "sz000001",
+            "SmallNetFlow": "38700572",
+            "code": "sz000001",
+            "name": "平安银行"
+          }
+        ]
+      }
+    }
+  }
+}

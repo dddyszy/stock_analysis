@@ -1,0 +1,585 @@
+{
+  "tool": "tool_list_labels",
+  "args": {},
+  "payload": {
+    "ok": true,
+    "data": [
+      {
+        "key": "fin_asset_high_cash",
+        "name": "资产结构多现金",
+        "group": "资产结构",
+        "code": "kyp_fin_asset_high_cash"
+      },
+      {
+        "key": "fin_operating_high_rk_asset_turn",
+        "name": "营运能力资产周转高排序",
+        "group": "财务排名",
+        "code": "kyp_fin_operating_high_rk_asset_turn"
+      },
+      {
+        "key": "shareholder_local_state",
+        "name": "国企公司",
+        "group": "股东属性",
+        "code": "kyp_shareholder_local_state"
+      },
+      {
+        "key": "fin_forecast_slower_inc",
+        "name": "业绩减增股",
+        "group": "财务特征",
+        "code": "kyp_fin_forecast_slower_inc"
+      },
+      {
+        "key": "fin_profitablity_high_rk_gpttm",
+        "name": "盈利能力毛利率ttm高排序",
+        "group": "财务排名",
+        "code": "kyp_fin_profitablity_high_rk_gpttm"
+      },
+      {
+        "key": "fin_asset_high_inventory",
+        "name": "资产结构多库存",
+        "group": "资产结构",
+        "code": "kyp_fin_asset_high_inventory"
+      },
+      {
+        "key": "fin_growth_high_rk_profit_growth",
+        "name": "成长能力利润增速高排序",
+        "group": "财务排名",
+        "code": "kyp_fin_growth_high_rk_profit_growth"
+      },
+      {
+        "key": "fin_profit_high_cost_dev",
+        "name": "成本结构多研发费用",
+        "group": "利润结构",
+        "code": "kyp_fin_profit_high_cost_dev"
+      },
+      {
+        "key": "fin_profitablity_high_rk_roettm",
+        "name": "盈利能力ROEttm高排序",
+        "group": "财务排名",
+        "code": "kyp_fin_profitablity_high_rk_roettm"
+      },
+      {
+        "key": "listeddate_3yearplus",
+        "name": "上市3年以上",
+        "group": "上市时间",
+        "code": "kyp_listeddate_3yearplus"
+      },
+      {
+        "key": "price_between_1_10",
+        "name": "1到10元股",
+        "group": "价格与市值",
+        "code": "kyp_price_between_1_10"
+      },
+      {
+        "key": "fin_profit_high_nonopincome",
+        "name": "利润结构多营业外收入",
+        "group": "利润结构",
+        "code": "kyp_fin_profit_high_nonopincome"
+      },
+      {
+        "key": "valuation_abs_high",
+        "name": "估值绝对高位股",
+        "group": "估值水平",
+        "code": "kyp_valuation_abs_high"
+      },
+      {
+        "key": "fin_liability_high_advance",
+        "name": "负债结构多预收",
+        "group": "负债结构",
+        "code": "kyp_fin_liability_high_advance"
+      },
+      {
+        "key": "fin_profitablity_low_rk_gpttm",
+        "name": "盈利能力毛利率ttm低排序",
+        "group": "财务排名",
+        "code": "kyp_fin_profitablity_low_rk_gpttm"
+      },
+      {
+        "key": "fin_profitablity_low_rk_roettm",
+        "name": "盈利能力ROEttm低排序",
+        "group": "财务排名",
+        "code": "kyp_fin_profitablity_low_rk_roettm"
+      },
+      {
+        "key": "marketcap_between_100_1000",
+        "name": "100到1000亿股",
+        "group": "价格与市值",
+        "code": "kyp_marketcap_between_100_1000"
+      },
+      {
+        "key": "fin_growth_low_rk_rev_growth",
+        "name": "成长能力营收增速低排序",
+        "group": "财务排名",
+        "code": "kyp_fin_growth_low_rk_rev_growth"
+      },
+      {
+        "key": "fin_liquidity_high_rk_current_ratio",
+        "name": "偿债能力流动比率高排序",
+        "group": "财务排名",
+        "code": "kyp_fin_liquidity_high_rk_current_ratio"
+      },
+      {
+        "key": "fin_profit_high_cost_financing",
+        "name": "成本结构多财务费用",
+        "group": "利润结构",
+        "code": "kyp_fin_profit_high_cost_financing"
+      },
+      {
+        "key": "listeddate_3mons",
+        "name": "近端次新股",
+        "group": "上市时间",
+        "code": "kyp_listeddate_3mons"
+      },
+      {
+        "key": "marketcap_between_1000_10000",
+        "name": "1000到10000亿股",
+        "group": "价格与市值",
+        "code": "kyp_marketcap_between_1000_10000"
+      },
+      {
+        "key": "fin_liquidity_low_rk_interest_cover",
+        "name": "偿债能力利息保障倍数低排序",
+        "group": "财务排名",
+        "code": "kyp_fin_liquidity_low_rk_interest_cover"
+      },
+      {
+        "key": "fin_operating_high_rk_receivable_turn",
+        "name": "营运能力应收周转高排序",
+        "group": "财务排名",
+        "code": "kyp_fin_operating_high_rk_receivable_turn"
+      },
+      {
+        "key": "fin_profit_high_discontinue",
+        "name": "利润结构多终止经营净利润",
+        "group": "利润结构",
+        "code": "kyp_fin_profit_high_discontinue"
+      },
+      {
+        "key": "price_between_500_1000",
+        "name": "500到1000元股",
+        "group": "价格与市值",
+        "code": "kyp_price_between_500_1000"
+      },
+      {
+        "key": "shareholder_private",
+        "name": "民企公司",
+        "group": "股东属性",
+        "code": "kyp_shareholder_private"
+      },
+      {
+        "key": "fin_cash_neg_cff",
+        "name": "现金流结构负筹资现金",
+        "group": "现金流结构",
+        "code": "kyp_fin_cash_neg_cff"
+      },
+      {
+        "key": "fin_cash_neg_cfi",
+        "name": "现金流结构负投资现金",
+        "group": "现金流结构",
+        "code": "kyp_fin_cash_neg_cfi"
+      },
+      {
+        "key": "fin_growth_high_rk_asset_growth",
+        "name": "成长能力资产增速高排序",
+        "group": "财务排名",
+        "code": "kyp_fin_growth_high_rk_asset_growth"
+      },
+      {
+        "key": "price_between_100_500",
+        "name": "100到500元股",
+        "group": "价格与市值",
+        "code": "kyp_price_between_100_500"
+      },
+      {
+        "key": "marketcap_super_small",
+        "name": "超小盘",
+        "group": "价格与市值",
+        "code": "kyp_marketcap_super_small"
+      },
+      {
+        "key": "fin_growth_high_rk_rev_growth",
+        "name": "成长能力营收增速高排序",
+        "group": "财务排名",
+        "code": "kyp_fin_growth_high_rk_rev_growth"
+      },
+      {
+        "key": "fin_growth_low_rk_profit_growth",
+        "name": "成长能力利润增速低排序",
+        "group": "财务排名",
+        "code": "kyp_fin_growth_low_rk_profit_growth"
+      },
+      {
+        "key": "fin_high_gpttm",
+        "name": "高销售毛利率ttm",
+        "group": "财务特征",
+        "code": "kyp_fin_high_gpttm"
+      },
+      {
+        "key": "fin_profit_high_assetimpair",
+        "name": "利润结构多资产减值",
+        "group": "利润结构",
+        "code": "kyp_fin_profit_high_assetimpair"
+      },
+      {
+        "key": "fin_profit_high_cost_admin",
+        "name": "成本结构多管理费用",
+        "group": "利润结构",
+        "code": "kyp_fin_profit_high_cost_admin"
+      },
+      {
+        "key": "listeddate_5days",
+        "name": "新股5日内",
+        "group": "上市时间",
+        "code": "kyp_listeddate_5days"
+      },
+      {
+        "key": "fin_cash_high_cff",
+        "name": "现金流结构多筹资现金",
+        "group": "现金流结构",
+        "code": "kyp_fin_cash_high_cff"
+      },
+      {
+        "key": "fin_cash_neg_cfo",
+        "name": "现金流结构负经营现金",
+        "group": "现金流结构",
+        "code": "kyp_fin_cash_neg_cfo"
+      },
+      {
+        "key": "fin_liability_high_shortdebt",
+        "name": "负债结构多短债",
+        "group": "负债结构",
+        "code": "kyp_fin_liability_high_shortdebt"
+      },
+      {
+        "key": "fin_operating_low_rk_asset_turn",
+        "name": "营运能力资产周转低排序",
+        "group": "财务排名",
+        "code": "kyp_fin_operating_low_rk_asset_turn"
+      },
+      {
+        "key": "fin_profitablity_low_rk_roattm",
+        "name": "盈利能力ROAttm低排序",
+        "group": "财务排名",
+        "code": "kyp_fin_profitablity_low_rk_roattm"
+      },
+      {
+        "key": "price_below1",
+        "name": "1元股",
+        "group": "价格与市值",
+        "code": "kyp_price_below1"
+      },
+      {
+        "key": "fin_cash_high_cfi",
+        "name": "现金流结构多投资现金",
+        "group": "现金流结构",
+        "code": "kyp_fin_cash_high_cfi"
+      },
+      {
+        "key": "fin_liquidity_low_rk_current_ratio",
+        "name": "偿债能力流动比率低排序",
+        "group": "财务排名",
+        "code": "kyp_fin_liquidity_low_rk_current_ratio"
+      },
+      {
+        "key": "marketcap_between_10_50",
+        "name": "10到50亿股",
+        "group": "价格与市值",
+        "code": "kyp_marketcap_between_10_50"
+      },
+      {
+        "key": "risk_st",
+        "name": "ST与*ST股",
+        "group": "风险标签",
+        "code": "kyp_risk_st"
+      },
+      {
+        "key": "valuation_abs_low",
+        "name": "估值绝对低位股",
+        "group": "估值水平",
+        "code": "kyp_valuation_abs_low"
+      },
+      {
+        "key": "valuation_negpe",
+        "name": "亏损股",
+        "group": "估值水平",
+        "code": "kyp_valuation_negpe"
+      },
+      {
+        "key": "fin_asset_high_bubble1",
+        "name": "资产结构多泡沫资产1",
+        "group": "资产结构",
+        "code": "kyp_fin_asset_high_bubble1"
+      },
+      {
+        "key": "fin_cash_high_cash",
+        "name": "现金流结构多现金",
+        "group": "现金流结构",
+        "code": "kyp_fin_cash_high_cash"
+      },
+      {
+        "key": "fin_operating_high_rk_inventory_turn",
+        "name": "营运能力存货周转高排序",
+        "group": "财务排名",
+        "code": "kyp_fin_operating_high_rk_inventory_turn"
+      },
+      {
+        "key": "fin_operating_low_rk_receivable_turn",
+        "name": "营运能力应收周转低排序",
+        "group": "财务排名",
+        "code": "kyp_fin_operating_low_rk_receivable_turn"
+      },
+      {
+        "key": "risk_broken_ipo",
+        "name": "破发股",
+        "group": "风险标签",
+        "code": "kyp_risk_broken_ipo"
+      },
+      {
+        "key": "fin_forecast_slower_dec",
+        "name": "业绩减亏减降股",
+        "group": "财务特征",
+        "code": "kyp_fin_forecast_slower_dec"
+      },
+      {
+        "key": "marketcap_below10",
+        "name": "10亿以下股",
+        "group": "价格与市值",
+        "code": "kyp_marketcap_below10"
+      },
+      {
+        "key": "fin_neg_profit_growth",
+        "name": "利润负增长",
+        "group": "财务特征",
+        "code": "kyp_fin_neg_profit_growth"
+      },
+      {
+        "key": "risk_remove_st",
+        "name": "摘星脱帽股",
+        "group": "风险标签",
+        "code": "kyp_risk_remove_st"
+      },
+      {
+        "key": "fin_profitablity_high_rk_epsttm",
+        "name": "盈利能力EPSttm高排序",
+        "group": "财务排名",
+        "code": "kyp_fin_profitablity_high_rk_epsttm"
+      },
+      {
+        "key": "fin_growth_low_rk_asset_growth",
+        "name": "成长能力资产增速低排序",
+        "group": "财务排名",
+        "code": "kyp_fin_growth_low_rk_asset_growth"
+      },
+      {
+        "key": "fin_neg_rev_growth",
+        "name": "营收负增长",
+        "group": "财务特征",
+        "code": "kyp_fin_neg_rev_growth"
+      },
+      {
+        "key": "fin_profit_high_creditimpair",
+        "name": "利润结构多信用减值",
+        "group": "利润结构",
+        "code": "kyp_fin_profit_high_creditimpair"
+      },
+      {
+        "key": "fin_profitablity_high_rk_roattm",
+        "name": "盈利能力ROAttm高排序",
+        "group": "财务排名",
+        "code": "kyp_fin_profitablity_high_rk_roattm"
+      },
+      {
+        "key": "fin_profitablity_low_rk_epsttm",
+        "name": "盈利能力EPSttm低排序",
+        "group": "财务排名",
+        "code": "kyp_fin_profitablity_low_rk_epsttm"
+      },
+      {
+        "key": "shareholder_qfii",
+        "name": "含外资",
+        "group": "股东属性",
+        "code": "kyp_shareholder_qfii"
+      },
+      {
+        "key": "fin_profit_high_assetsell",
+        "name": "利润结构多资产处置",
+        "group": "利润结构",
+        "code": "kyp_fin_profit_high_assetsell"
+      },
+      {
+        "key": "listeddate_1year",
+        "name": "远端次新股",
+        "group": "上市时间",
+        "code": "kyp_listeddate_1year"
+      },
+      {
+        "key": "marketcap_between_50_100",
+        "name": "50到100亿股",
+        "group": "价格与市值",
+        "code": "kyp_marketcap_between_50_100"
+      },
+      {
+        "key": "fin_high_npttm",
+        "name": "高销售净利率ttm",
+        "group": "财务特征",
+        "code": "kyp_fin_high_npttm"
+      },
+      {
+        "key": "valuation_rel_high",
+        "name": "估值相对高位股",
+        "group": "估值水平",
+        "code": "kyp_valuation_rel_high"
+      },
+      {
+        "key": "fin_neg_asset_growth",
+        "name": "资产负增长",
+        "group": "财务特征",
+        "code": "kyp_fin_neg_asset_growth"
+      },
+      {
+        "key": "marketcap_up10000",
+        "name": "10000亿以上股",
+        "group": "价格与市值",
+        "code": "kyp_marketcap_up10000"
+      },
+      {
+        "key": "fin_forecast_dec",
+        "name": "业绩预亏预降股",
+        "group": "财务特征",
+        "code": "kyp_fin_forecast_dec"
+      },
+      {
+        "key": "fin_liquidity_low_rk_liability_ratio",
+        "name": "偿债能力负债率低排序",
+        "group": "财务排名",
+        "code": "kyp_fin_liquidity_low_rk_liability_ratio"
+      },
+      {
+        "key": "listeddate_3year",
+        "name": "上市1年以上3年以内",
+        "group": "上市时间",
+        "code": "kyp_listeddate_3year"
+      },
+      {
+        "key": "price_between_10_100",
+        "name": "10到100元股",
+        "group": "价格与市值",
+        "code": "kyp_price_between_10_100"
+      },
+      {
+        "key": "fin_asset_high_bubble2",
+        "name": "资产结构多泡沫资产2",
+        "group": "资产结构",
+        "code": "kyp_fin_asset_high_bubble2"
+      },
+      {
+        "key": "fin_asset_high_investprop",
+        "name": "资产结构多投资性房地产",
+        "group": "资产结构",
+        "code": "kyp_fin_asset_high_investprop"
+      },
+      {
+        "key": "price_up1000",
+        "name": "千元股",
+        "group": "价格与市值",
+        "code": "kyp_price_up1000"
+      },
+      {
+        "key": "shareholder_central_state",
+        "name": "央企公司",
+        "group": "股东属性",
+        "code": "kyp_shareholder_central_state"
+      },
+      {
+        "key": "fin_asset_high_longequity",
+        "name": "资产结构多长股投",
+        "group": "资产结构",
+        "code": "kyp_fin_asset_high_longequity"
+      },
+      {
+        "key": "fin_profit_high_cost_sales",
+        "name": "成本结构多销售费用",
+        "group": "利润结构",
+        "code": "kyp_fin_profit_high_cost_sales"
+      },
+      {
+        "key": "fin_profit_high_oci",
+        "name": "利润结构多其他综合收益",
+        "group": "利润结构",
+        "code": "kyp_fin_profit_high_oci"
+      },
+      {
+        "key": "fin_cash_high_cfo",
+        "name": "现金流结构多经营现金",
+        "group": "现金流结构",
+        "code": "kyp_fin_cash_high_cfo"
+      },
+      {
+        "key": "fin_liability_high_estimateliab",
+        "name": "负债结构多预计负债",
+        "group": "负债结构",
+        "code": "kyp_fin_liability_high_estimateliab"
+      },
+      {
+        "key": "fin_liquidity_high_rk_interest_cover",
+        "name": "偿债能力利息保障倍数高排序",
+        "group": "财务排名",
+        "code": "kyp_fin_liquidity_high_rk_interest_cover"
+      },
+      {
+        "key": "fin_operating_low_rk_inventory_turn",
+        "name": "营运能力存货周转低排序",
+        "group": "财务排名",
+        "code": "kyp_fin_operating_low_rk_inventory_turn"
+      },
+      {
+        "key": "fin_profitablity_high_rk_npttm",
+        "name": "盈利能力净利率ttm高排序",
+        "group": "财务排名",
+        "code": "kyp_fin_profitablity_high_rk_npttm"
+      },
+      {
+        "key": "fin_profitablity_low_rk_npttm",
+        "name": "盈利能力净利率ttm低排序",
+        "group": "财务排名",
+        "code": "kyp_fin_profitablity_low_rk_npttm"
+      },
+      {
+        "key": "fin_unhealthy_growth",
+        "name": "增收不增利",
+        "group": "财务特征",
+        "code": "kyp_fin_unhealthy_growth"
+      },
+      {
+        "key": "fin_asset_high_receivable",
+        "name": "资产结构多应收",
+        "group": "资产结构",
+        "code": "kyp_fin_asset_high_receivable"
+      },
+      {
+        "key": "fin_liquidity_high_rk_liability_ratio",
+        "name": "偿债能力负债率高排序",
+        "group": "财务排名",
+        "code": "kyp_fin_liquidity_high_rk_liability_ratio"
+      },
+      {
+        "key": "fin_asset_high_fixedasset",
+        "name": "资产结构多固定资产",
+        "group": "资产结构",
+        "code": "kyp_fin_asset_high_fixedasset"
+      },
+      {
+        "key": "marketcap_super_big",
+        "name": "超大盘",
+        "group": "价格与市值",
+        "code": "kyp_marketcap_super_big"
+      },
+      {
+        "key": "risk_delisting",
+        "name": "退市整理期股票",
+        "group": "风险标签",
+        "code": "kyp_risk_delisting"
+      }
+    ]
+  }
+}

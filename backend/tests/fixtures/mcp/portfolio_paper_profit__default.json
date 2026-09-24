@@ -1,0 +1,20 @@
+{
+  "tool": "portfolio_paper_profit",
+  "args": {},
+  "payload": {
+    "ok": true,
+    "data": {
+      "totalAssets": "1000000.00",
+      "initialCash": 1000000.00,
+      "totalProfit": "+0.00",
+      "totalProfitRate": 0,
+      "realizedProfit": 0,
+      "unrealizedProfit": "+0.00",
+      "totalTrades": 0,
+      "winTrades": 0,
+      "lossTrades": 0,
+      "winRate": 0,
+      "stockProfits": []
+    }
+  }
+}

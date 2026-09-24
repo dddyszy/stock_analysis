@@ -1,0 +1,2034 @@
+[
+  {
+    "name": "data_consensus",
+    "description": "机构一致预期数据",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，必填",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_shareholder",
+    "description": "股东信息(Top10股东/户数等)",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，与 codes 二选一",
+          "type": "string"
+        },
+        "codes": {
+          "description": "多只代码逗号分隔，格式同上",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "portfolio_watchlist_move",
+    "description": "移动自选股到其他分组",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，必填",
+          "type": "string"
+        },
+        "from": {
+          "description": "源分组正式ID",
+          "type": "string"
+        },
+        "retain": {
+          "default": false,
+          "description": "是否在原分组保留",
+          "type": "boolean"
+        },
+        "to": {
+          "description": "目标分组正式ID",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_search",
+    "description": "股票/基金/板块搜索(名称、代码、拼音)。不确定 code 时第一步先调本工具。type=sector/index 时为清单名称子串匹配，请用简短关键词(如「算力」「CPO」)，勿传长句多词。",
+    "inputSchema": {
+      "properties": {
+        "jpkr_market": {
+          "description": "日韩市场代码(如jp/kr)，非空时走日韩搜索",
+          "type": "string"
+        },
+        "limit": {
+          "default": 10,
+          "description": "返回最大条数",
+          "type": "integer"
+        },
+        "query": {
+          "description": "搜索关键词，必填；sector/index 模式为板块/指数名称子串",
+          "type": "string"
+        },
+        "type": {
+          "description": "类型: stock/etf/bond/sector/index/futures/forex（默认 stock）；可逗号分隔多类型一次搜",
+          "type": "string"
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_disclosure",
+    "description": "信息披露(定期报告预约/业绩预告)",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，必填",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_flash_news_search",
+    "description": "搜索24h内快讯数据，支持关键词检索和分页。- keyword 不为空：在标题和正文中检索包含该关键词的快讯，按关键词匹配度倒序返回- keyword 为空字符串：返回所有快讯，按发布时间倒序排列支持分页（limit/offset）",
+    "inputSchema": {
+      "properties": {
+        "keyword": {
+          "description": "搜索关键词，可选：传keyword时按搜索匹配度返回；传空字符串则返回所有快讯，按发布时间倒序",
+          "type": "string"
+        },
+        "limit": {
+          "default": 50,
+          "description": "单页返回条数，默认50",
+          "type": "integer"
+        },
+        "offset": {
+          "default": 0,
+          "description": "分页偏移，默认 0",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "portfolio_watchlist",
+    "description": "查询自选股列表。默认返回「全部」分组；支持按分组ID/名称、市场过滤及分页",
+    "inputSchema": {
+      "properties": {
+        "group": {
+          "description": "分组ID或分组名称，来自 portfolio_watchlist_groups",
+          "type": "string"
+        },
+        "limit": {
+          "default": 200,
+          "description": "返回条数",
+          "type": "integer"
+        },
+        "market": {
+          "description": "市场过滤: A|HK|US",
+          "type": "string"
+        },
+        "offset": {
+          "default": 0,
+          "description": "偏移量",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "portfolio_watchlist_sort",
+    "description": "组内自选股排序。codes 为按目标顺序排列的代码列表；group_id 须为正式ID",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，与 codes 二选一",
+          "type": "string"
+        },
+        "codes": {
+          "description": "排序代码列表(逗号分隔)，多只代码逗号分隔，格式同上",
+          "type": "string"
+        },
+        "group_id": {
+          "description": "分组正式ID",
+          "type": "string"
+        },
+        "star_count": {
+          "default": 0,
+          "description": "置顶数量",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_stocklist",
+    "description": "股单排行榜或详情。mode: rank(默认)|detail。非用户自选",
+    "inputSchema": {
+      "properties": {
+        "id": {
+          "description": "股单 ID，mode=detail 时必填",
+          "type": "string"
+        },
+        "limit": {
+          "default": 20,
+          "description": "返回条数",
+          "type": "integer"
+        },
+        "mode": {
+          "description": "rank(股单榜，默认)|detail(详情，需 id)",
+          "type": "string"
+        },
+        "offset": {
+          "default": 0,
+          "description": "偏移量",
+          "type": "integer"
+        },
+        "sort": {
+          "description": "排序字段",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_finsearch",
+    "description": "金融信息搜索(新闻/研报/公告正文/政策/事件证据)。keywords 为关键词组，建议一次 1-5 组、每组 2-5 个核心词。港美股最新财报原文、data_finance 为空时用本工具。A股结构化数字仍优先 data_finance，检索结果勿当三大表数字。",
+    "inputSchema": {
+      "properties": {
+        "keywords": {
+          "description": "关键词组列表，如 [\"北向资金 净买入\",\"恒生科技指数 走势\"]；字符串视为一组，不要按逗号拆组",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "keywords"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_fund_margin",
+    "description": "融资融券明细。传 start/end 查历史区间",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，",
+          "type": "string"
+        },
+        "codes": {
+          "description": "多只代码逗号分隔，格式同上",
+          "type": "string"
+        },
+        "date": {
+          "description": "日期",
+          "type": "string"
+        },
+        "end": {
+          "description": "截止日期 YYYY-MM-DD",
+          "type": "string"
+        },
+        "start": {
+          "description": "起始日期 YYYY-MM-DD",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "tool_label",
+    "description": "全市场标签选股(央企/国企/ST等属性分类)。勿用 tool_filter 的 universe；单股风险明细用 data_risk。names 必填，元数据见 tool_list_labels；asset: stock|etf；date 默认今天",
+    "inputSchema": {
+      "properties": {
+        "asset": {
+          "description": "stock|etf，默认 stock",
+          "type": "string"
+        },
+        "date": {
+          "description": "快照日期 YYYY-MM-DD，默认今天",
+          "type": "string"
+        },
+        "end": {
+          "description": "区间截止",
+          "type": "string"
+        },
+        "limit": {
+          "default": 20,
+          "description": "返回条数",
+          "type": "integer"
+        },
+        "names": {
+          "description": "标签短名(逗号分隔)，如 shareholder_central_state(央企)、risk_st",
+          "type": "string"
+        },
+        "offset": {
+          "default": 0,
+          "description": "偏移量",
+          "type": "integer"
+        },
+        "start": {
+          "description": "区间起始(与 end 同用)",
+          "type": "string"
+        }
+      },
+      "required": [
+        "names"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "tool_list_events",
+    "description": "列出事件元数据；不确定名称时先调本工具",
+    "inputSchema": {
+      "properties": {
+        "group": {
+          "description": "按分组过滤",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "portfolio_watchlist_batch_add",
+    "description": "批量添加自选股到指定分组",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，与 codes 二选一",
+          "type": "string"
+        },
+        "codes": {
+          "description": "多只代码逗号分隔，格式同上",
+          "type": "string"
+        },
+        "group_id": {
+          "description": "目标分组正式ID",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "portfolio_group_add",
+    "description": "新建自选分组。返回正式分组ID（已解析，可直接用于后续写操作）",
+    "inputSchema": {
+      "properties": {
+        "name": {
+          "description": "分组名称，不可与已有分组重名",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "portfolio_tips_set",
+    "description": "新增/修改股价提醒。⚠️上游为【全量覆盖】语义：未传的字段会被清空，传空串也会清空。因此修改单项前必须先调 portfolio_tips_query 拿到该 code 的现有提醒，把不想改动的字段原值一起带上；只有想取消的字段才传空串。示例：为 sh600519 加价格涨至 1800，若已存在 low=1500/updown=5，应传 {code:sh600519, high:1800, low:1500, updown:5}",
+    "inputSchema": {
+      "properties": {
+        "action": {
+          "description": "基金净值提醒动作，值为 open 时打开(仅当 isfund=1 时有效)",
+          "type": "string"
+        },
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，必填",
+          "type": "string"
+        },
+        "high": {
+          "description": "价格涨至提醒；传空串取消；不想改则回填 query 现值",
+          "type": "string"
+        },
+        "isfund": {
+          "description": "是否基金：1 基金，0 非基金；仅 isfund=1 时 action=open 生效",
+          "type": "string"
+        },
+        "low": {
+          "description": "价格跌至提醒；传空串取消；不想改则回填 query 现值",
+          "type": "string"
+        },
+        "pdrhigh": {
+          "description": "场内ETF溢折率涨至提醒；传空串取消；不想改则回填 query 现值",
+          "type": "string"
+        },
+        "pdrlow": {
+          "description": "场内ETF溢折率跌至提醒；传空串取消；不想改则回填 query 现值",
+          "type": "string"
+        },
+        "type": {
+          "description": "公告/研报类型：2010 沪深最新公告，2011 沪深最新研报，2020 港股最新公告，2021 港股最新研报；传空串取消订阅；如不想动此项，须回填 query 返回中 notice=1 对应 2010/2020、research=1 对应 2011/2021",
+          "type": "string"
+        },
+        "updown": {
+          "description": "涨跌幅超过阈值提醒(%)；传空串取消；不想改则回填 query 现值",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_quote",
+    "description": "股票行情快照(最新价、涨跌幅等)。code 或 codes 至少填一个；不确定 code 时先 data_search",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，如 sh600519(茅台)；与 codes 二选一",
+          "type": "string"
+        },
+        "codes": {
+          "description": "多只代码逗号分隔，如 sh600519,sz000001,hk00700",
+          "type": "string"
+        },
+        "date": {
+          "description": "可选历史日期 YYYY-MM-DD",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_hot",
+    "description": "热门数据(热搜/热股/热基等)",
+    "inputSchema": {
+      "properties": {
+        "kind": {
+          "description": "类型: stock/wechat/news/board/etf（fund 等同 etf）",
+          "type": "string"
+        },
+        "limit": {
+          "default": 50,
+          "description": "返回条数",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_futures",
+    "description": "期货数据(行情/合约等)",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "合约代码",
+          "type": "string"
+        },
+        "mode": {
+          "description": "模式: list/search/quote/detail",
+          "type": "string"
+        },
+        "query": {
+          "description": "搜索关键词",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_dividend",
+    "description": "分红送转数据",
+    "inputSchema": {
+      "properties": {
+        "all": {
+          "default": false,
+          "description": "是否包含未实际分红记录（默认 false）",
+          "type": "boolean"
+        },
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，与 codes 二选一",
+          "type": "string"
+        },
+        "codes": {
+          "description": "多只代码逗号分隔，格式同上",
+          "type": "string"
+        },
+        "years": {
+          "default": 1,
+          "description": "查询年数",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_changedist",
+    "description": "沪深A股涨跌分布(涨跌家数/涨跌停/区间/成交额)。type 默认 0",
+    "inputSchema": {
+      "properties": {
+        "type": {
+          "description": "市场类型，默认 0(沪深A股)",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_south_holding",
+    "description": "港股南下资金持仓(LgtHoldInfo，仅hk前缀)",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，与 codes 二选一，仅港股",
+          "type": "string"
+        },
+        "codes": {
+          "description": "多只代码逗号分隔，格式同上",
+          "type": "string"
+        },
+        "date": {
+          "description": "日期 YYYY-MM-DD",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "portfolio_watchlist_add",
+    "description": "添加自选股。group_id 用 portfolio_watchlist_groups 返回的正式ID；不传则加入「全部」",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，必填",
+          "type": "string"
+        },
+        "group_id": {
+          "description": "目标分组正式ID",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_score",
+    "description": "指定股票多维诊股评分(Comp/Cap/Funm等)。全市场排行用 tool_ranking，勿混淆",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，与 codes 二选一，至少填一个",
+          "type": "string"
+        },
+        "codes": {
+          "description": "多只代码逗号分隔，格式同上",
+          "type": "string"
+        },
+        "date": {
+          "description": "可选日期",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_fund_flow",
+    "description": "个股资金流向。A股最全；港股部分字段；美股为卖空相关数据",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，与 codes 二选一，至少填一个",
+          "type": "string"
+        },
+        "codes": {
+          "description": "多只代码逗号分隔，格式同上",
+          "type": "string"
+        },
+        "date": {
+          "description": "快照日期；历史区间用 start+end（支持多码）",
+          "type": "string"
+        },
+        "end": {
+          "description": "历史截止日期 YYYY-MM-DD",
+          "type": "string"
+        },
+        "start": {
+          "description": "历史起始日期 YYYY-MM-DD",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "portfolio_watchlist_groups",
+    "description": "查询自选分组列表，返回正式分组ID（写操作请用此ID，勿用tmp前缀）",
+    "inputSchema": {
+      "type": "object"
+    }
+  },
+  {
+    "name": "portfolio_paper_profit",
+    "description": "查询模拟交易盈亏统计（胜率、个股收益贡献）",
+    "inputSchema": {
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_fund_block",
+    "description": "大宗交易。传 start/end 查历史区间",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，",
+          "type": "string"
+        },
+        "codes": {
+          "description": "多只代码逗号分隔，格式同上",
+          "type": "string"
+        },
+        "date": {
+          "description": "日期",
+          "type": "string"
+        },
+        "end": {
+          "description": "截止日期 YYYY-MM-DD",
+          "type": "string"
+        },
+        "start": {
+          "description": "起始日期 YYYY-MM-DD",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_sector",
+    "description": "板块数据。mode: list|search|constituent|info|ranking|oper|valuation|forecast|finance；list 时 scope 用 sw1 等；constituent 支持 code 或 codes；板块码可作 tool_filter/tool_ranking 的 universe",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "板块代码，裸码 pt01801080 或 sw1_pt01801080；oper 模式留空返回行业清单",
+          "type": "string"
+        },
+        "codes": {
+          "description": "板块代码列表(逗号分隔)，constituent/valuation/forecast/finance 可与 code 二选一",
+          "type": "string"
+        },
+        "date": {
+          "description": "查询日期 YYYY-MM-DD，默认今天",
+          "type": "string"
+        },
+        "end": {
+          "description": "valuation/finance 历史截止日 YYYY-MM-DD",
+          "type": "string"
+        },
+        "kind": {
+          "description": "ranking: industry(行业,默认)|concept(概念)",
+          "type": "string"
+        },
+        "limit": {
+          "default": 50,
+          "description": "返回条数",
+          "type": "integer"
+        },
+        "mode": {
+          "description": "list|search|constituent|info|ranking|oper|valuation|forecast|finance，默认 list",
+          "type": "string"
+        },
+        "order": {
+          "description": "ranking: desc(默认)|asc",
+          "type": "string"
+        },
+        "query": {
+          "description": "search 模式关键词",
+          "type": "string"
+        },
+        "scope": {
+          "description": "list 模式清单: industry_list_sw1 或 sw1(申万一级) 等",
+          "type": "string"
+        },
+        "start": {
+          "description": "valuation/finance 历史起始日 YYYY-MM-DD",
+          "type": "string"
+        },
+        "type": {
+          "description": "ranking 排序: changePct/turnover/mainInflow/mainOutflow/mainNetInflow/mainNetInflow5d/mainNetInflow20d",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_trade_calendar",
+    "description": "交易日历",
+    "inputSchema": {
+      "properties": {
+        "date": {
+          "description": "单日查询 YYYY-MM-DD（与 start/end/year 互斥）",
+          "type": "string"
+        },
+        "end": {
+          "description": "截止日期 YYYY-MM-DD",
+          "type": "string"
+        },
+        "limit": {
+          "default": 50,
+          "description": "返回条数上限",
+          "type": "integer"
+        },
+        "offset": {
+          "default": 0,
+          "description": "偏移量",
+          "type": "integer"
+        },
+        "start": {
+          "description": "起始日期 YYYY-MM-DD",
+          "type": "string"
+        },
+        "trading_only": {
+          "default": false,
+          "description": "是否仅交易日",
+          "type": "boolean"
+        },
+        "year": {
+          "default": 0,
+          "description": "查询整年（如 2026）",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_lhb",
+    "description": "龙虎榜。不传 code 为全市场榜；传 code/codes 为个股 LhbInfos；个股可再传 start/end 查历史。不传 date 时由上游返回最近可用交易日",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，个股代码；与 codes 二选一，传入则查个股龙虎榜",
+          "type": "string"
+        },
+        "codes": {
+          "description": "多只代码逗号分隔，格式同上",
+          "type": "string"
+        },
+        "date": {
+          "description": "交易日 YYYY-MM-DD，可选",
+          "type": "string"
+        },
+        "end": {
+          "description": "个股历史截止日 YYYY-MM-DD",
+          "type": "string"
+        },
+        "start": {
+          "description": "个股历史起始日 YYYY-MM-DD",
+          "type": "string"
+        },
+        "type": {
+          "description": "全市场榜 tab: jg/yzb/yyb/gslmr/gslxw 或 institution/hotmoney 等；逗号分隔，默认全部",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_connect",
+    "description": "沪/深股通成份股名单(陆股通北向可买入标的)。exchange: sh=沪股通, sz=深股通；查持股明细用 data_north_holding",
+    "inputSchema": {
+      "properties": {
+        "exchange": {
+          "description": "交易所: sh(沪股通)|sz(深股通)，默认 sh",
+          "type": "string"
+        },
+        "limit": {
+          "default": 50,
+          "description": "返回条数",
+          "type": "integer"
+        },
+        "offset": {
+          "default": 0,
+          "description": "偏移量",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "tool_list_labels",
+    "description": "列出标签元数据；不确定 names 时先调本工具；部分付费标签不可用",
+    "inputSchema": {
+      "properties": {
+        "asset": {
+          "description": "资产类型: stock/etf",
+          "type": "string"
+        },
+        "group": {
+          "description": "按分组过滤",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_finance",
+    "description": "结构化三大报表(利润表/资产负债表/现金流量表)，A股/港股/美股。fields 默认 core。返回空数组=当期无结构化数据，禁止改 type/fields 重试；港美股最新财报立刻改 data_notice 或 data_finsearch。",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，与 codes 二选一",
+          "type": "string"
+        },
+        "codes": {
+          "description": "多只代码逗号分隔，格式同上",
+          "type": "string"
+        },
+        "end": {
+          "description": "截止报告期",
+          "type": "string"
+        },
+        "fields": {
+          "description": "字段范围: core(默认,核心窄表)/all(全字段)",
+          "type": "string"
+        },
+        "num": {
+          "default": 1,
+          "description": "期数",
+          "type": "integer"
+        },
+        "start": {
+          "description": "起始报告期",
+          "type": "string"
+        },
+        "type": {
+          "description": "报表类型: income/balance/cashflow；省略则拉取三大报表",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_notice",
+    "description": "个股公告列表或详情(年报/中报/季报等)。mode: list(默认)|detail。港美股最新财报优先本工具；结构化数字用 data_finance。",
+    "inputSchema": {
+      "properties": {
+        "id": {
+          "description": "公告 ID，detail 模式必填",
+          "type": "string"
+        },
+        "limit": {
+          "default": 20,
+          "description": "返回条数",
+          "type": "integer"
+        },
+        "mode": {
+          "description": "list|detail，默认 list",
+          "type": "string"
+        },
+        "offset": {
+          "default": 0,
+          "description": "偏移量（与 limit 换算 page）",
+          "type": "integer"
+        },
+        "page": {
+          "default": 1,
+          "description": "页码，从 1 开始",
+          "type": "integer"
+        },
+        "symbol": {
+          "description": "股票 code/symbol，list 模式必填，如 sh600519",
+          "type": "string"
+        },
+        "type": {
+          "description": "公告类型，默认 0(全部)",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_macro",
+    "description": "宏观经济数据(GDP/CPI/PMI等)",
+    "inputSchema": {
+      "properties": {
+        "area": {
+          "description": "区域列表(逗号分隔)",
+          "type": "string"
+        },
+        "date": {
+          "description": "日期",
+          "type": "string"
+        },
+        "end": {
+          "description": "截止日期",
+          "type": "string"
+        },
+        "limit": {
+          "default": 3,
+          "description": "每个指标最多保留最近 N 条",
+          "type": "integer"
+        },
+        "mode": {
+          "description": "list(指标目录)|indicator(默认拉数)|expect(海外预期)；list 仅返回目录",
+          "type": "string"
+        },
+        "names": {
+          "description": "指标名称列表(逗号分隔)",
+          "type": "string"
+        },
+        "region": {
+          "description": "地区",
+          "type": "string"
+        },
+        "start": {
+          "description": "起始日期",
+          "type": "string"
+        },
+        "year": {
+          "default": 0,
+          "description": "年份",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "portfolio_paper_trade",
+    "description": "模拟交易限价下单。仅沪深A股，数量须100整数倍；direction: buy|sell",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，必填",
+          "type": "string"
+        },
+        "direction": {
+          "description": "buy|sell",
+          "type": "string"
+        },
+        "price": {
+          "description": "限价(元)",
+          "type": "number"
+        },
+        "quantity": {
+          "default": 100,
+          "description": "数量(股)，100整数倍",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "portfolio_paper_cancel",
+    "description": "撤销未成交的模拟交易委托",
+    "inputSchema": {
+      "properties": {
+        "order_id": {
+          "description": "订单ID，来自 trade 或 history",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_kline",
+    "description": "K线数据(日K/周K/月K等)。code 或 codes 至少填一个；单码返回 KlineData，多码返回 BatchResult(data[]+errors[]+metadata)",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票/指数代码，如 sh600519；与 codes 二选一",
+          "type": "string"
+        },
+        "codes": {
+          "description": "多码逗号分隔，如 sh600519,sz000001,sh000300；走批量查询",
+          "type": "string"
+        },
+        "end": {
+          "description": "截止日期 YYYY-MM-DD",
+          "type": "string"
+        },
+        "fq": {
+          "description": "复权: qfq(前复权)/hfq(后复权)/空(不复权)",
+          "type": "string"
+        },
+        "limit": {
+          "default": 100,
+          "description": "返回条数",
+          "type": "integer"
+        },
+        "period": {
+          "description": "周期: day/week/month/season/year 或分钟 m1/m5/m15/m30/m60/m120",
+          "type": "string"
+        },
+        "start": {
+          "description": "起始日期 YYYY-MM-DD",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_calendar",
+    "description": "财经日历",
+    "inputSchema": {
+      "properties": {
+        "date": {
+          "description": "查询日期",
+          "type": "string"
+        },
+        "event": {
+          "description": "事件类型",
+          "type": "string"
+        },
+        "limit": {
+          "default": 10,
+          "description": "返回条数",
+          "type": "integer"
+        },
+        "market": {
+          "description": "市场: hs/hk/us（大小写均可）",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "tool_list_presets",
+    "description": "列出全部预设选股条件名；不确定预设时先调本工具",
+    "inputSchema": {
+      "type": "object"
+    }
+  },
+  {
+    "name": "tool_event",
+    "description": "全市场事件驱动选股清单(如解禁/业绩发布)。names 必填，元数据见 tool_list_events；查单股事件标签用 data_events",
+    "inputSchema": {
+      "properties": {
+        "limit": {
+          "default": 20,
+          "description": "返回条数",
+          "type": "integer"
+        },
+        "names": {
+          "description": "事件短名(逗号分隔)，如 earnings_release",
+          "type": "string"
+        },
+        "offset": {
+          "default": 0,
+          "description": "偏移量",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "names"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "portfolio_paper_positions",
+    "description": "查询模拟交易持仓列表（成本、现价、浮盈）",
+    "inputSchema": {
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_chip",
+    "description": "筹码分布数据",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，",
+          "type": "string"
+        },
+        "codes": {
+          "description": "多只代码逗号分隔，格式同上",
+          "type": "string"
+        },
+        "date": {
+          "description": "交易日期",
+          "type": "string"
+        },
+        "end": {
+          "description": "截止日期",
+          "type": "string"
+        },
+        "start": {
+          "description": "起始日期",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_north_holding",
+    "description": "北向持股明细(个股季度持仓或申万板块分布)。查沪/深股通标的名单用 data_connect",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，与 codes 二选一，至少填一个",
+          "type": "string"
+        },
+        "codes": {
+          "description": "多只代码逗号分隔，格式同上",
+          "type": "string"
+        },
+        "date": {
+          "description": "日期 YYYY-MM-DD",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_bond",
+    "description": "债券数据(可转债/国债等)，返回完整条款与明细字段",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "债券代码，如 sh113044(东湖转债)，与 codes 二选一",
+          "type": "string"
+        },
+        "codes": {
+          "description": "债券代码列表，逗号分隔",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "tool_list_ranking_metrics",
+    "description": "列出排行指标元数据；不确定 metric 时先调本工具",
+    "inputSchema": {
+      "properties": {
+        "asset": {
+          "description": "资产类型: stock/etf",
+          "type": "string"
+        },
+        "group": {
+          "description": "按分组过滤",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "portfolio_watchlist_remove",
+    "description": "删除自选股（移入「待删除」分组，非物理删除）",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，与 codes 二选一",
+          "type": "string"
+        },
+        "codes": {
+          "description": "多只代码逗号分隔，格式同上",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "portfolio_watchlist_note",
+    "description": "添加/修改自选备注。notes 传空串删除备注；group_id 须为正式ID",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，必填",
+          "type": "string"
+        },
+        "group_id": {
+          "description": "分组正式ID",
+          "type": "string"
+        },
+        "notes": {
+          "description": "备注内容，空串删除",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_esg",
+    "description": "个股 ESG 评级(中证/聚源)。source 默认 all",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，与 codes 二选一，至少填一个",
+          "type": "string"
+        },
+        "codes": {
+          "description": "多只代码逗号分隔，格式同上",
+          "type": "string"
+        },
+        "date": {
+          "description": "查询日期 YYYY-MM-DD，默认今天",
+          "type": "string"
+        },
+        "source": {
+          "description": "csi(中证)|jy(聚源)|all(默认两者)",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_market_overview",
+    "description": "市场总览(涨跌统计/成交/估值等)。type 默认 summary",
+    "inputSchema": {
+      "properties": {
+        "date": {
+          "description": "日期",
+          "type": "string"
+        },
+        "type": {
+          "description": "summary|trade|interval|technical|updown|margin|valuation|rotation|all",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_profile",
+    "description": "个股概览(基本面/估值/所属板块等)",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，必填",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_buyback",
+    "description": "回购数据。code 或 codes 至少填一个",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，与 codes 二选一",
+          "type": "string"
+        },
+        "codes": {
+          "description": "多只代码逗号分隔，格式同上",
+          "type": "string"
+        },
+        "end": {
+          "description": "截止日期",
+          "type": "string"
+        },
+        "start": {
+          "description": "起始日期",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_events",
+    "description": "查指定股票的事件标签(大宗交易/分红/停牌等)。全市场事件选股用 tool_event；无 code 且 types 空时返回事件类型目录",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，与 codes 二选一",
+          "type": "string"
+        },
+        "codes": {
+          "description": "多只代码逗号分隔，格式同上",
+          "type": "string"
+        },
+        "types": {
+          "description": "事件类型 ID(1-42)逗号分隔；空参返回类型目录",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_industry_chain",
+    "description": "产业链主题列表/图谱/个股归属/主题详情。mode: list|graph|stock|detail",
+    "inputSchema": {
+      "properties": {
+        "category": {
+          "description": "list: upstream 仅上中下游主题；graph: upstream|midstream|downstream",
+          "type": "string"
+        },
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，stock/detail 模式必填，如 sh600519",
+          "type": "string"
+        },
+        "date": {
+          "description": "查询日期 YYYY-MM-DD，默认今天；graph/stock/detail 均生效",
+          "type": "string"
+        },
+        "mode": {
+          "description": "list(默认)|graph(需 theme)|stock(需 code)|detail(需 code 查主题详情)",
+          "type": "string"
+        },
+        "theme": {
+          "description": "产业主题名，graph 模式必填，如「超级电容」",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_etf",
+    "description": "ETF 多维度数据。code 或 codes 至少填一个",
+    "inputSchema": {
+      "properties": {
+        "aspect": {
+          "description": "overview|holdings|nav，默认详情快照",
+          "type": "string"
+        },
+        "code": {
+          "description": "ETF代码，如 sh510050；与 codes 二选一",
+          "type": "string"
+        },
+        "codes": {
+          "description": "ETF代码列表，逗号分隔",
+          "type": "string"
+        },
+        "date": {
+          "description": "日期",
+          "type": "string"
+        },
+        "end": {
+          "description": "截止日期",
+          "type": "string"
+        },
+        "start": {
+          "description": "起始日期",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_forex",
+    "description": "外汇数据",
+    "inputSchema": {
+      "properties": {
+        "mode": {
+          "description": "模式: list/quote",
+          "type": "string"
+        },
+        "query": {
+          "description": "搜索关键词",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_technical",
+    "description": "技术指标(KDJ/MACD/RSI/BOLL等)。code 或 codes 至少填一个",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，与 codes 二选一；区间查询 start+end 时必填 code",
+          "type": "string"
+        },
+        "codes": {
+          "description": "多只代码逗号分隔，格式同上",
+          "type": "string"
+        },
+        "date": {
+          "description": "交易日期 YYYY-MM-DD",
+          "type": "string"
+        },
+        "end": {
+          "description": "截止日期",
+          "type": "string"
+        },
+        "group": {
+          "description": "指标分组名列表（逗号分隔），如 kdj,macd,rsi",
+          "type": "string"
+        },
+        "indicator": {
+          "description": "同 group，CLI 兼容别名",
+          "type": "string"
+        },
+        "start": {
+          "description": "起始日期",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_report",
+    "description": "卖方研究报告列表或详情，不是公司财报原文。mode: list(默认)|detail。查财报用 data_finance / data_notice。",
+    "inputSchema": {
+      "properties": {
+        "id": {
+          "description": "研报 ID，detail 模式必填",
+          "type": "string"
+        },
+        "limit": {
+          "default": 20,
+          "description": "每页条数",
+          "type": "integer"
+        },
+        "mode": {
+          "description": "list|detail，默认 list",
+          "type": "string"
+        },
+        "page": {
+          "default": 1,
+          "description": "页码",
+          "type": "integer"
+        },
+        "symbol": {
+          "description": "股票 symbol，list 模式必填(可用 code)",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "tool_strategy",
+    "description": "全市场策略选股清单。names 必填短名，勿 strategy_ 前缀；元数据见 tool_list_strategies；单日 date，区间 start+end",
+    "inputSchema": {
+      "properties": {
+        "date": {
+          "description": "快照日期 YYYY-MM-DD，默认今天",
+          "type": "string"
+        },
+        "end": {
+          "description": "区间截止",
+          "type": "string"
+        },
+        "limit": {
+          "default": 20,
+          "description": "返回条数",
+          "type": "integer"
+        },
+        "names": {
+          "description": "策略短名(逗号分隔)，如 macd_golden、big_cap",
+          "type": "string"
+        },
+        "offset": {
+          "default": 0,
+          "description": "偏移量",
+          "type": "integer"
+        },
+        "start": {
+          "description": "区间起始(与 end 同用，替代 date)",
+          "type": "string"
+        }
+      },
+      "required": [
+        "names"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "portfolio_group_rename",
+    "description": "重命名自选分组",
+    "inputSchema": {
+      "properties": {
+        "group_id": {
+          "description": "分组正式ID",
+          "type": "string"
+        },
+        "name": {
+          "description": "新名称",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "tool_list_strategies",
+    "description": "列出选股策略元数据；不确定时先调本工具；部分付费策略不可用",
+    "inputSchema": {
+      "properties": {
+        "group": {
+          "description": "按分组过滤",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "portfolio_watchlist_pin",
+    "description": "置顶自选股（组内）",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，必填",
+          "type": "string"
+        },
+        "group_id": {
+          "description": "分组正式ID",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "portfolio_watchlist_unpin",
+    "description": "取消置顶自选股",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，必填",
+          "type": "string"
+        },
+        "group_id": {
+          "description": "分组正式ID",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "portfolio_watchlist_bottom",
+    "description": "沉底自选股（组内）",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，必填",
+          "type": "string"
+        },
+        "group_id": {
+          "description": "分组正式ID",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "portfolio_group_sort",
+    "description": "调整自选分组显示顺序",
+    "inputSchema": {
+      "properties": {
+        "group_ids": {
+          "description": "分组正式ID列表，逗号分隔，按目标顺序排列",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "portfolio_paper_history",
+    "description": "查询模拟交易记录。range: today(默认)|recent(近3月合并)|history(指定月)；查历史优先 recent，勿逐月遍历",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，按股票过滤",
+          "type": "string"
+        },
+        "direction": {
+          "description": "buy|sell",
+          "type": "string"
+        },
+        "limit": {
+          "default": 50,
+          "description": "返回条数",
+          "type": "integer"
+        },
+        "month": {
+          "description": "YYYYMM，仅 range=history 时必填",
+          "type": "string"
+        },
+        "offset": {
+          "default": 0,
+          "description": "偏移量",
+          "type": "integer"
+        },
+        "range": {
+          "default": "today",
+          "description": "today|recent|history",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_news",
+    "description": "个股新闻列表或详情。mode: list(默认)|detail",
+    "inputSchema": {
+      "properties": {
+        "id": {
+          "description": "新闻 ID，detail 模式必填",
+          "type": "string"
+        },
+        "limit": {
+          "default": 20,
+          "description": "返回条数",
+          "type": "integer"
+        },
+        "mode": {
+          "description": "list|detail，默认 list",
+          "type": "string"
+        },
+        "symbol": {
+          "description": "股票 code/symbol，list 模式必填，如 sh600519",
+          "type": "string"
+        },
+        "type": {
+          "default": 2,
+          "description": "资讯类型: 0公告 1研报 2新闻 3全部",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_index",
+    "description": "指数列表/搜索/成分股。mode: list(默认)|search|constituent。constituent 走 query_list_data_by_date，网关支持同批传多个 list_codes(与 westock-data skill 一致)；若同批指数均无 comp_index_* 成份股清单(国证/主题指数常见)会整批 service error，建议单次只查 sh000300 等主流指数，主题成份改用 data_search type=sector + data_sector constituent。",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "指数代码(如 sh000300)，与 codes 二选一；constituent 建议优先用 code 单码",
+          "type": "string"
+        },
+        "codes": {
+          "description": "指数代码逗号分隔；同批多码时网关支持，但全无成份股清单会整批失败",
+          "type": "string"
+        },
+        "date": {
+          "description": "成份股查询日期(YYYY-MM-DD)，默认今天，仅 A 股指数",
+          "type": "string"
+        },
+        "limit": {
+          "default": 50,
+          "description": "search/list 返回条数",
+          "type": "integer"
+        },
+        "mode": {
+          "description": "list|search|constituent，默认 list",
+          "type": "string"
+        },
+        "query": {
+          "description": "search 模式关键词",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "portfolio_tips_query",
+    "description": "查询当前用户已设置的全部股价提醒。返回 tips 数组，每条含 code/high 价格涨至/low 价格跌至/updown 涨跌幅阈值(%)/pdrhigh 场内ETF溢折率涨至/pdrlow 场内ETF溢折率跌至/fundjz 基金净值提醒(仅基金有效)/notice 公告提醒开关(1/0)/research 研报提醒开关(1/0)/updatetime 更新时间。字段空串或 0 表示未开启",
+    "inputSchema": {
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_suspension",
+    "description": "停牌股票列表",
+    "inputSchema": {
+      "properties": {
+        "market": {
+          "description": "市场: hs/hk/us（大小写均可）",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_risk",
+    "description": "单股风险事件明细(质押/解禁/诉讼等，仅A股)。全市场筛 ST 等标签股用 tool_label；无 code 时返回风险类型列表",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，与 codes 二选一",
+          "type": "string"
+        },
+        "codes": {
+          "description": "多只代码逗号分隔，格式同上",
+          "type": "string"
+        },
+        "types": {
+          "description": "如 st/pledge/unlock/lawsuit 等；逗号分隔；无 code 时返回类型列表",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_news_search",
+    "description": "按关键词搜索资讯新闻（近7天）。返回新闻标题、正文、摘要、来源媒体、发布时间、关联股票及URL",
+    "inputSchema": {
+      "properties": {
+        "keyword": {
+          "description": "搜索关键词，必填",
+          "type": "string"
+        },
+        "limit": {
+          "default": 10,
+          "description": "单页返回条数，默认10",
+          "type": "integer"
+        },
+        "offset": {
+          "default": 0,
+          "description": "分页偏移，默认 0",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "keyword"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "tool_filter",
+    "description": "条件选股(stock_filter_query)。expression 或 preset 必填(二选一)；预设见 tool_list_presets。标签股票池(央企/ST)请用 tool_label，勿作 universe。date 默认今天",
+    "inputSchema": {
+      "properties": {
+        "date": {
+          "description": "基准日期 YYYY-MM-DD，默认今天",
+          "type": "string"
+        },
+        "expression": {
+          "description": "必填(与 preset 二选一)。筛选表达式，如 PE_TTM < 10；支持 intersect/union",
+          "type": "string"
+        },
+        "limit": {
+          "default": 20,
+          "description": "返回条数",
+          "type": "integer"
+        },
+        "market": {
+          "description": "市场: hs|hk|us，默认 hs",
+          "type": "string"
+        },
+        "max_debt_ratio": {
+          "description": "预设 LowDebt：最高资产负债率(%)，默认 50",
+          "type": "string"
+        },
+        "max_j": {
+          "description": "预设 KDJOversold：J值上限，默认 20",
+          "type": "string"
+        },
+        "max_pb": {
+          "description": "预设 LowPB 等：最大市净率，默认 1",
+          "type": "string"
+        },
+        "max_pe": {
+          "description": "预设 LowPE 等：最大市盈率，默认 20",
+          "type": "string"
+        },
+        "max_peg": {
+          "description": "预设 PEG：PEG上限，默认 1",
+          "type": "string"
+        },
+        "max_percentile": {
+          "description": "预设 ValuationPercentile：PE百分位上限，默认 30",
+          "type": "string"
+        },
+        "max_rsi": {
+          "description": "预设 RSIOversold：RSI上限，默认 30",
+          "type": "string"
+        },
+        "min_buy_rating": {
+          "description": "预设 HighRating：最低买入评级数，默认 5",
+          "type": "string"
+        },
+        "min_dividend": {
+          "description": "预设 HighDividend 等：最低股息率(%)，默认 3",
+          "type": "string"
+        },
+        "min_growth": {
+          "description": "预设 PEG：最低利润增速(%)，默认 20",
+          "type": "string"
+        },
+        "min_inflow": {
+          "description": "预设 MainInflow：最低主力净流入，默认 1亿",
+          "type": "string"
+        },
+        "min_profit_growth": {
+          "description": "预设 HighGrowth：最低利润增速(%)，默认 30",
+          "type": "string"
+        },
+        "min_revenue_growth": {
+          "description": "预设 HighGrowth：最低营收增速(%)，默认 20",
+          "type": "string"
+        },
+        "min_roe": {
+          "description": "预设 HighROE：最低ROE(%)，默认 15",
+          "type": "string"
+        },
+        "min_short_ratio": {
+          "description": "预设 HighShortRatio：最低卖空比例(%)，默认 10",
+          "type": "string"
+        },
+        "min_turnaround": {
+          "description": "预设 Turnaround：单季净利同比反转阈值(%)，默认 50",
+          "type": "string"
+        },
+        "min_upside": {
+          "description": "预设 TargetPriceUpside：目标价上行空间(%)，默认 20",
+          "type": "string"
+        },
+        "order": {
+          "description": "排序方向: asc|desc",
+          "type": "string"
+        },
+        "orderby": {
+          "description": "排序字段",
+          "type": "string"
+        },
+        "preset": {
+          "description": "预设名(与 expression 二选一)，如 low_pe",
+          "type": "string"
+        },
+        "universe": {
+          "description": "可选板块码(11010001/pt01801080等)或 hs|hk|us；非标签；先 data_search",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_dehydrated",
+    "description": "脱水研报",
+    "inputSchema": {
+      "properties": {
+        "id": {
+          "description": "研报ID",
+          "type": "string"
+        },
+        "limit": {
+          "default": 10,
+          "description": "每页条数",
+          "type": "integer"
+        },
+        "mode": {
+          "description": "模式: list/detail",
+          "type": "string"
+        },
+        "page": {
+          "default": 1,
+          "description": "页码",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_fund_short",
+    "description": "融券数据",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，与 codes 二选一",
+          "type": "string"
+        },
+        "codes": {
+          "description": "多只代码逗号分隔，格式同上",
+          "type": "string"
+        },
+        "date": {
+          "description": "日期",
+          "type": "string"
+        },
+        "end": {
+          "description": "截止日期",
+          "type": "string"
+        },
+        "start": {
+          "description": "起始日期",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_rating",
+    "description": "机构评级数据",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，必填",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_ipo",
+    "description": "IPO/新股数据",
+    "inputSchema": {
+      "properties": {
+        "market": {
+          "description": "市场: hs/hk/us（大小写均可）",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  {
+    "name": "portfolio_paper_portfolio",
+    "description": "查询模拟交易账户概览（总资产、市值、可用资金、盈亏）",
+    "inputSchema": {
+      "type": "object"
+    }
+  },
+  {
+    "name": "data_minute",
+    "description": "分时数据",
+    "inputSchema": {
+      "properties": {
+        "code": {
+          "description": "股票代码，格式: sh600519/sz000001/hk00700，也兼容600519.SH等后缀格式，必填",
+          "type": "string"
+        },
+        "days": {
+          "default": 1,
+          "description": "天数",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "code"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "name": "tool_ranking",
+    "description": "多因子排行选股(清单)。metric 必填且须与 asset 匹配；见 tool_list_ranking_metrics。标签内用 within_label，板块内用 universe。已知 codes 查评分用 data_score。north_* 固定Top20不支持范围限定。date 默认今天",
+    "inputSchema": {
+      "properties": {
+        "asset": {
+          "description": "stock|etf，默认 stock",
+          "type": "string"
+        },
+        "date": {
+          "description": "基准日期 YYYY-MM-DD，默认今天",
+          "type": "string"
+        },
+        "limit": {
+          "default": 20,
+          "description": "返回条数",
+          "type": "integer"
+        },
+        "metric": {
+          "description": "排行指标(须匹配 asset)；股票如 CompScore，ETF 如 size",
+          "type": "string"
+        },
+        "min_fields": {
+          "description": "最小阈值过滤，JSON 对象如 {\"CompScore\":70}；亦支持 min_CompScore 形式",
+          "type": "string"
+        },
+        "offset": {
+          "default": 0,
+          "description": "偏移量",
+          "type": "integer"
+        },
+        "order": {
+          "description": "asc|desc",
+          "type": "string"
+        },
+        "orderby": {
+          "description": "排序字段",
+          "type": "string"
+        },
+        "type": {
+          "description": "评分变动周期: cur|weekly|monthly（仅评分类指标）",
+          "type": "string"
+        },
+        "universe": {
+          "description": "可选板块码(如 11010001)；非标签；可先 data_search/data_sector",
+          "type": "string"
+        },
+        "within_event": {
+          "description": "可选事件短名，如 shareunlock_next_90；与 within_label/strategy 互斥",
+          "type": "string"
+        },
+        "within_label": {
+          "description": "可选标签短名，如 shareholder_central_state(央企)",
+          "type": "string"
+        },
+        "within_strategy": {
+          "description": "可选策略短名，如 macd_golden；与 within_label/event 互斥",
+          "type": "string"
+        }
+      },
+      "required": [
+        "metric"
+      ],
+      "type": "object"
+    }
+  }
+]

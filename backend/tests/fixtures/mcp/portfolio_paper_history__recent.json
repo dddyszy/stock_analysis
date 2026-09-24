@@ -1,0 +1,58 @@
+{
+  "tool": "portfolio_paper_history",
+  "args": {
+    "range": "recent",
+    "limit": 20
+  },
+  "payload": {
+    "ok": true,
+    "data": {
+      "records": [
+        {
+          "orderId": "100000000000000000000000000001",
+          "code": "sh600519",
+          "name": "贵州茅台",
+          "direction": "sell",
+          "quantity": "100",
+          "price": "1500.00",
+          "amount": "149955.00",
+          "status": "已成交",
+          "filledAt": "2026-01-06 10:30:00"
+        },
+        {
+          "orderId": "100000000000000000000000000002",
+          "code": "sz000001",
+          "name": "平安银行",
+          "direction": "buy",
+          "quantity": "1000",
+          "price": "11.00",
+          "amount": "11005.00",
+          "status": "已成交",
+          "filledAt": "2026-01-05 14:00:00"
+        },
+        {
+          "orderId": "100000000000000000000000000003",
+          "code": "sh600519",
+          "name": "贵州茅台",
+          "direction": "buy",
+          "quantity": "100",
+          "price": "1480.00",
+          "amount": "148044.40",
+          "status": "已成交",
+          "filledAt": "2026-01-05 09:45:00"
+        }
+      ],
+      "total": 3,
+      "hasMore": true,
+      "offset": 0,
+      "limit": 20,
+      "range": "recent",
+      "monthsQueried": [
+        "202609",
+        "202608",
+        "202607"
+      ],
+      "hint": "recent 已自动合并近3个月记录；查指定月请用 range=history&month=YYYYMM"
+    }
+  }
+}

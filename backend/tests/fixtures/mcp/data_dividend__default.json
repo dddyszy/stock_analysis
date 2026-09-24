@@ -1,0 +1,11 @@
+{
+  "tool": "data_dividend",
+  "args": {
+    "code": "sh600519",
+    "years": 3
+  },
+  "payload": {
+    "ok": true,
+    "data": {}
+  }
+}

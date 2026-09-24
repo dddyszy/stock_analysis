@@ -1,0 +1,14 @@
+{
+  "tool": "portfolio_paper_positions",
+  "args": {},
+  "payload": {
+    "ok": true,
+    "data": {
+      "positions": [],
+      "total": 0,
+      "totalMarketValue": "0.00",
+      "totalProfit": "+0.00",
+      "totalProfitRate": 0
+    }
+  }
+}

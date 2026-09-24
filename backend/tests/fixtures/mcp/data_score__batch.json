@@ -1,0 +1,111 @@
+{
+  "tool": "data_score",
+  "args": {
+    "codes": "sh600519,sz000001"
+  },
+  "payload": {
+    "ok": true,
+    "data": {
+      "scores": {
+        "sh600519": {
+          "code": "sh600519",
+          "name": "",
+          "cur": {
+            "CapScore": 41.17,
+            "CompScore": 74.22,
+            "FunmScore": 86.97,
+            "RiskScore": 81.98,
+            "TecScore": 50.41
+          },
+          "chgWeekly": {
+            "CapScore": -7.46,
+            "CompScore": -0.59,
+            "FunmScore": 0.35,
+            "RiskScore": -0.1,
+            "TecScore": -0.15
+          },
+          "chgMonthly": {
+            "CapScore": -28.11,
+            "CompScore": -6.37,
+            "FunmScore": 1.49,
+            "RiskScore": -1.26,
+            "TecScore": -28.36
+          },
+          "chgQuarterly": {
+            "CapScore": 41.17,
+            "CompScore": 74.22,
+            "FunmScore": 86.97,
+            "RiskScore": 81.98,
+            "TecScore": 50.41
+          }
+        },
+        "sz000001": {
+          "code": "sz000001",
+          "name": "",
+          "cur": {
+            "CapScore": 73.62,
+            "CompScore": 69.44,
+            "FunmScore": 73.03,
+            "RiskScore": 85.7,
+            "TecScore": 50.46
+          },
+          "chgWeekly": {
+            "CapScore": 4.07,
+            "CompScore": -2.37,
+            "FunmScore": 0.56,
+            "RiskScore": -0.09,
+            "TecScore": -14.24
+          },
+          "chgMonthly": {
+            "CapScore": 13.87,
+            "CompScore": 0.11,
+            "FunmScore": -0.26,
+            "RiskScore": 0.09,
+            "TecScore": -8.92
+          },
+          "chgQuarterly": {
+            "CapScore": 73.62,
+            "CompScore": 69.44,
+            "FunmScore": 73.03,
+            "RiskScore": 85.7,
+            "TecScore": 50.46
+          }
+        }
+      },
+      "fieldLabels": {
+        "score_chg_monthly": {
+          "CapSMChg": "资金评分月变动",
+          "CompSMChg": "综合评分月变动",
+          "FunmSMChg": "基本面评分月变动",
+          "RiskSMChg": "风险评分月变动",
+          "StockCode": "股票代码(前缀规范)",
+          "TecSMChg": "技术评分月变动"
+        },
+        "score_chg_quarterly": {
+          "CapSQChg": "资金评分季变动",
+          "CompSQChg": "综合评分季变动",
+          "FunmSQChg": "基本面评分季变动",
+          "RiskSQChg": "风险评分季变动",
+          "StockCode": "股票代码(前缀规范)",
+          "TecSQChg": "技术评分季变动"
+        },
+        "score_chg_weekly": {
+          "CapSWChg": "资金评分周变动",
+          "CompSWChg": "综合评分周变动",
+          "FunmSWChg": "基本面评分周变动",
+          "RiskSWChg": "风险评分周变动",
+          "StockCode": "股票代码(前缀规范)",
+          "TecSWChg": "技术评分周变动"
+        },
+        "score_cur": {
+          "CapScore": "资金评分",
+          "CompScore": "综合评分",
+          "FunmScore": "基本面评分",
+          "RiskScore": "风险评分",
+          "StockCode": "股票代码(前缀规范)",
+          "TecScore": "技术评分"
+        }
+      }
+    }
+  }
+}

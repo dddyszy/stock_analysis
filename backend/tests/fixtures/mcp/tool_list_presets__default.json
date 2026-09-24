@@ -1,0 +1,119 @@
+{
+  "tool": "tool_list_presets",
+  "args": {},
+  "payload": {
+    "ok": true,
+    "data": [
+      {
+        "key": "kdj_oversold",
+        "name": "KDJOversold",
+        "group": "preset"
+      },
+      {
+        "key": "high_rating",
+        "name": "HighRating",
+        "group": "preset"
+      },
+      {
+        "key": "high_roe",
+        "name": "HighROE",
+        "group": "preset"
+      },
+      {
+        "key": "high_dividend",
+        "name": "HighDividend",
+        "group": "preset"
+      },
+      {
+        "key": "low_debt",
+        "name": "LowDebt",
+        "group": "preset"
+      },
+      {
+        "key": "positive_cashflow",
+        "name": "PositiveCashFlow",
+        "group": "preset"
+      },
+      {
+        "key": "sustained_inflow",
+        "name": "SustainedInflow",
+        "group": "preset"
+      },
+      {
+        "key": "white_horse_growth",
+        "name": "WhiteHorseGrowth",
+        "group": "preset"
+      },
+      {
+        "key": "valuation_percentile",
+        "name": "ValuationPercentile",
+        "group": "preset"
+      },
+      {
+        "key": "peg",
+        "name": "PEG",
+        "group": "preset"
+      },
+      {
+        "key": "target_price_upside",
+        "name": "TargetPriceUpside",
+        "group": "preset"
+      },
+      {
+        "key": "high_growth",
+        "name": "HighGrowth",
+        "group": "preset"
+      },
+      {
+        "key": "low_pe",
+        "name": "LowPE",
+        "group": "preset"
+      },
+      {
+        "key": "rsi_oversold",
+        "name": "RSIOversold",
+        "group": "preset"
+      },
+      {
+        "key": "tech_fundamental_combo",
+        "name": "TechFundamentalCombo",
+        "group": "preset"
+      },
+      {
+        "key": "high_dividend_low_valuation",
+        "name": "HighDividendLowValuation",
+        "group": "preset"
+      },
+      {
+        "key": "turnaround",
+        "name": "Turnaround",
+        "group": "preset"
+      },
+      {
+        "key": "small_cap_value",
+        "name": "SmallCapValue",
+        "group": "preset"
+      },
+      {
+        "key": "low_pb",
+        "name": "LowPB",
+        "group": "preset"
+      },
+      {
+        "key": "nine_turn_green9",
+        "name": "NineTurnGreen9",
+        "group": "preset"
+      },
+      {
+        "key": "main_inflow",
+        "name": "MainInflow",
+        "group": "preset"
+      },
+      {
+        "key": "high_short_ratio",
+        "name": "HighShortRatio",
+        "group": "preset"
+      }
+    ]
+  }
+}

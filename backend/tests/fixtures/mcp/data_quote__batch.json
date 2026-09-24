@@ -1,0 +1,7 @@
+{
+  "tool": "data_quote",
+  "args": {
+    "codes": "sh600519,sz000001,bj830799,sh000001"
+  },
+  "payload": "查询行情异常：error_type=2 suggest=2 msg=服务限频"
+}
