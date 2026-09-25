@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -7,7 +8,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routers import auth, backtest, market, portfolio, recommend, settings as settings_router, sim, stocks
+from app.api.routers import auth, backtest, market, notify, portfolio, recommend, settings as settings_router, sim, stocks
 from app.core.config import BACKEND_DIR, get_settings
 from app.db.session import ensure_database
 from app.mcp.errors import McpAuthError, McpBusinessError, McpTransportError
@@ -35,7 +36,11 @@ async def lifespan(_: FastAPI):
         from app.jobs.scheduler import scheduler, start_scheduler
 
         start_scheduler()
+        from app.jobs.watchdog import check_missed_on_startup
+
+        missed_check = asyncio.create_task(check_missed_on_startup())
         yield
+        missed_check.cancel()
         scheduler.shutdown(wait=False)
     else:
         yield
@@ -76,7 +81,7 @@ async def _job_running(_: Request, exc: JobAlreadyRunning) -> JSONResponse:
     return JSONResponse(status_code=409, content={"detail": f"任务 {exc} 正在运行", "code": "job_running"})
 
 
-for r in (auth, market, stocks, recommend, portfolio, sim, settings_router, backtest):
+for r in (auth, market, stocks, recommend, portfolio, sim, settings_router, backtest, notify):
     app.include_router(r.router)
 
 

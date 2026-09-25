@@ -5,6 +5,7 @@
 - 回测用的是前复权价格，和真实成交价有细微差异，所以判断时留 0.1% 的容差。
 """
 
+from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
 TOLERANCE = 0.001
@@ -74,3 +75,17 @@ def clamp_to_limits(price: float, prev_close: float | None, code: str, is_st: bo
         return round(price, 2)
     up, down = limit_prices(prev_close, code, is_st)
     return round(min(max(price, down), up), 2)
+
+
+def disclosure_deadline(report_date: date) -> date:
+    """定期报告的法定披露截止日：一季报 4 月底、半年报 8 月底、三季报 10 月底、年报次年 4 月底。"""
+    md = (report_date.month, report_date.day)
+    if md == (3, 31):
+        return date(report_date.year, 4, 30)
+    if md == (6, 30):
+        return date(report_date.year, 8, 31)
+    if md == (9, 30):
+        return date(report_date.year, 10, 31)
+    if md == (12, 31):
+        return date(report_date.year + 1, 4, 30)
+    return report_date + timedelta(days=120)

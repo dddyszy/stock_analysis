@@ -205,10 +205,11 @@ async def run_recommendation(ctx: JobContext) -> dict:
 
     # 主推荐候选补拉三大报表（有缓存），用精细基本面重新打分，并补做依赖财报的硬过滤
     shortlist = main[: params["recommend_top_n"] * 2]
+    fin: dict = {}
     if shortlist:
         try:
-            await sync_finance_details([c["code"] for c, _ in shortlist], ctx,
-                                       time_budget=params.get("finance_time_budget", 480))
+            fin = await sync_finance_details([c["code"] for c, _ in shortlist], ctx,
+                                             time_budget=params.get("finance_time_budget", 480))
         except Exception as exc:
             logger.warning("候选股财报拉取失败，沿用评分近似: %s", exc)
         ctx.update(message="用精细基本面重新打分", force=True)
@@ -248,6 +249,11 @@ async def run_recommendation(ctx: JobContext) -> dict:
             f"流动性不足 {stats['illiquid']} 只、流通市值过小 {stats['small_cap']} 只，"
             f"缠论候选 {scan_count} 只；主推荐 {len(top_main)} 只，观察池 {len(top_watch)} 只"
         )
+        if fin.get("skipped"):
+            run.message += f"；{fin['skipped']} 只候选股未能补拉财报"
+            if fin.get("cooldown_until"):
+                run.message += f"（财报接口配额冷却至 {fin['cooldown_until'][11:16]}）"
+            run.message += "，沿用缓存和腾讯评分"
     for _, a in top_main:
         save_snapshot(a, latest_bar)
     ctx.update(message=f"推荐完成：主推荐 {len(top_main)} 只，观察池 {len(top_watch)} 只", force=True)

@@ -11,7 +11,9 @@ const env = ref<any>(null)
 const indices = ref<any[]>([])
 const keyword = ref('')
 const collapsed = ref(localStorage.getItem('sidebar-collapsed') === '1')
+const unread = ref(0)
 let timer: number | undefined
+let notifyTimer: number | undefined
 
 const menus = [
   { path: '/', title: '市场总览', icon: 'DataBoard' },
@@ -47,14 +49,24 @@ async function loadAuth() {
 async function loadTicker() {
   indices.value = await api.indicesLive().catch(() => indices.value)
 }
+async function loadUnread() {
+  unread.value = (await api.notifyUnread().catch(() => null))?.unread ?? unread.value
+}
 
 onMounted(() => {
   loadAuth()
   loadTicker()
   api.marketEnv().then((e) => (env.value = e)).catch(() => undefined)
+  loadUnread()
   timer = window.setInterval(loadTicker, 60000)
+  notifyTimer = window.setInterval(loadUnread, 60000)
+  window.addEventListener('notify-read', loadUnread)
 })
-onBeforeUnmount(() => window.clearInterval(timer))
+onBeforeUnmount(() => {
+  window.clearInterval(timer)
+  window.clearInterval(notifyTimer)
+  window.removeEventListener('notify-read', loadUnread)
+})
 </script>
 
 <template>
@@ -107,6 +119,11 @@ onBeforeUnmount(() => window.clearInterval(timer))
           </template>
         </el-autocomplete>
         <div class="top-right">
+          <el-badge :value="unread" :hidden="!unread" :max="99" class="bell-badge">
+            <button class="bell" title="系统通知" @click="router.push({ path: '/settings', hash: '#notify' })">
+              <el-icon :size="17"><Bell /></el-icon>
+            </button>
+          </el-badge>
           <div v-if="env" class="regime" :style="{ '--rc': REGIME_COLORS[env.regime] }" @click="router.push('/')">
             <span class="regime-dot" />
             市场{{ env.regime_name }} <b class="num">{{ num(env.score, 1) }}</b>
@@ -235,6 +252,22 @@ onBeforeUnmount(() => window.clearInterval(timer))
   min-width: 0;
   display: flex;
   flex-direction: column;
+}
+.bell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  background: var(--c-surface);
+  color: var(--c-text-2);
+  cursor: pointer;
+}
+.bell:hover {
+  color: var(--c-primary);
+  border-color: var(--c-primary);
 }
 .topbar {
   height: 60px;

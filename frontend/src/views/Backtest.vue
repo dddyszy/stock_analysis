@@ -262,7 +262,7 @@ onMounted(() => {
             <StatCard label="平均收益 / 持有" :value="percent(s.avg_pnl_pct, 2)" :value-class="colorClass(s.avg_pnl_pct)" :sub="`平均持有 ${num(s.avg_holding_days, 1)} 天`" />
           </div>
 
-          <el-alert v-if="s.note" :title="s.note" type="warning" :closable="false" show-icon class="mt" />
+          <el-alert v-if="s.note" :title="s.note + (current.params?.delisted_in_sample ? `本次样本含已退市股票 ${current.params.delisted_in_sample} 只。` : '')" type="warning" :closable="false" show-icon class="mt" />
 
           <div class="grid grid-4 mt">
             <StatCard label="平均超额（中证 1000）" :value="pct(s.avg_excess, 2)" :value-class="colorClass(s.avg_excess)" sub="每笔交易相对同期指数" />

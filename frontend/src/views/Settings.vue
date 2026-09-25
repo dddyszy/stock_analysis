@@ -5,7 +5,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { api } from '@/api'
 import { useJobPoller } from '@/composables/useJobPoller'
 import { dt } from '@/utils/format'
-import { PageHeader, SectionCard, StatCard } from '@/components/ui'
+import { EmptyState, PageHeader, SectionCard, StatCard } from '@/components/ui'
 
 const emit = defineEmits<{ (e: 'auth-changed'): void }>()
 const route = useRoute()
@@ -21,7 +21,10 @@ const editing = ref<any>(null)
 const newName = ref('')
 const active = ref('auth')
 
-const poller = useJobPoller(() => loadOverview())
+const poller = useJobPoller(() => {
+  loadOverview()
+  loadNotices()
+})
 
 const SECTIONS = [
   { id: 'auth', title: '账户授权', icon: 'Key' },
@@ -29,6 +32,7 @@ const SECTIONS = [
   { id: 'jobs', title: '任务记录', icon: 'List' },
   { id: 'schedule', title: '定时任务', icon: 'AlarmClock' },
   { id: 'mcp', title: 'MCP 与限流', icon: 'Connection' },
+  { id: 'notify', title: '系统通知', icon: 'Bell' },
   { id: 'app', title: '写回 App', icon: 'Iphone' },
   { id: 'strategy', title: '策略参数', icon: 'Operation' },
 ]
@@ -155,6 +159,25 @@ async function loadOverview() {
   overview.value = await api.overview()
   for (const n of overview.value.running || []) if (!poller.running.value[n]) poller.start(n)
 }
+const notices = ref<any>({ items: [], unread: 0 })
+const LEVEL_TAGS: Record<string, { text: string; type: 'danger' | 'warning' | 'info' | 'primary' }> = {
+  error: { text: '错误', type: 'danger' },
+  important: { text: '重要', type: 'primary' },
+  warning: { text: '警告', type: 'warning' },
+  info: { text: '提示', type: 'info' },
+}
+async function loadNotices() {
+  notices.value = await api.notifications(50)
+}
+async function readAll() {
+  await api.notifyReadAll()
+  await loadNotices()
+  window.dispatchEvent(new Event('notify-read'))
+}
+function ranToday(name: string) {
+  const today = new Date().toISOString().slice(0, 10)
+  return (overview.value?.jobs || []).some((j: any) => j.job_name === name && j.status === 'success' && (j.started_at || '').startsWith(today))
+}
 async function loadAppSync() {
   appSync.value = await api.appSync()
 }
@@ -201,7 +224,15 @@ async function probe() {
   poller.start('mcp_probe')
 }
 async function runJob(name: string) {
-  await ElMessageBox.confirm(`开始「${jobLabel(name)}」？`, '确认', { type: 'info' })
+  if (name === 'post_close_pipeline' && ranToday(name)) {
+    await ElMessageBox.confirm(
+      '今天的收盘后流水线已经成功运行过。重跑会再次消耗 MCP 配额（财报接口可能进入冷却），并重新写回 App。确定要重跑吗？',
+      '今天已运行过',
+      { type: 'warning', confirmButtonText: '仍然重跑' },
+    )
+  } else {
+    await ElMessageBox.confirm(`开始「${jobLabel(name)}」？`, '确认', { type: 'info' })
+  }
   await api.startJob(name)
   poller.start(name)
   ElMessage.success('任务已开始')
@@ -249,7 +280,8 @@ onMounted(async () => {
     ElMessage.error(`授权失败：${route.query.msg || ''}`)
     router.replace('/settings')
   }
-  await Promise.all([loadAuth(), loadOverview(), loadAppSync(), loadStrategy()])
+  await Promise.all([loadAuth(), loadOverview(), loadAppSync(), loadStrategy(), loadNotices()])
+  if (route.hash) setTimeout(() => scrollTo(route.hash.slice(1)), 100)
 })
 </script>
 
@@ -368,10 +400,18 @@ onMounted(async () => {
         <SectionCard id="sec-mcp" title="MCP 调用与限流" subtitle="遇到“服务限频”会自动冷却、降速，连续成功后再逐步提速">
           <div class="grid grid-2">
             <div>
-              <div class="sub-title">近 24 小时调用</div>
+              <div class="sub-title">调用统计</div>
               <el-table :data="overview?.mcp_calls_24h || []" size="small" max-height="300">
-                <el-table-column prop="tool" label="工具" />
-                <el-table-column prop="count" label="次数" width="70" />
+                <el-table-column label="工具" min-width="150">
+                  <template #default="{ row }">
+                    {{ row.tool }}
+                    <el-tag v-if="row.cooldown_until" size="small" type="warning" effect="light">配额冷却至 {{ row.cooldown_until.slice(11, 16) }}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="今日 / 限频" width="96">
+                  <template #default="{ row }"><span class="num">{{ row.today }}</span> / <span class="num" :class="row.limited_today ? 'up' : ''">{{ row.limited_today }}</span></template>
+                </el-table-column>
+                <el-table-column prop="count" label="24 小时" width="76" />
                 <el-table-column label="失败" width="70"><template #default="{ row }"><span :class="row.errors ? 'up' : ''">{{ row.errors }}</span></template></el-table-column>
                 <el-table-column prop="avg_ms" label="平均 ms" width="80" />
               </el-table>
@@ -392,6 +432,28 @@ onMounted(async () => {
             <el-table-column label="时间" width="140"><template #default="{ row }"><span class="num">{{ dt(row.at) }}</span></template></el-table-column>
             <el-table-column prop="error" label="错误" show-overflow-tooltip />
           </el-table>
+        </SectionCard>
+
+        <!-- 系统通知 -->
+        <SectionCard id="sec-notify" title="系统通知" :subtitle="`未读 ${notices.unread} 条 · 同一事件同一天只记一次`" flush>
+          <template #extra>
+            <el-button size="small" :disabled="!notices.unread" @click="readAll">全部标为已读</el-button>
+          </template>
+          <el-table v-if="notices.items.length" :data="notices.items" size="small" max-height="420">
+            <el-table-column label="级别" width="76">
+              <template #default="{ row }">
+                <el-tag size="small" :type="LEVEL_TAGS[row.level]?.type || 'info'" effect="light">{{ LEVEL_TAGS[row.level]?.text || row.level }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="时间" width="140"><template #default="{ row }"><span class="num">{{ dt(row.created_at) }}</span></template></el-table-column>
+            <el-table-column label="内容" min-width="360">
+              <template #default="{ row }">
+                <div :class="{ bold: !row.is_read }">{{ row.title }}</div>
+                <div v-if="row.message" class="muted small">{{ row.message }}</div>
+              </template>
+            </el-table-column>
+          </el-table>
+          <EmptyState v-else title="暂无通知" description="任务失败、流水线没跑、数据过期、授权失效、盘中触发止损时会在这里提醒" />
         </SectionCard>
 
         <!-- 写回 App -->

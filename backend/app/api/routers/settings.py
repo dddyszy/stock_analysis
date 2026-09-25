@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -12,7 +12,8 @@ from app.jobs.scheduler import scheduled_jobs
 from app.mcp.client import limiter_status
 from app.providers.tencent_public import public_limiter_status
 from app.services import app_sync, strategy_config, sync
-from app.services.jobs import cancel_job, running_jobs, start_job
+from app.services.jobs import cancel_job, register_labels, running_jobs, start_job
+from app.services.runtime_state import cooldown_until
 from app.services.position_strategy import evaluate_all
 from app.services.recommend_tracking import update_tracking
 from app.services.recommender import run_recommendation
@@ -37,6 +38,7 @@ JOBS = {
 
 
 OTHER_LABELS = {"backtest": "策略回测", "backtest_experiment": "出场规则实验", "market_env": "计算市场环境", "mcp_probe": "探测 MCP 工具", "full_initialize": "首次初始化"}
+register_labels({**{k: v[0] for k, v in JOBS.items()}, **OTHER_LABELS})
 
 
 def _job_dict(j: JobLog) -> dict:
@@ -57,6 +59,13 @@ def overview() -> dict:
             select(McpCallLog.tool, func.count(), func.sum(func.if_(McpCallLog.ok, 0, 1)), func.avg(McpCallLog.duration_ms))
             .where(McpCallLog.created_at >= since).group_by(McpCallLog.tool)
         ).all()
+        today_start = datetime.combine(date.today(), datetime.min.time())
+        today_calls = {
+            t: (c, int(lim or 0)) for t, c, lim in db.execute(
+                select(McpCallLog.tool, func.count(), func.sum(func.if_(McpCallLog.error.like("%限频%"), 1, 0)))
+                .where(McpCallLog.created_at >= today_start).group_by(McpCallLog.tool)
+            ).all()
+        }
         jobs = db.execute(select(JobLog).order_by(JobLog.id.desc()).limit(20)).scalars().all()
         last_errors = db.execute(
             select(McpCallLog).where(McpCallLog.ok.is_(False)).order_by(McpCallLog.id.desc()).limit(10)
@@ -69,7 +78,12 @@ def overview() -> dict:
             "jobs": [_job_dict(j) for j in jobs],
             "available_jobs": [{"name": k, "label": v[0]} for k, v in JOBS.items()],
             "scheduled": scheduled_jobs(),
-            "mcp_calls_24h": [{"tool": t, "count": c, "errors": int(e or 0), "avg_ms": round(float(a or 0))} for t, c, e, a in calls],
+            "mcp_calls_24h": [
+                {"tool": t, "count": c, "errors": int(e or 0), "avg_ms": round(float(a or 0)),
+                 "today": today_calls.get(t, (0, 0))[0], "limited_today": today_calls.get(t, (0, 0))[1],
+                 "cooldown_until": (u.isoformat(timespec="minutes") if (u := cooldown_until(t)) else None)}
+                for t, c, e, a in calls
+            ],
             "mcp_recent_errors": [{"tool": x.tool, "error": x.error, "at": x.created_at.isoformat()} for x in last_errors],
             "app_sync": app_sync.status(),
             "limiters": {**limiter_status(), **public_limiter_status()},

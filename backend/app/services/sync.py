@@ -18,9 +18,12 @@ from app.db.models import (
     ValuationSnapshot,
 )
 from app.db.session import session_scope
+from app.mcp.client import limiter_status
 from app.mcp.errors import McpAuthError, McpBusinessError, McpRateLimited
 from app.providers import create_provider
 from app.providers.base import INDEX_CODES, Bar, DataProvider, FinanceRecord
+from app.services.ashare_rules import disclosure_deadline
+from app.services.runtime_state import cooldown_until, set_cooldown
 from app.services.jobs import JobContext
 from app.services.kline_utils import resample_weekly, week_key
 
@@ -164,19 +167,51 @@ async def previous_trading_day(provider: DataProvider, d: date | None = None) ->
 # ---------- 股票池 ----------
 
 
+DELIST_AFTER = 2  # 连续这么多次完整刷新都缺席，且行情也查不到，才标记退市
+
+
+def plan_pool_changes(prev_missing: dict[str, int], seen: set[str], complete: bool, trading: set[str],
+                      delist_after: int = DELIST_AFTER) -> tuple[dict[str, int], list[str]]:
+    """根据本次刷新结果决定缺席计数和退市名单。
+
+    prev_missing：上次在市股票 → 已连续缺席次数；seen：本次拉到的股票；complete：所有行业都拉取成功；
+    trading：缺席股票中行情接口仍能查到价格的。部分行业失败时只新增、不下线。"""
+    if not complete:
+        return {}, []
+    missing_counts: dict[str, int] = {}
+    delisted: list[str] = []
+    for code, n in prev_missing.items():
+        if code in seen:
+            continue
+        cnt = n + 1
+        if cnt >= delist_after and code not in trading:
+            delisted.append(code)
+        else:
+            missing_counts[code] = cnt
+    return missing_counts, sorted(delisted)
+
+
 async def sync_stock_pool(ctx: JobContext | None = None) -> dict:
+    today = date.today()
     async with create_provider() as provider:
         industries = await provider.list_industries()
         if ctx:
             ctx.update(done=0, total=len(industries) + 1, message="同步申万一级行业成份股", force=True)
         seen: dict[str, dict] = {}
+        failed: list[str] = []
+        allowed = tuple(settings.exchanges.split(","))
         for ind in industries:
             try:
                 members = await provider.sector_constituents(ind.code)
             except (McpBusinessError, McpRateLimited) as exc:
                 logger.warning("行业 %s 成份股获取失败: %s", ind.name, exc)
                 members = []
-            allowed = tuple(settings.exchanges.split(","))
+            if not members:
+                # 申万一级行业不可能没有成份股，空结果按失败处理
+                failed.append(ind.name)
+                if ctx:
+                    ctx.step(f"{ind.name}: 拉取失败")
+                continue
             for m in members:
                 if not m.code.startswith(allowed):
                     continue
@@ -187,17 +222,47 @@ async def sync_stock_pool(ctx: JobContext | None = None) -> dict:
             st = await provider.st_codes()
         except (McpBusinessError, McpRateLimited):
             st = set()
-    if not seen:
-        raise RuntimeError("股票池为空，请检查 data_sector 返回")
-    rows = []
-    for code, r in seen.items():
-        rows.append({**r, "exchange": code[:2], "is_st": code in st or "ST" in r["name"].upper(), "is_index": False, "active": True})
-    for code, name in INDEX_CODES.items():
-        rows.append(
-            {"code": code, "name": name, "exchange": code[:2], "industry": None, "industry_code": None, "is_st": False, "is_index": True, "active": True}
-        )
+        if not seen:
+            raise RuntimeError("股票池为空，请检查 data_sector 返回")
+        # 按行业条件选股拿不到 ST 股，从 ST 名单补进股票池（名称取自行情，行业留空）
+        extra_st = sorted(c for c in st if c.startswith(allowed) and c not in seen)
+        for i in range(0, len(extra_st), settings.quote_batch_size):
+            chunk = extra_st[i : i + settings.quote_batch_size]
+            try:
+                quotes = await provider.quotes(chunk)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("ST 股名称获取失败: %s", exc)
+                quotes = {}
+            for c in chunk:
+                q = quotes.get(c)
+                seen[c] = {"code": c, "name": (q.name if q and q.name else c), "industry": None, "industry_code": None}
+        complete = bool(industries) and not failed
+        with session_scope() as db:
+            prev_missing = {
+                c: n or 0 for c, n in db.execute(
+                    select(StockBasic.code, StockBasic.missing_count).where(StockBasic.is_index.is_(False), StockBasic.active.is_(True))
+                ).all()
+            }
+        trading: set[str] = set()
+        if complete:
+            check = [c for c, n in prev_missing.items() if c not in seen and n + 1 >= DELIST_AFTER]
+            for i in range(0, len(check), settings.quote_batch_size):
+                try:
+                    quotes = await provider.quotes(check[i : i + settings.quote_batch_size])
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("退市确认行情获取失败，本次不下线: %s", exc)
+                    trading.update(check)
+                    break
+                trading.update(c for c, q in quotes.items() if q.price)
+    missing_counts, delisted = plan_pool_changes(prev_missing, set(seen), complete, trading)
+
+    rows = [{**r, "exchange": code[:2], "is_st": code in st or "ST" in r["name"].upper(), "is_index": False, "active": True,
+             "first_seen": today, "last_seen": today, "missing_count": 0, "delisted_on": None}
+            for code, r in seen.items()]
+    rows += [{"code": code, "name": name, "exchange": code[:2], "industry": None, "industry_code": None, "is_st": False,
+              "is_index": True, "active": True, "first_seen": today, "last_seen": today, "missing_count": 0, "delisted_on": None}
+             for code, name in INDEX_CODES.items()]
     with session_scope() as db:
-        db.execute(StockBasic.__table__.update().values(active=False))
         for i in range(0, len(rows), 1000):
             stmt = insert(StockBasic).values(rows[i : i + 1000])
             stmt = stmt.on_duplicate_key_update(
@@ -208,11 +273,28 @@ async def sync_stock_pool(ctx: JobContext | None = None) -> dict:
                 is_st=stmt.inserted.is_st,
                 is_index=stmt.inserted.is_index,
                 active=True,
+                first_seen=func.coalesce(StockBasic.first_seen, stmt.inserted.first_seen),
+                last_seen=stmt.inserted.last_seen,
+                missing_count=0,
+                delisted_on=None,
             )
             db.execute(stmt)
+        for code, n in missing_counts.items():
+            db.execute(StockBasic.__table__.update().where(StockBasic.code == code).values(missing_count=n))
+        if delisted:
+            db.execute(StockBasic.__table__.update().where(StockBasic.code.in_(delisted)).values(active=False, delisted_on=today))
+    msg = f"股票池 {len(seen)} 只，ST {len(st)} 只"
+    if failed:
+        msg += f"；{len(failed)} 个行业拉取失败（{'、'.join(failed[:5])}），本次只新增不下线"
+        from app.services.notify import notify
+
+        notify("pool_partial", f"股票池刷新不完整：{len(failed)} 个行业拉取失败", msg + "。下次刷新会自动重试。", "warning")
+    elif delisted:
+        msg += f"；标记退市 {len(delisted)} 只"
     if ctx:
-        ctx.update(done=len(industries) + 1, message=f"股票池 {len(seen)} 只，ST {len(st)} 只", force=True)
-    return {"stocks": len(seen), "st": len(st), "industries": len(industries)}
+        ctx.update(done=len(industries) + 1, message=msg, force=True)
+    return {"stocks": len(seen), "st": len(st), "industries": len(industries), "failed_industries": failed,
+            "missing": len(missing_counts), "delisted": delisted}
 
 
 # ---------- K 线回填 ----------
@@ -513,16 +595,37 @@ def _fresh_fundamental_codes(codes: list[str], max_age_days: int) -> set[str]:
     return set(rows)
 
 
+FINANCE_TOOL = "data_finance"
+QUOTA_TRIPS = 8  # 一次运行中被限频这么多次，就认为当前配额已用完
+QUOTA_COOLDOWN = timedelta(minutes=30)
+SHORT_BUDGET = 120.0  # 开始时工具仍在冷却，补拉时限缩短到 2 分钟
+
+
+def _finance_limited_count() -> int:
+    return int((limiter_status().get(FINANCE_TOOL) or {}).get("limited_count", 0))
+
+
 async def sync_finance_details(codes: list[str], ctx: JobContext | None = None, max_age_days: int = 20,
                                time_budget: float | None = None) -> dict:
     """候选股层：三大报表。westock 的 data_finance 单次最多可靠返回 5 只且限频严格，所以只拉候选股并缓存。
 
-    codes 按优先级排序；给了 time_budget（秒）时，超时后不再开始新的批次，剩下的留给下次。"""
-    deadline = time.monotonic() + time_budget if time_budget else None
+    codes 按优先级排序；给了 time_budget（秒）时，超时后不再开始新的批次，剩下的留给下次。
+    配额用完后记下冷却时间，冷却期内直接返回，候选股沿用缓存和腾讯评分。"""
     codes = [c for c in dict.fromkeys(codes) if not c.startswith(("sh000", "sz399"))]
     fresh = _fresh_fundamental_codes(codes, max_age_days)
     todo = [c for c in codes if c not in fresh]
     stats = {"ok": 0, "failed": 0, "cached": len(fresh)}
+    until = cooldown_until(FINANCE_TOOL)
+    if until is not None and todo:
+        stats["skipped"] = len(todo)
+        stats["cooldown_until"] = until.isoformat(timespec="minutes")
+        if ctx:
+            ctx.update(message=f"财报接口配额冷却中（至 {until:%H:%M}），{len(todo)} 只候选股沿用缓存和腾讯评分", force=True)
+        return stats
+    if time_budget and (limiter_status().get(FINANCE_TOOL) or {}).get("cooldown_left", 0) > 0:
+        time_budget = min(time_budget, SHORT_BUDGET)
+    deadline = time.monotonic() + time_budget if time_budget else None
+    limited_before = _finance_limited_count()
     if ctx:
         ctx.update(done=0, total=len(todo), message=f"拉取 {len(todo)} 只候选股的财报（{len(fresh)} 只已有缓存）", force=True)
     if not todo:
@@ -556,7 +659,8 @@ async def sync_finance_details(codes: list[str], ctx: JobContext | None = None, 
                     batch = {}
                     logger.warning("财报批次失败: %s", exc)
                 for code in chunk:
-                    rows = [{"code": code, **r} for r in _derive(batch.get(code, []))]
+                    rows = [{"code": code, **r, "first_seen": min(date.today(), disclosure_deadline(r["report_date"]))}
+                            for r in _derive(batch.get(code, []))]
                     if not rows:
                         stats["failed"] += 1
                         _set_progress("fundamental", code, "failed", error="无财报数据或批次失败")
@@ -564,7 +668,8 @@ async def sync_finance_details(codes: list[str], ctx: JobContext | None = None, 
                     with session_scope() as db:
                         stmt = insert(FundamentalQuarterly).values(rows)
                         stmt = stmt.on_duplicate_key_update(
-                            **{k: stmt.inserted[k] for k in rows[0] if k not in ("code", "report_date")}
+                            **{k: stmt.inserted[k] for k in rows[0] if k not in ("code", "report_date", "first_seen")},
+                            first_seen=func.coalesce(FundamentalQuarterly.first_seen, stmt.inserted.first_seen),
                         )
                         db.execute(stmt)
                     stats["ok"] += 1
@@ -573,6 +678,10 @@ async def sync_finance_details(codes: list[str], ctx: JobContext | None = None, 
                     ctx.update(done=stats["ok"] + stats["failed"], message=f"候选股财报：成功 {stats['ok']}，失败 {stats['failed']}")
 
         await asyncio.gather(*(worker() for _ in range(2)))
+    trips = _finance_limited_count() - limited_before
+    if trips >= QUOTA_TRIPS:
+        set_cooldown(FINANCE_TOOL, datetime.now() + QUOTA_COOLDOWN, f"一次运行被限频 {trips} 次")
+        stats["cooldown_until"] = (datetime.now() + QUOTA_COOLDOWN).isoformat(timespec="minutes")
     return stats
 
 
@@ -646,6 +755,12 @@ async def sync_risk_labels(ctx: JobContext | None = None) -> dict:
             counts[label] = len(codes)
             if ctx:
                 ctx.update(done=i + 1, message=f"{name}：{len(codes)} 只")
+    if counts:
+        from app.services.snapshot import save_label_snapshot
+
+        counts["snapshot_rows"] = save_label_snapshot(today)
+        if ctx:
+            ctx.update(message=f"风险标签同步完成，{len(counts) - 1} 类，快照 {counts['snapshot_rows']} 条", force=True)
     return counts
 
 

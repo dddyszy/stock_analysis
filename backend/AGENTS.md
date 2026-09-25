@@ -27,6 +27,15 @@
 - 耗时逻辑写成 `async def xxx(ctx: JobContext)`，用 `ctx.update(done, total, message)` 报告进度，每个步骤都要更新 message。
 - 接口触发用 `start_job(name, fn)`，定时任务用 `run_job`；同名任务互斥。任务必须能断点续传（借助 `sync_progress` 或检查已有数据）。重启时未完成的任务会自动标记为 `interrupted`。
 - CPU 密集的部分（全市场缠论扫描、回测）放进 `asyncio.to_thread`。
+- 需要让用户知道的异常（任务失败、步骤部分失败、数据过期、授权失效、盘中止损等）调用 `services/notify.py` 的 `notify(event, title, message, level, key)`；同一 `event + key` 每天只记一次。任务失败和重启中断已在 `services/jobs.py` 自动通知，不要重复发。
+- 限频严格的 MCP 工具在一次运行中被限频过多时，用 `services/runtime_state.py` 的 `set_cooldown` 记下冷却时间，后续运行先查 `cooldown_until` 再决定是否调用。
+
+## 快照与测试数据
+
+- 只保留最新值的表（`stock_basic`、`stock_risk_label`）必须同时写每日快照（`stock_status_daily`、`stock_risk_label_daily`）；回测读取历史状态一律用 `services/snapshot.py` 的 `snapshot_at(日期)`。
+- 财报的可获得日期记在 `fundamental_quarterly.first_seen`（首次拉到与法定披露截止日取早者，截止日来自 `ashare_rules.disclosure_deadline`），回测只能用 `first_seen` 不晚于当天的报表。
+- 股票池刷新：只要有行业拉取失败就只新增、不下线；连续两次完整刷新缺席且行情也查不到，才记 `delisted_on`。已退市股票的 K 线不删除。
+- `tests/conftest.py` 强制 `DATA_PROVIDER=mock`，所有测试只能连 `chan_stock_mock`；需要数据库的测试使用 `mock_db` fixture，并清理自己写入的数据。
 
 ## 推荐、回测与跟踪
 

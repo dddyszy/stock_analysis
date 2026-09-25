@@ -1,7 +1,10 @@
 """写回腾讯自选股 App：推荐股同步到专用自选分组；持仓止损价、目标价同步为股价提醒。
 
-- portfolio_watchlist_remove 是整个自选列表层面的软删除，没有分组参数。
-  所以只删除仅存在于推荐分组里的股票，你在其他分组里也有的股票不删。
+- portfolio_watchlist_remove 只是把股票加进自建的「待删除」分组，原分组里仍然保留；
+  portfolio_watchlist_move 只能在自建分组之间移动，不能移入「沪深」等系统分组。
+  所以推荐结束时：加入前就在你自选里的股票保留不动；也在你其他自建分组里的，从推荐分组移过去；
+  其余是系统加的，从推荐分组移到「待删除」。「全部」「沪深」等系统分组会自动包含所有 A 股自选，不算你的分组。
+- 以推荐分组的实际成员为准，只处理系统加过的股票（state.added），你手动加进推荐分组的不动。
 - portfolio_tips_set 是全量覆盖语义，每次先查出现有提醒，保留其他字段再写回；
   首次覆盖某只股票的 low/high 时记下原值，平仓后恢复。
 """
@@ -82,22 +85,79 @@ async def _ensure_group(sess: McpSession) -> str:
     return gid
 
 
-async def _codes_in_other_groups(sess: McpSession, group_id: str) -> set[str]:
+SYSTEM_GROUP_TYPES = {"1", "2"}  # 1：全部；2：沪深、港股、美股、基金等按市场自动归类的分组
+ALL_GROUP_ID = "1"
+TRASH_GROUP_NAME = "待删除"
+
+
+async def _group_id_by_name(sess: McpSession, name: str) -> str | None:
     data = await sess.call("portfolio_watchlist_groups", {})
-    others: set[str] = set()
+    for g in find_records(data, prefer=("groups", "list")):
+        if isinstance(g, dict) and pick(g, "name", "group_name") == name:
+            return str(pick(g, "group_id", "id", "groupId", default="")) or None
+    return None
+
+
+async def _members(sess: McpSession, group_id: str) -> set[str]:
+    out: set[str] = set()
+    for offset in range(0, 2000, 200):
+        data = await sess.call("portfolio_watchlist", {"group": group_id, "limit": 200, "offset": offset})
+        rows = [r for r in find_records(data) if isinstance(r, dict)]
+        out.update(c for c in (normalize_code(pick(r, "code", "symbol")) for r in rows) if c)
+        if len(rows) < 200:
+            break
+    return out
+
+
+async def _custom_groups(sess: McpSession, group_id: str) -> dict[str, set[str]]:
+    """推荐分组之外、你自建的分组及其成员。"""
+    data = await sess.call("portfolio_watchlist_groups", {})
+    out: dict[str, set[str]] = {}
     for g in find_records(data, prefer=("groups", "list")):
         if not isinstance(g, dict):
             continue
         gid = str(pick(g, "group_id", "id", "groupId", default=""))
+        gtype = str(pick(g, "groupType", "group_type", "type", default=""))
         name = str(pick(g, "name", "group_name", default=""))
-        if not gid or gid == group_id or name in ("全部", "待删除") or gid.startswith("tmp"):
+        if not gid or gid == group_id or gid.startswith("tmp") or gtype in SYSTEM_GROUP_TYPES or name in ("全部", "待删除"):
             continue
-        members = await sess.call("portfolio_watchlist", {"group": gid, "limit": 500})
-        for r in find_records(members):
-            c = normalize_code(pick(r, "code", "symbol")) if isinstance(r, dict) else None
-            if c:
-                others.add(c)
-    return others
+        out[gid] = await _members(sess, gid)
+    return out
+
+
+def plan_group_removal(to_remove: list[str], user_owned: set[str], custom: dict[str, set[str]]) -> tuple[list[str], dict[str, str], list[str]]:
+    """返回（移入待删除的，移到自建分组的 {代码: 分组}，保留不动的）。"""
+    removed, moved, kept = [], {}, []
+    for code in to_remove:
+        if code in user_owned:
+            kept.append(code)
+            continue
+        target = next((gid for gid, members in custom.items() if code in members), None)
+        if target:
+            moved[code] = target
+        else:
+            removed.append(code)
+    return removed, moved, kept
+
+
+async def _move_to_trash(sess: McpSession, group_id: str, codes: list[str]) -> tuple[list[str], list[str]]:
+    """把股票从推荐分组移到「待删除」，返回（成功，失败）。分组不存在时先用删除接口让腾讯创建它。"""
+    trash = await _group_id_by_name(sess, TRASH_GROUP_NAME)
+    if trash is None:
+        await sess.call("portfolio_watchlist_remove", {"code": codes[0]})
+        trash = await _group_id_by_name(sess, TRASH_GROUP_NAME)
+    if trash is None:
+        _log("watchlist_remove", False, ",".join(codes)[:255], "找不到「待删除」分组")
+        return [], codes
+    ok, failed = [], []
+    for code in codes:
+        try:
+            await sess.call("portfolio_watchlist_move", {"code": code, "from": group_id, "to": trash, "retain": False})
+            ok.append(code)
+        except Exception as exc:  # noqa: BLE001
+            failed.append(code)
+            _log("watchlist_remove", False, code, str(exc))
+    return ok, failed
 
 
 async def sync_recommend_group(codes: list[str]) -> dict:
@@ -108,32 +168,51 @@ async def sync_recommend_group(codes: list[str]) -> dict:
     try:
         gid = await _ensure_group(sess)
         state = _get_state("recommend_group", {}) or {}
-        old = set(state.get("codes") or [])
+        actual = await _members(sess, gid)
+        user_owned = set(state.get("user_owned") or [])
+        # 旧版本没有记录 added，当时分组里的股票经确认都是系统加的
+        added = set(state["added"]) if "added" in state else actual | set(state.get("codes") or [])
         new = set(codes)
-        to_add = sorted(new - old)
-        to_remove = sorted(old - new)
+        to_add = sorted(new - actual)
         if to_add:
+            # 加入前已在自选里的，记为你原有的自选，推荐结束后不删除
+            existing = await _members(sess, ALL_GROUP_ID)
+            pre = set(to_add) & existing
+            if pre:
+                user_owned |= pre
+                _log("watchlist_owned", True, ",".join(sorted(pre))[:255], f"{len(pre)} 只本来就在你的自选里，推荐结束后保留")
             try:
                 await sess.call("portfolio_watchlist_batch_add", {"codes": ",".join(to_add), "group_id": gid})
-                _log("watchlist_add", True, ",".join(to_add)[:255], f"加入 {len(to_add)} 只")
+                _log("watchlist_add", True, ",".join(to_add)[:255], f"加入 {len(to_add)} 只", detail={"codes": to_add})
             except Exception as exc:
                 _log("watchlist_add", False, ",".join(to_add)[:255], str(exc))
                 raise
-        removed, kept = [], []
+            added |= set(to_add) - pre
+        to_remove = sorted((actual & added) - new)
+        removed, moved, kept = [], {}, []
         if to_remove:
-            protected = await _codes_in_other_groups(sess, gid)
-            removed = [c for c in to_remove if c not in protected]
-            kept = [c for c in to_remove if c in protected]
-            if removed:
+            removed, moved, kept = plan_group_removal(to_remove, user_owned, await _custom_groups(sess, gid))
+            for code, target in moved.items():
                 try:
-                    await sess.call("portfolio_watchlist_remove", {"codes": ",".join(removed)})
-                    _log("watchlist_remove", True, ",".join(removed)[:255], f"移出 {len(removed)} 只（进入 App 待删除分组）")
+                    await sess.call("portfolio_watchlist_move", {"code": code, "from": gid, "to": target, "retain": False})
                 except Exception as exc:
-                    _log("watchlist_remove", False, ",".join(removed)[:255], str(exc))
+                    kept.append(code)
+                    _log("watchlist_move", False, code, str(exc))
+            if moved:
+                _log("watchlist_move", True, ",".join(c for c in moved if c not in kept)[:255], "也在你的自建分组里，只移出推荐分组")
+            if removed:
+                removed, failed = await _move_to_trash(sess, gid, removed)
+                kept.extend(failed)
+                if removed:
+                    _log("watchlist_remove", True, ",".join(removed)[:255], f"移出 {len(removed)} 只（移到 App「待删除」分组，可恢复）",
+                         detail={"codes": removed})
             if kept:
-                _log("watchlist_keep", True, ",".join(kept)[:255], "这些股票也在你的其他分组里，未删除")
-        _set_state("recommend_group", {"group_id": gid, "codes": sorted(new | set(kept))})
-        return {"group_id": gid, "added": len(to_add), "removed": len(removed), "kept": len(kept)}
+                _log("watchlist_keep", True, ",".join(kept)[:255], "你原有的自选或移动失败，保留在推荐分组中")
+        # 保留下来的股票不再记为推荐成员，避免每天重复处理
+        _set_state("recommend_group", {"group_id": gid, "codes": sorted(new), "user_owned": sorted(user_owned),
+                                       "added": sorted(added - set(removed) - set(moved)),
+                                       "kept": sorted(set(state.get("kept") or []) | set(kept))})
+        return {"group_id": gid, "added": len(to_add), "removed": len(removed), "moved": len(moved), "kept": len(kept)}
     finally:
         await sess.close()
 

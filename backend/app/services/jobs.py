@@ -15,6 +15,15 @@ from app.db.session import session_scope
 logger = logging.getLogger(__name__)
 
 _running: dict[str, asyncio.Task] = {}
+_labels: dict[str, str] = {}
+
+
+def register_labels(labels: dict[str, str]) -> None:
+    _labels.update(labels)
+
+
+def job_label(name: str) -> str:
+    return _labels.get(name, name)
 
 
 class JobAlreadyRunning(Exception):
@@ -99,6 +108,10 @@ async def _execute(name: str, fn: JobFn) -> dict | None:
                 job.message = (message or ctx.message or "")[:5000]
                 job.detail = detail if isinstance(detail, dict) else None
                 job.finished_at = datetime.now()
+        if status == "failed":
+            from app.services.notify import notify
+
+            notify("job_failed", f"任务失败：{job_label(name)}", (message or "")[:500], "error", key=name)
     return detail
 
 
@@ -133,8 +146,15 @@ def mark_interrupted() -> int:
     """进程重启后，上次没跑完的任务记录仍是 running，统一标记为 interrupted。"""
     with session_scope() as db:
         rows = db.execute(select(JobLog).where(JobLog.status == "running")).scalars().all()
+        names = []
         for j in rows:
             j.status = "interrupted"
             j.finished_at = datetime.now()
             j.message = f"服务重启时中断（进度 {j.progress}/{j.total}），可重新运行，会从断点继续"
-        return len(rows)
+            names.append(j.job_name)
+    if names:
+        from app.services.notify import notify
+
+        for name in dict.fromkeys(names):
+            notify("job_interrupted", f"任务被中断：{job_label(name)}", "服务重启时任务还没跑完，可以在设置页重新运行，会从断点继续", "warning", key=name)
+    return len(names)

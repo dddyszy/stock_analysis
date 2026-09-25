@@ -89,6 +89,10 @@ class StockBasic(Base):
     is_st: Mapped[bool] = mapped_column(Boolean, default=False)
     is_index: Mapped[bool] = mapped_column(Boolean, default=False)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    first_seen: Mapped[date | None] = mapped_column(Date)
+    last_seen: Mapped[date | None] = mapped_column(Date)
+    missing_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")  # 完整刷新中连续缺席的次数
+    delisted_on: Mapped[date | None] = mapped_column(Date)
     updated_at: Mapped[datetime] = _updated_col()
 
 
@@ -130,6 +134,7 @@ class FundamentalQuarterly(Base):
     total_equity: Mapped[float | None] = mapped_column(Double)
     total_assets: Mapped[float | None] = mapped_column(Double)
     raw: Mapped[dict | None] = mapped_column(JSON)
+    first_seen: Mapped[date | None] = mapped_column(Date)  # 估计的可获得日期：首次拉到与法定披露截止日取早者
     updated_at: Mapped[datetime] = _updated_col()
 
 
@@ -163,6 +168,34 @@ class StockRiskLabel(Base):
     severity: Mapped[str] = mapped_column(String(8))  # hard：硬过滤；penalty：扣分
     snap_date: Mapped[date] = mapped_column(Date)
     updated_at: Mapped[datetime] = _updated_col()
+
+
+class StockStatusDaily(Base):
+    """每个交易日的股票状态快照，供回测按当时的股票池、ST 和停牌状态抽样。"""
+
+    __tablename__ = "stock_status_daily"
+    __table_args__ = (Index("ix_stock_status_daily_date", "trade_date"),)
+
+    code: Mapped[str] = mapped_column(String(16), primary_key=True)
+    trade_date: Mapped[date] = mapped_column(Date, primary_key=True)
+    name: Mapped[str] = mapped_column(String(64))
+    exchange: Mapped[str] = mapped_column(String(4))
+    industry: Mapped[str | None] = mapped_column(String(64))
+    is_st: Mapped[bool] = mapped_column(Boolean, default=False)
+    suspended: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class StockRiskLabelDaily(Base):
+    """风险标签的每日快照（stock_risk_label 只保留最新一份）。"""
+
+    __tablename__ = "stock_risk_label_daily"
+    __table_args__ = (Index("ix_stock_risk_label_daily_date", "snap_date"),)
+
+    code: Mapped[str] = mapped_column(String(16), primary_key=True)
+    label: Mapped[str] = mapped_column(String(64), primary_key=True)
+    snap_date: Mapped[date] = mapped_column(Date, primary_key=True)
+    name: Mapped[str] = mapped_column(String(64))
+    severity: Mapped[str] = mapped_column(String(8))
 
 
 class MarketEnvDaily(Base):
@@ -422,6 +455,31 @@ class SimAccountDaily(Base):
 
 
 # ---------- 写回 App ----------
+
+
+class NotifyLog(Base):
+    """系统内通知。dedupe_key 相同的通知只记一次（同一事件同一天）。"""
+
+    __tablename__ = "notify_log"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    event: Mapped[str] = mapped_column(String(64))
+    level: Mapped[str] = mapped_column(String(16))  # info / warning / error / important
+    title: Mapped[str] = mapped_column(String(255))
+    message: Mapped[str | None] = mapped_column(String(2000))
+    dedupe_key: Mapped[str] = mapped_column(String(191), unique=True)
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    created_at: Mapped[datetime] = _now_col()
+
+
+class RuntimeState(Base):
+    """运行时状态的键值存储，例如 MCP 工具的配额冷却截止时间。"""
+
+    __tablename__ = "runtime_state"
+
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    value: Mapped[dict | list | None] = mapped_column(JSON)
+    updated_at: Mapped[datetime] = _updated_col()
 
 
 class AppSyncState(Base):

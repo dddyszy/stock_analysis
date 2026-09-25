@@ -1,8 +1,10 @@
 from dataclasses import dataclass
+from datetime import date
 
 from app.services.ashare_rules import (
     board,
     clamp_to_limits,
+    disclosure_deadline,
     is_limit_down,
     is_limit_up,
     is_one_price_limit_down,
@@ -55,3 +57,32 @@ def test_clamp_to_limits():
     assert clamp_to_limits(12.5, 10.0, "sh600000") == 11.0
     assert clamp_to_limits(12.5, 10.0, "sz300001") == 12.0
     assert clamp_to_limits(7.0, 10.0, "sh600000") == 9.0
+
+
+def test_disclosure_deadline():
+    assert disclosure_deadline(date(2025, 3, 31)) == date(2025, 4, 30)
+    assert disclosure_deadline(date(2025, 6, 30)) == date(2025, 8, 31)
+    assert disclosure_deadline(date(2025, 9, 30)) == date(2025, 10, 31)
+    assert disclosure_deadline(date(2025, 12, 31)) == date(2026, 4, 30)
+
+
+def test_plan_pool_changes():
+    from app.services.sync import plan_pool_changes
+
+    prev = {"sh600001": 0, "sh600002": 1, "sh600003": 1, "sh600004": 0}
+    seen = {"sh600001", "sh600009"}
+    # 部分行业失败：不动任何股票
+    assert plan_pool_changes(prev, seen, complete=False, trading=set()) == ({}, [])
+    counts, delisted = plan_pool_changes(prev, seen, complete=True, trading={"sh600003"})
+    # sh600002 第二次缺席且查不到行情 → 退市；sh600003 仍有行情 → 只累计；sh600004 第一次缺席
+    assert delisted == ["sh600002"]
+    assert counts == {"sh600003": 2, "sh600004": 1}
+
+
+def test_plan_group_removal():
+    from app.services.app_sync import plan_group_removal
+
+    removed, moved, kept = plan_group_removal(
+        ["sh600001", "sh600002", "sh600003"], user_owned={"sh600002"}, custom={"10": {"sh600003"}},
+    )
+    assert removed == ["sh600001"] and moved == {"sh600003": "10"} and kept == ["sh600002"]

@@ -29,7 +29,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 
 import numpy as np
-from sqlalchemy import select
+from sqlalchemy import or_, select
 
 from app.analysis.market_env import INDEX_REGIME_CODE, INDEX_REGIME_NAMES, index_regime_map
 from app.chan import TYPE_NAMES, analyze, combine
@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 
 WINDOW = 400
 BENCH_CODE = INDEX_REGIME_CODE  # 中证 1000
-SURVIVORSHIP_NOTE = "股票池为当前在市股票，已退市股票的历史无法获取，结果存在幸存者偏差，一买类信号可能被高估。"
+SURVIVORSHIP_NOTE = "股票池以当前在市股票为主，系统上线前已退市的股票拿不到历史，结果存在幸存者偏差，一买类信号可能被高估。"
 
 
 @dataclass
@@ -470,9 +470,12 @@ def _run_parallel(tasks: list[tuple], on_done) -> list[dict]:
 def _pick_codes(sample_size: int, codes: list[str] | None, seed: int) -> list[str]:
     if codes:
         return codes
-    # 从全部在市股票（含 ST）中抽样，不预先按基本面筛选，减少选择偏差
+    # 从全部在市股票（含 ST）和系统记录到的已退市股票中抽样，不预先按基本面筛选，减少选择偏差
     with session_scope() as db:
-        pool = sorted(db.execute(select(StockBasic.code).where(StockBasic.is_index.is_(False), StockBasic.active.is_(True))).scalars())
+        pool = sorted(db.execute(
+            select(StockBasic.code).where(StockBasic.is_index.is_(False),
+                                          or_(StockBasic.active.is_(True), StockBasic.delisted_on.is_not(None)))
+        ).scalars())
     random.Random(seed).shuffle(pool)
     return pool[:sample_size]
 
@@ -519,11 +522,12 @@ async def run_backtest(ctx: JobContext, sample_size: int = 50, codes: list[str] 
         split_date = tail[int(len(tail) * params.get("backtest_split_ratio", 0.7))] if tail else date.today()
     with session_scope() as db:
         st_codes = set(db.execute(select(StockBasic.code).where(StockBasic.is_st.is_(True))).scalars())
+        delisted = set(db.execute(select(StockBasic.code).where(StockBasic.delisted_on.is_not(None), StockBasic.code.in_(codes))).scalars())
 
     run_params = {
         "sample_size": len(codes), "lookback_bars": lookback_bars, "entry_mode": entry_mode, "seed": seed,
         "split_date": split_date.isoformat(), "slippage": params["slippage"], "with_control": with_control,
-        "label": label, "overrides": overrides, "experiment": experiment,
+        "label": label, "overrides": overrides, "experiment": experiment, "delisted_in_sample": len(delisted),
         "strategy": {k: params[k] for k in ("hard_stop_pct", "min_reward_risk", "time_stop_bars", "batch_ratios", "signal_recent_bars")},
     }
     with session_scope() as db:

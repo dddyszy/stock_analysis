@@ -45,12 +45,12 @@ westock-mcp 的行情类工具每个约每分钟只允许 3～5 次调用。新�
 
 - 写入用户真实的腾讯账户（自选分组、股价提醒）前，第一次必须征得用户同意；设置页的写回开关必须能关闭这一功能。
 - 模拟盘下单、执行持仓建议，都必须在前端让用户确认后才调用。
-- 不删除用户自己的自选股和提醒；覆盖前先保存原值，平仓后恢复。
+- 不删除用户自己的自选股和提醒；覆盖前先保存原值，平仓后恢复。加入推荐分组前已在自选里的股票记为用户原有（`user_owned`），推荐结束后保留；「全部」「沪深」等系统分组不算用户分组。
 - 合成数据只能写入 `chan_stock_mock`，绝不能进入 `chan_stock`。
 
 ## 完成修改前必须验证
 
-1. 后端：`cd backend && uv run pytest -q` 全部通过。
+1. 后端：`cd backend && uv run pytest -q` 全部通过（推送到 `dev`、`master` 后 GitHub Actions 会自动再跑一遍后端测试和前端构建）。
 2. 前端：`cd frontend && npm run build` 通过（包含 `vue-tsc` 类型检查）。
 3. 改了页面：用 `.shots/shot.sh <名称> <路径>` 通过无头 Chrome 截图检查（输出到 `/tmp/chan_shots/`）。
 4. 改了表结构：`uv run alembic revision --autogenerate -m "说明"` 生成迁移，并对 mock 库执行 `DATA_PROVIDER=mock uv run alembic upgrade head`。

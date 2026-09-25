@@ -1,19 +1,12 @@
 """接口冒烟：在 mock 模式下直接调用路由函数，验证返回结构（不依赖外网）。"""
 
 import asyncio
-import os
 
 import pytest
 
-os.environ.setdefault("DATA_PROVIDER", "mock")
-
 
 @pytest.fixture(scope="module")
-def market():
-    from app.core.config import get_settings
-
-    if get_settings().data_provider != "mock":
-        pytest.skip("只在 mock 模式下运行")
+def market(mock_db):
     from app.api.routers import market as m
 
     return m
