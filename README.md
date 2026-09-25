@@ -1,5 +1,7 @@
 # 缠论股票分析系统
 
+[![自动检查](https://github.com/dddyszy/stock_analysis/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/dddyszy/stock_analysis/actions/workflows/ci.yml)
+
 以日线 + 周线缠论为核心，结合市场环境和基本面，提供 A 股智能选股、买卖点分析、持仓策略（分层止损 / 跟踪止损 / 分批止盈）、腾讯自选股模拟盘和历史回测。
 
 - 后端：Python 3.11 + FastAPI + SQLAlchemy + MySQL + APScheduler，目录 `backend/`
