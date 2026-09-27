@@ -206,6 +206,10 @@ def backtest_series(code: str, bars: list, params: dict, warmup: int = 250, entr
                 continue
             if s.type == "B1" and params.get("b1_require_strong") and not (s.extra.get("divergence") or {}).get("strong"):
                 continue
+            if params.get("signal_types") and s.type not in params["signal_types"]:
+                continue
+            if s.type == "B1" and params.get("b1_trend_only") and not s.extra.get("trend"):
+                continue
             key = (s.type, s.scope, s.dt)
             if key in seen:
                 continue
@@ -260,6 +264,7 @@ def _entry_tags(code: str, bars: list, t: int, res, s, cfg, off: int, aux: dict)
         "week": "up" if reso >= 0.2 else "down" if reso <= -0.2 else "flat",
         "div": ("strong" if div.get("strong") else "normal") if div else "none",
         "seg_ctx": seg.type if seg is not None and s.scope == "bi" else ("self" if s.scope == "seg" else "none"),
+        "b1_kind": ("trend" if s.extra.get("trend") else "range") if s.type == "B1" else "other",
         "ind": aux.get("industry"),
         "f": compute_factors(ctx, control=False),
     }
@@ -411,6 +416,7 @@ def _unit_name(u: str) -> str:
 SEG_CTX_NAMES = {"none": "无线段买点背景", "self": "线段级别买点本身", "B1": "线段一买后的笔买点",
                  "B2": "线段二买后的笔买点", "B3": "线段三买后的笔买点"}
 MIN_INDUSTRY_TRADES = 30
+B1_KIND_NAMES = {"trend": "趋势背驰一买", "range": "盘整背驰一买", "other": "二买、三买"}
 
 
 def _industry_of(trades: list[dict]):
@@ -439,6 +445,7 @@ def diagnose(trades: list[dict], control: list[dict]) -> list[dict]:
         ("div", "背驰强度", tag("div", "none"), lambda v: DIV_NAMES.get(v, v), _regime),
         ("scope", "信号级别", lambda t: t.get("scope") or "bi", lambda v: SCOPE_NAMES.get(v, v), _regime),
         ("seg_ctx", "线段背景", tag("seg_ctx", "none"), lambda v: SEG_CTX_NAMES.get(v, v), _regime),
+        ("b1_kind", "一买背驰类型", tag("b1_kind", "other"), lambda v: B1_KIND_NAMES.get(v, v), _regime),
         ("industry", "行业", _industry_of(trades), lambda v: v, _regime),
     ]
     out = []
@@ -592,7 +599,7 @@ def _attach_bench(trades: list[dict], bench: dict[date, float], bench_dates: lis
 
 
 EXPERIMENT_KEYS = {"target_cap_r", "rr_filter", "min_reward_risk", "hard_stop_pct", "time_stop_bars",
-                   "divergence_ratio", "b1_require_strong", "batch_ratios"}
+                   "divergence_ratio", "b1_require_strong", "batch_ratios", "signal_types", "b1_trend_only", "entry_mode"}
 
 
 async def run_backtest(ctx: JobContext, sample_size: int = 50, codes: list[str] | None = None, lookback_bars: int = 750,
@@ -605,6 +612,7 @@ async def run_backtest(ctx: JobContext, sample_size: int = 50, codes: list[str] 
     overrides = {k: v for k, v in (overrides or {}).items() if k in EXPERIMENT_KEYS}
     params.update(overrides)
     use_rr_filter = bool(params.pop("rr_filter", True))
+    entry_mode = params.pop("entry_mode", entry_mode)
     codes = _pick_codes(sample_size, codes, seed)
     bench_bars = load_bars(KlineDaily, BENCH_CODE, lookback_bars + 350)
     bench = {b.dt: b.close for b in bench_bars}
@@ -703,6 +711,12 @@ EXPERIMENTS: dict[str, tuple[str, list[tuple[str, dict]]]] = {
         ("基线：现行出场规则", {}),
         ("1R 全部止盈", {"target_cap_r": 1.0, "batch_ratios": [1.0, 0.0]}),
         ("0.5R 全部止盈", {"target_cap_r": 0.5, "batch_ratios": [1.0, 0.0]}),
+    ]),
+    "purechan": ("纯缠论实验", [
+        ("基线：笔确认后入场", {}),
+        ("信号出现即入场", {"entry_mode": "early"}),
+        ("只做一买", {"signal_types": ["B1"]}),
+        ("只做趋势背驰的一买", {"signal_types": ["B1"], "b1_trend_only": True}),
     ]),
     "divergence": ("背驰阈值实验", [
         ("基线：阈值 0.9", {}),

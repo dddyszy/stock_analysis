@@ -52,7 +52,7 @@ def test_diagnose_dimensions():
     trades = [_t("B1", "up", 1.0, week="up", div="strong") for _ in range(6)] + [_t("B3", "down", -0.5, week="down") for _ in range(6)]
     ctrl = [_t("RND", r, 0.0) for r in ("up", "down") for _ in range(10)]
     dims = {d["key"]: d for d in diagnose(trades, ctrl)}
-    assert set(dims) == {"signal_type", "regime", "type_regime", "year", "week", "div", "scope", "seg_ctx", "industry"}
+    assert set(dims) == {"signal_type", "regime", "type_regime", "year", "week", "div", "scope", "seg_ctx", "b1_kind", "industry"}
     week = {r["key"]: r for r in dims["week"]["rows"]}
     assert week["up"]["matched"]["edge"] == 1.0 and week["down"]["matched"]["edge"] == -0.5
     assert {r["name"] for r in dims["type_regime"]["rows"]} == {"一买 · 上涨", "三买 · 下跌"}
