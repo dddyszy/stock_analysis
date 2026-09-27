@@ -283,6 +283,8 @@ def _stat(ts: list[dict]) -> dict:
         "avg_excess": round(sum(ex) / len(ex), 2) if ex else None,
         "profit_factor": round(sum(wins) / sum(losses), 2) if losses else None,
         "avg_holding_days": round(sum(t["holding_days"] for t in ts) / len(ts), 1),
+        "avg_win_r": round(sum(wins) / len(wins), 3) if wins else None,
+        "avg_loss_r": round(-sum(losses) / len(losses), 3) if losses else None,
         "max_loss_r": round(min(rs), 2),
         "target_hit_ratio": round(sum(1 for t in ts if (t.get("tags") or {}).get("target_hit")) / len(ts), 3),
         "max_win_r": round(max(rs), 2),
@@ -590,7 +592,7 @@ def _attach_bench(trades: list[dict], bench: dict[date, float], bench_dates: lis
 
 
 EXPERIMENT_KEYS = {"target_cap_r", "rr_filter", "min_reward_risk", "hard_stop_pct", "time_stop_bars",
-                   "divergence_ratio", "b1_require_strong"}
+                   "divergence_ratio", "b1_require_strong", "batch_ratios"}
 
 
 async def run_backtest(ctx: JobContext, sample_size: int = 50, codes: list[str] | None = None, lookback_bars: int = 750,
@@ -697,6 +699,11 @@ EXPERIMENTS: dict[str, tuple[str, list[tuple[str, dict]]]] = {
         ("取消过滤 + 目标一封顶 2R", {"rr_filter": False, "target_cap_r": 2.0}),
         ("取消过滤 + 目标一封顶 1.5R", {"rr_filter": False, "target_cap_r": 1.5}),
     ]),
+    "winrate": ("高胜率规则实验", [
+        ("基线：现行出场规则", {}),
+        ("1R 全部止盈", {"target_cap_r": 1.0, "batch_ratios": [1.0, 0.0]}),
+        ("0.5R 全部止盈", {"target_cap_r": 0.5, "batch_ratios": [1.0, 0.0]}),
+    ]),
     "divergence": ("背驰阈值实验", [
         ("基线：阈值 0.9", {}),
         ("阈值 0.7", {"divergence_ratio": 0.7}),
@@ -738,6 +745,7 @@ def compare_runs(experiment: str | None = None, kind: str | None = None) -> dict
             items.append({
                 "id": r.id, "label": (r.params.get("label") or "").split(" · ", 1)[-1], "overrides": r.params.get("overrides"),
                 "trades": n, "win_rate": s.get("win_rate"), "avg_r": s.get("avg_r"), "avg_pnl_pct": s.get("avg_pnl_pct"),
+                "avg_win_r": s.get("avg_win_r"), "avg_loss_r": s.get("avg_loss_r"),
                 "avg_excess": s.get("avg_excess"), "profit_factor": s.get("profit_factor"),
                 "avg_holding_days": s.get("avg_holding_days"),
                 "target_hit_ratio": s.get("target_hit_ratio"),

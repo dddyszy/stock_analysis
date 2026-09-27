@@ -268,6 +268,9 @@ onMounted(() => {
             <el-table-column prop="trades" label="笔数" width="64" />
             <el-table-column label="胜率" width="70"><template #default="{ row }">{{ ratioPct(row.win_rate, 1) }}</template></el-table-column>
             <el-table-column label="平均 R" width="72"><template #default="{ row }"><span class="num" :class="colorClass(row.avg_r)">{{ num(row.avg_r) }}</span></template></el-table-column>
+            <el-table-column label="盈利 / 亏损均值" width="120">
+              <template #default="{ row }"><span class="num up">{{ num(row.avg_win_r) }}</span> / <span class="num down">{{ num(row.avg_loss_r) }}</span></template>
+            </el-table-column>
             <el-table-column label="平均收益" width="80"><template #default="{ row }"><span class="num" :class="colorClass(row.avg_pnl_pct)">{{ pct(row.avg_pnl_pct, 2) }}</span></template></el-table-column>
             <el-table-column label="平均超额" width="80"><template #default="{ row }"><span class="num" :class="colorClass(row.avg_excess)">{{ pct(row.avg_excess, 2) }}</span></template></el-table-column>
             <el-table-column label="触及目标一" width="90"><template #default="{ row }">{{ ratioPct(row.target_hit_ratio, 1) }}</template></el-table-column>
