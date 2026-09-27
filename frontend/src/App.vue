@@ -19,6 +19,7 @@ const menus = [
   { path: '/', title: '市场总览', icon: 'DataBoard' },
   { path: '/portfolio', title: '持仓策略', icon: 'Wallet' },
   { path: '/picker', title: '结构筛选', icon: 'MagicStick' },
+  { path: '/recommend', title: '推荐', icon: 'Medal' },
   { path: '/tracking', title: '结构跟踪', icon: 'DataLine' },
   { path: '/sim', title: '模拟盘', icon: 'Coin' },
   { path: '/backtest', title: '规律检验', icon: 'TrendCharts' },
