@@ -1,8 +1,8 @@
-"""推荐跟踪：每条推荐之后 5/10/20 个交易日的收益、相对指数的超额、先触及止损还是目标一，以及每批推荐的 Rank IC。
+"""候选跟踪：每条候选之后 5/10/20 个交易日的收益、相对指数的超额、先触及止损还是目标一，以及每批候选的 Rank IC。
 
-- 入场价取推荐日次日开盘价；次日一字涨停视为买不进（blocked），不计入收益统计。
+- 入场价取入选日次日开盘价；次日一字涨停视为买不进（blocked），不计入收益统计。
 - 基准为沪深 300 和中证 1000，同样从次日开盘算到第 N 日收盘。
-- 只读本地日线，没有外部调用，可以每天收盘后全量刷新最近 60 天的推荐。
+- 只读本地日线，没有外部调用，可以每天收盘后全量刷新最近 60 天的候选。
 """
 
 import logging
@@ -48,7 +48,7 @@ def _bars_after(code: str, after: date, limit: int = 21) -> list[Bar]:
 
 
 def compute_perf(item: ItemRef, bars: list[Bar], benches: dict[str, list[Bar]]) -> dict:
-    """bars[0] 为推荐日（只用它的收盘价判断次日是否一字涨停），bars[1:] 为之后的交易日。"""
+    """bars[0] 为入选日（只用它的收盘价判断次日是否一字涨停），bars[1:] 为之后的交易日。"""
     out: dict = {"days": 0, "blocked": False, "entry_date": None, "entry_price": None, "max_drawdown": None, "first_hit": None}
     for h in HORIZONS:
         out[f"ret{h}"] = None
@@ -130,7 +130,7 @@ async def update_tracking(ctx: JobContext | None = None) -> dict:
         done = {pid for pid, days in db.execute(select(RecommendPerf.item_id, RecommendPerf.days)).all() if days >= max(HORIZONS)}
     todo = [(it, d, regime) for it, d, regime in rows if it.id not in done]
     if ctx:
-        ctx.update(done=0, total=len(todo), message=f"更新 {len(todo)} 条推荐的后续表现", force=True)
+        ctx.update(done=0, total=len(todo), message=f"更新 {len(todo)} 条候选的后续表现", force=True)
     bench_cache: dict[date, dict[str, list[Bar]]] = {}
     values = []
     for i, (it, run_date, regime) in enumerate(todo):
@@ -149,7 +149,7 @@ async def update_tracking(ctx: JobContext | None = None) -> dict:
                 stmt = insert(RecommendPerf).values(values[j : j + 500])
                 db.execute(stmt.on_duplicate_key_update(**{k: stmt.inserted[k] for k in values[0] if k != "item_id"}))
     if ctx:
-        ctx.update(done=len(todo), message=f"推荐跟踪已更新 {len(values)} 条", force=True)
+        ctx.update(done=len(todo), message=f"候选跟踪已更新 {len(values)} 条", force=True)
     return {"updated": len(values)}
 
 

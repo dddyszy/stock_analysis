@@ -30,8 +30,8 @@ JOBS = {
     "scores": ("同步全市场评分与估值", sync.sync_scores_and_valuations),
     "risk_labels": ("同步风险标签与风险事件", sync.sync_risk_labels),
     "fundamentals": ("同步基本面（评分估值 + 候选股财报）", sync.sync_fundamentals),
-    "recommend": ("生成推荐", run_recommendation),
-    "tracking": ("更新推荐跟踪", update_tracking),
+    "recommend": ("扫描结构候选", run_recommendation),
+    "tracking": ("更新候选跟踪", update_tracking),
     "evaluate_positions": ("评估持仓", evaluate_all),
     "post_close_pipeline": ("收盘后流水线（强制运行）", lambda ctx: post_close_pipeline(ctx, force=True)),
 }
@@ -148,6 +148,18 @@ def app_sync_status() -> dict:
 def set_app_sync(body: AppSyncBody) -> dict:
     app_sync.set_enabled(body.enabled)
     return app_sync.status()
+
+
+class RenameBody(BaseModel):
+    name: str
+
+
+@router.post("/app-sync/rename")
+async def rename_app_group(body: RenameBody) -> dict:
+    try:
+        return await app_sync.rename_group(body.name)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
 
 
 @router.post("/app-sync/run")

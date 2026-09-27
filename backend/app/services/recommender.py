@@ -1,7 +1,7 @@
-"""智能推荐：基本面与风险硬过滤 → 流动性过滤 → 全市场缠论 → 综合打分（缠论 + 基本面 + 板块）× 市场温度系数。
+"""结构候选：基本面与风险硬过滤 → 流动性过滤 → 全市场缠论 → 综合打分（缠论 + 基本面 + 板块）× 市场温度系数。
 
 结果分两个池：
-- 主推荐（main）：已确认的买点；
+- 主候选（main）：已确认的买点；
 - 观察池（watch）：所在笔或线段尚未确认的买点，只观察，不写回 App。
 """
 
@@ -203,7 +203,7 @@ async def run_recommendation(ctx: JobContext) -> dict:
     watch = sorted([x for x in results if x[0]["pool"] == "watch"], key=lambda x: x[0]["score"], reverse=True)
     scan_count = len(results)
 
-    # 主推荐候选补拉三大报表（有缓存），用精细基本面重新打分，并补做依赖财报的硬过滤
+    # 主候选补拉三大报表（有缓存），用精细基本面重新打分，并补做依赖财报的硬过滤
     shortlist = main[: params["recommend_top_n"] * 2]
     fin: dict = {}
     if shortlist:
@@ -247,7 +247,7 @@ async def run_recommendation(ctx: JobContext) -> dict:
         run.message = (
             f"市场{REGIME_NAMES.get(regime, regime)}，基本面与风险通过 {len(passed)} 只，"
             f"流动性不足 {stats['illiquid']} 只、流通市值过小 {stats['small_cap']} 只，"
-            f"缠论候选 {scan_count} 只；主推荐 {len(top_main)} 只，观察池 {len(top_watch)} 只"
+            f"缠论买点 {scan_count} 只；主候选 {len(top_main)} 只，观察池 {len(top_watch)} 只"
         )
         if fin.get("skipped"):
             run.message += f"；{fin['skipped']} 只候选股未能补拉财报"
@@ -256,7 +256,7 @@ async def run_recommendation(ctx: JobContext) -> dict:
             run.message += "，沿用缓存和腾讯评分"
     for _, a in top_main:
         save_snapshot(a, latest_bar)
-    ctx.update(message=f"推荐完成：主推荐 {len(top_main)} 只，观察池 {len(top_watch)} 只", force=True)
+    ctx.update(message=f"扫描完成：主候选 {len(top_main)} 只，观察池 {len(top_watch)} 只", force=True)
     return {"run_id": run_id, "selected": len(top_main), "watch": len(top_watch), "candidates": scan_count,
             "scanned": len(passed), **stats}
 

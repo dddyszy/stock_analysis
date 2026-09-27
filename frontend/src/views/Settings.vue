@@ -54,8 +54,8 @@ const GROUPS: { title: string; items: Param[] }[] = [
   {
     title: 'A 股流动性与风险',
     items: [
-      { key: 'min_avg_amount', label: '最低日均成交额（元）', desc: '近 20 日平均成交额低于该值的股票不推荐，避免流动性差、易被操纵的小票', kind: 'int', step: 10000000 },
-      { key: 'min_float_mv', label: '最低流通市值（元）', desc: '流通市值低于该值的股票不推荐', kind: 'int', step: 100000000 },
+      { key: 'min_avg_amount', label: '最低日均成交额（元）', desc: '近 20 日平均成交额低于该值的股票不进候选，避免流动性差、易被操纵的小票', kind: 'int', step: 10000000 },
+      { key: 'min_float_mv', label: '最低流通市值（元）', desc: '流通市值低于该值的股票不进候选', kind: 'int', step: 100000000 },
       { key: 'risk_label_penalty', label: '风险标签扣分', desc: '每个扣分类风险（解禁、减持、预亏、经营现金流为负等）扣掉的基本面分', kind: 'int', step: 1 },
     ],
   },
@@ -81,23 +81,23 @@ const GROUPS: { title: string; items: Param[] }[] = [
     title: '市场温度与仓位',
     items: [
       { key: 'regime_caps', label: '总仓位上限', desc: '强势 / 震荡 / 弱势对应的总仓位上限', kind: 'dict' },
-      { key: 'regime_multiplier', label: '推荐分温度系数', desc: '不同市场温度下综合分乘的系数', kind: 'dict' },
+      { key: 'regime_multiplier', label: '候选分温度系数', desc: '不同市场温度下综合分乘的系数', kind: 'dict' },
     ],
   },
   {
-    title: '打分与推荐',
+    title: '打分与候选',
     items: [
       { key: 'weights', label: '综合分权重', desc: '缠论分、基本面分、行业强度分的权重', kind: 'dict' },
       { key: 'signal_weights', label: '信号类型权重', desc: '一买、二买、三买在缠论分中的权重，可用回测结果调整', kind: 'dict' },
-      { key: 'signal_recent_bars', label: '信号有效 K 线数', desc: '距今多少根日线以内的买点才参与推荐', kind: 'int', step: 1 },
-      { key: 'recommend_top_n', label: '推荐数量', desc: '每次推荐保留的股票数', kind: 'int', step: 5 },
+      { key: 'signal_recent_bars', label: '信号有效 K 线数', desc: '距今多少根日线以内的买点才参与候选', kind: 'int', step: 1 },
+      { key: 'recommend_top_n', label: '候选数量', desc: '每次扫描保留的主候选股票数', kind: 'int', step: 5 },
       { key: 'min_fund_score', label: '最低基本面分', desc: '基本面初筛的分数门槛', kind: 'int', step: 5 },
-      { key: 'finance_time_budget', label: '财报补拉时限（秒）', desc: '每次推荐为候选股补拉财报的最长时间（受 MCP 限频）', kind: 'int', step: 60 },
-      { key: 'recommend_confirmed_only', label: '主推荐只收已确认信号', desc: '开启后，信号所在的笔或线段尚未确认的放入观察池，不进主推荐、不写回 App', kind: 'bool' },
+      { key: 'finance_time_budget', label: '财报补拉时限（秒）', desc: '每次扫描为候选股补拉财报的最长时间（受 MCP 限频）', kind: 'int', step: 60 },
+      { key: 'recommend_confirmed_only', label: '主候选只收已确认信号', desc: '开启后，信号所在的笔或线段尚未确认的放入观察池，不进主候选、不写回 App', kind: 'bool' },
       { key: 'scope_weight', label: '线段级别信号加权', desc: '线段级别买点是真正的日线级别买点，相对笔级别给更高权重', kind: 'num', step: 0.05 },
       { key: 'resonance_weight', label: '周线共振权重', desc: '周线共振在缠论分中的权重。1000 只股票回测显示共振向上时入场反而更差，默认 0（只展示不加分）', kind: 'num', step: 0.05 },
       { key: 'regime_block', label: '按大盘状态降级的信号', desc: '勾选的"信号 × 大盘状态"组合只进观察池。大盘状态按中证 1000 相对 60 日均线划分，与回测口径一致', kind: 'units' },
-      { key: 'watch_top_n', label: '观察池数量', desc: '每次推荐保留的观察池股票数', kind: 'int', step: 5 },
+      { key: 'watch_top_n', label: '观察池数量', desc: '每次扫描保留的观察池股票数', kind: 'int', step: 5 },
       { key: 'divergence_ratio', label: '背驰阈值', desc: '离开段 MACD 面积小于进入段的这个比例才算背驰。越小越严格，可用回测页的「背驰阈值实验」比较', kind: 'num', step: 0.05 },
     ],
   },
@@ -245,14 +245,24 @@ async function cancelJob(name: string) {
   loadOverview()
 }
 async function toggleAppSync(v: boolean) {
-  if (v) await ElMessageBox.confirm('开启后，每个交易日收盘会把推荐股写入你的「缠论推荐」自选分组，并把持仓止损价、目标价写成股价提醒。', '开启写回 App')
+  if (v) await ElMessageBox.confirm(`开启后，每个交易日收盘会把主候选写入你的「${appSync.value?.group_name || '候选'}」自选分组，并把持仓止损价、目标价写成股价提醒。`, '开启写回 App')
   await api.setAppSync(v)
   await loadAppSync()
 }
 async function runAppSync() {
-  await ElMessageBox.confirm('立即把最新推荐和持仓提醒写回腾讯自选股 App？', '确认')
+  await ElMessageBox.confirm('立即把最新候选和持仓提醒写回腾讯自选股 App？', '确认')
   const r = await api.runAppSync()
   ElMessage.success(`完成：分组新增 ${r.group?.added ?? 0}、移出 ${r.group?.removed ?? 0}，提醒更新 ${r.alerts?.updated ?? 0}`)
+  loadAppSync()
+}
+async function renameGroup() {
+  const { value } = await ElMessageBox.prompt(
+    `把你腾讯自选股 App 里的「${appSync.value?.group_name}」分组改名，只改名称，分组里的股票不变。`,
+    '分组改名',
+    { inputValue: '缠论结构候选', confirmButtonText: '确认改名', inputValidator: (v: string) => !!v.trim() || '名称不能为空' },
+  )
+  const r = await api.renameAppGroup(value.trim())
+  ElMessage.success(`已改名：「${r.old}」→「${r.new}」`)
   loadAppSync()
 }
 async function saveStrategy(asNew: boolean) {
@@ -345,7 +355,7 @@ onMounted(async () => {
               <el-step title="股票池" description="申万一级行业 + ST 标签" />
               <el-step title="日线回填" description="近 5 年前复权日线" />
               <el-step title="评分与估值" description="全市场诊股评分、PE/PB" />
-              <el-step title="收盘后流水线" description="市场环境、推荐、持仓建议" />
+              <el-step title="收盘后流水线" description="市场环境、结构候选、持仓建议" />
             </el-steps>
             <div v-for="g in JOB_GROUPS" :key="g.title" class="job-group">
               <span class="muted small group-title">{{ g.title }}</span>
@@ -464,11 +474,14 @@ onMounted(async () => {
               <div class="row">
                 <el-switch :model-value="appSync.enabled" :disabled="appSync.mock_mode" @change="(v: any) => toggleAppSync(!!v)" />
                 <span class="bold">{{ appSync.enabled ? '已开启' : '已关闭' }}</span>
-                <span class="muted small">推荐分组 {{ appSync.group?.group_id ? `#${appSync.group.group_id}` : '未创建' }} · {{ appSync.group?.codes?.length || 0 }} 只 · 股价提醒 {{ Object.keys(appSync.price_alerts || {}).length }} 只</span>
+                <span class="muted small">候选分组「{{ appSync.group_name }}」{{ appSync.group?.group_id ? `#${appSync.group.group_id}` : '未创建' }} · {{ appSync.group?.codes?.length || 0 }} 只 · 股价提醒 {{ Object.keys(appSync.price_alerts || {}).length }} 只</span>
               </div>
               <el-button size="small" :disabled="!appSync.enabled" @click="runAppSync">立即同步</el-button>
             </div>
-            <div class="note">只改动「缠论推荐」分组；落选股票若也在你的其他分组里则不删除。止损价、目标价写成股价提醒时保留你原有的其他提醒，平仓后恢复原值。</div>
+            <div class="row mt-8">
+              <el-button size="small" :disabled="appSync.mock_mode || !appSync.group?.group_id" @click="renameGroup">分组改名</el-button>
+            </div>
+            <div class="note">只改动「{{ appSync.group_name }}」分组：不再入选的系统加入股票移到「待删除」；加入前就在你自选里的股票保留不动。止损价、目标价写成股价提醒时保留你原有的其他提醒，平仓后恢复原值。</div>
             <el-table :data="appSync.logs" size="small" max-height="300" class="mt">
               <el-table-column label="时间" width="140"><template #default="{ row }"><span class="num">{{ dt(row.created_at) }}</span></template></el-table-column>
               <el-table-column prop="action" label="动作" width="140" />
@@ -480,7 +493,7 @@ onMounted(async () => {
         </SectionCard>
 
         <!-- 策略参数 -->
-        <SectionCard id="sec-strategy" title="策略参数" subtitle="止盈止损、仓位与打分规则；保存后下一次评估和推荐生效">
+        <SectionCard id="sec-strategy" title="策略参数" subtitle="止盈止损、仓位与打分规则；保存后下一次评估和扫描生效">
           <template #extra>
             <el-select :model-value="activeConfig?.id" size="small" style="width: 200px" @change="(v: number) => activateConfig(v)">
               <el-option v-for="c in strategy?.configs || []" :key="c.id" :value="c.id" :label="`${c.name}${c.is_active ? '（启用中）' : ''}`" />

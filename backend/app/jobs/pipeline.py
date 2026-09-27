@@ -1,4 +1,4 @@
-"""收盘后流水线：市场环境 → 全市场缠论推荐 → 持仓建议 → 模拟盘对账 → 写回 App。"""
+"""收盘后流水线：市场环境 → 全市场结构候选 → 持仓建议 → 模拟盘对账 → 写回 App。"""
 
 import logging
 
@@ -15,7 +15,7 @@ from app.services.sync import is_trading_day
 
 logger = logging.getLogger(__name__)
 
-STEP_NAMES = {"sim_sync": "同步模拟盘委托", "sim_snapshot": "记录模拟盘快照", "tracking": "更新推荐跟踪", "app_group": "写回自选分组"}
+STEP_NAMES = {"sim_sync": "同步模拟盘委托", "sim_snapshot": "记录模拟盘快照", "tracking": "更新候选跟踪", "app_group": "写回自选分组"}
 
 
 async def post_close_pipeline(ctx: JobContext, force: bool = False) -> dict:
@@ -42,11 +42,11 @@ async def post_close_pipeline(ctx: JobContext, force: bool = False) -> dict:
             logger.warning("%s 失败: %s", name, exc)
             result[name] = {"error": str(exc)[:300]}
 
-    ctx.update(message="更新推荐跟踪", force=True)
+    ctx.update(message="更新候选跟踪", force=True)
     try:
         result["tracking"] = await update_tracking()
     except Exception as exc:
-        logger.warning("更新推荐跟踪失败: %s", exc)
+        logger.warning("更新候选跟踪失败: %s", exc)
         result["tracking"] = {"error": str(exc)[:300]}
 
     ctx.update(message="写回自选股 App", force=True)

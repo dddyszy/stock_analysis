@@ -32,7 +32,7 @@ export const api = {
   watchlist: () => get('/watchlist'),
   addWatch: (code: string, note?: string) => post('/watchlist', { code, note }),
   delWatch: (code: string) => del(`/watchlist/${code}`),
-  // 推荐
+  // 结构候选
   recommendLatest: () => get('/recommend/latest'),
   recommendRuns: () => get('/recommend/runs'),
   recommendRun: (id: number) => get(`/recommend/runs/${id}`),
@@ -82,4 +82,5 @@ export const api = {
   appSync: () => get('/settings/app-sync'),
   setAppSync: (enabled: boolean) => put('/settings/app-sync', { enabled }),
   runAppSync: () => post('/settings/app-sync/run'),
+  renameAppGroup: (name: string) => post('/settings/app-sync/rename', { name }),
 }

@@ -124,8 +124,8 @@ onMounted(load)
       <el-tabs v-model="tab">
         <el-tab-pane :label="`持仓中（${openPlans.length}）`" name="open">
           <div v-loading="loading">
-            <EmptyState v-if="!openPlans.length" title="还没有持仓计划" description="在智能选股或个股分析页，对有买点的股票点击“开仓”，系统会按风险计算仓位并提交模拟买单。">
-              <el-button type="primary" @click="router.push('/picker')">去智能选股</el-button>
+            <EmptyState v-if="!openPlans.length" title="还没有持仓计划" description="在结构候选或个股分析页，对有买点的股票点击“开仓”，系统会按风险计算仓位并提交模拟买单。">
+              <el-button type="primary" @click="router.push('/picker')">去结构候选</el-button>
             </EmptyState>
             <div v-for="p in openPlans" :key="p.id" class="plan">
               <div class="plan-left">

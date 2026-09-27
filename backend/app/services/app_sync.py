@@ -1,10 +1,10 @@
-"""写回腾讯自选股 App：推荐股同步到专用自选分组；持仓止损价、目标价同步为股价提醒。
+"""写回腾讯自选股 App：主候选同步到专用自选分组；持仓止损价、目标价同步为股价提醒。
 
 - portfolio_watchlist_remove 只是把股票加进自建的「待删除」分组，原分组里仍然保留；
   portfolio_watchlist_move 只能在自建分组之间移动，不能移入「沪深」等系统分组。
-  所以推荐结束时：加入前就在你自选里的股票保留不动；也在你其他自建分组里的，从推荐分组移过去；
-  其余是系统加的，从推荐分组移到「待删除」。「全部」「沪深」等系统分组会自动包含所有 A 股自选，不算你的分组。
-- 以推荐分组的实际成员为准，只处理系统加过的股票（state.added），你手动加进推荐分组的不动。
+  所以不再入选时：加入前就在你自选里的股票保留不动；也在你其他自建分组里的，从候选分组移过去；
+  其余是系统加的，从候选分组移到「待删除」。「全部」「沪深」等系统分组会自动包含所有 A 股自选，不算你的分组。
+- 以候选分组的实际成员为准，只处理系统加过的股票（state.added），你手动加进候选分组的不动。
 - portfolio_tips_set 是全量覆盖语义，每次先查出现有提醒，保留其他字段再写回；
   首次覆盖某只股票的 low/high 时记下原值，平仓后恢复。
 """
@@ -60,7 +60,7 @@ def _fmt(v: float | None) -> str:
     return "" if v is None else f"{v:.2f}"
 
 
-# ---------- 推荐分组 ----------
+# ---------- 候选分组 ----------
 
 
 async def _ensure_group(sess: McpSession) -> str:
@@ -73,14 +73,14 @@ async def _ensure_group(sess: McpSession) -> str:
         gid = str(pick(g, "group_id", "id", "groupId", default=""))
         name = pick(g, "name", "group_name", "groupName")
         if gid and (gid == state.get("group_id") or name == settings.app_sync_group_name) and not gid.startswith("tmp"):
-            if state.get("group_id") != gid:
-                _set_state("recommend_group", {**state, "group_id": gid})
+            if state.get("group_id") != gid or state.get("group_name") != name:
+                _set_state("recommend_group", {**state, "group_id": gid, "group_name": name})
             return gid
     created = await sess.call("portfolio_group_add", {"name": settings.app_sync_group_name})
     gid = str(pick(created if isinstance(created, dict) else {}, "group_id", "id", "groupId", default=""))
     if not gid:
         raise RuntimeError(f"创建自选分组失败: {created}")
-    _set_state("recommend_group", {"group_id": gid, "codes": []})
+    _set_state("recommend_group", {"group_id": gid, "group_name": settings.app_sync_group_name, "codes": []})
     _log("group_add", True, message=f"创建分组 {settings.app_sync_group_name}", detail={"group_id": gid})
     return gid
 
@@ -110,7 +110,7 @@ async def _members(sess: McpSession, group_id: str) -> set[str]:
 
 
 async def _custom_groups(sess: McpSession, group_id: str) -> dict[str, set[str]]:
-    """推荐分组之外、你自建的分组及其成员。"""
+    """候选分组之外、你自建的分组及其成员。"""
     data = await sess.call("portfolio_watchlist_groups", {})
     out: dict[str, set[str]] = {}
     for g in find_records(data, prefer=("groups", "list")):
@@ -141,7 +141,7 @@ def plan_group_removal(to_remove: list[str], user_owned: set[str], custom: dict[
 
 
 async def _move_to_trash(sess: McpSession, group_id: str, codes: list[str]) -> tuple[list[str], list[str]]:
-    """把股票从推荐分组移到「待删除」，返回（成功，失败）。分组不存在时先用删除接口让腾讯创建它。"""
+    """把股票从候选分组移到「待删除」，返回（成功，失败）。分组不存在时先用删除接口让腾讯创建它。"""
     trash = await _group_id_by_name(sess, TRASH_GROUP_NAME)
     if trash is None:
         await sess.call("portfolio_watchlist_remove", {"code": codes[0]})
@@ -175,12 +175,12 @@ async def sync_recommend_group(codes: list[str]) -> dict:
         new = set(codes)
         to_add = sorted(new - actual)
         if to_add:
-            # 加入前已在自选里的，记为你原有的自选，推荐结束后不删除
+            # 加入前已在自选里的，记为你原有的自选，不再入选后不删除
             existing = await _members(sess, ALL_GROUP_ID)
             pre = set(to_add) & existing
             if pre:
                 user_owned |= pre
-                _log("watchlist_owned", True, ",".join(sorted(pre))[:255], f"{len(pre)} 只本来就在你的自选里，推荐结束后保留")
+                _log("watchlist_owned", True, ",".join(sorted(pre))[:255], f"{len(pre)} 只本来就在你的自选里，不再入选后保留")
             try:
                 await sess.call("portfolio_watchlist_batch_add", {"codes": ",".join(to_add), "group_id": gid})
                 _log("watchlist_add", True, ",".join(to_add)[:255], f"加入 {len(to_add)} 只", detail={"codes": to_add})
@@ -199,7 +199,7 @@ async def sync_recommend_group(codes: list[str]) -> dict:
                     kept.append(code)
                     _log("watchlist_move", False, code, str(exc))
             if moved:
-                _log("watchlist_move", True, ",".join(c for c in moved if c not in kept)[:255], "也在你的自建分组里，只移出推荐分组")
+                _log("watchlist_move", True, ",".join(c for c in moved if c not in kept)[:255], "也在你的自建分组里，只移出候选分组")
             if removed:
                 removed, failed = await _move_to_trash(sess, gid, removed)
                 kept.extend(failed)
@@ -207,9 +207,10 @@ async def sync_recommend_group(codes: list[str]) -> dict:
                     _log("watchlist_remove", True, ",".join(removed)[:255], f"移出 {len(removed)} 只（移到 App「待删除」分组，可恢复）",
                          detail={"codes": removed})
             if kept:
-                _log("watchlist_keep", True, ",".join(kept)[:255], "你原有的自选或移动失败，保留在推荐分组中")
-        # 保留下来的股票不再记为推荐成员，避免每天重复处理
-        _set_state("recommend_group", {"group_id": gid, "codes": sorted(new), "user_owned": sorted(user_owned),
+                _log("watchlist_keep", True, ",".join(kept)[:255], "你原有的自选或移动失败，保留在候选分组中")
+        # 保留下来的股票不再记为候选分组成员，避免每天重复处理
+        state = _get_state("recommend_group", {}) or state
+        _set_state("recommend_group", {**state, "group_id": gid, "codes": sorted(new), "user_owned": sorted(user_owned),
                                        "added": sorted(added - set(removed) - set(moved)),
                                        "kept": sorted(set(state.get("kept") or []) | set(kept))})
         return {"group_id": gid, "added": len(to_add), "removed": len(removed), "moved": len(moved), "kept": len(kept)}
@@ -308,10 +309,33 @@ def recent_logs(limit: int = 100) -> list[dict]:
         ]
 
 
+def group_name() -> str:
+    return (_get_state("recommend_group", {}) or {}).get("group_name") or settings.app_sync_group_name
+
+
+async def rename_group(name: str) -> dict:
+    """把写回用的自选分组改名（只改名称，成员不变）。"""
+    name = name.strip()
+    if not name:
+        raise ValueError("分组名称不能为空")
+    sess = McpSession()
+    try:
+        gid = await _ensure_group(sess)
+        old = group_name()
+        await sess.call("portfolio_group_rename", {"group_id": gid, "name": name})
+        state = _get_state("recommend_group", {}) or {}
+        _set_state("recommend_group", {**state, "group_id": gid, "group_name": name})
+        _log("group_rename", True, message=f"分组「{old}」改名为「{name}」", detail={"group_id": gid, "old": old, "new": name})
+        return {"group_id": gid, "old": old, "new": name}
+    finally:
+        await sess.close()
+
+
 def status() -> dict:
     return {
         "enabled": is_enabled(),
         "mock_mode": settings.data_provider == "mock",
+        "group_name": group_name(),
         "group": _get_state("recommend_group", {}),
         "price_alerts": _get_state("price_alerts", {}),
     }

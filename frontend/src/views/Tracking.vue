@@ -27,7 +27,7 @@ const GROUP_NAMES: Record<string, Record<string, string>> = {
   by_signal: SIGNAL_NAMES,
   by_scope: { bi: '笔级别', seg: '线段级别' },
   by_regime: { strong: '强势', neutral: '震荡', weak: '弱势' },
-  by_pool: { main: '主推荐', watch: '观察池' },
+  by_pool: { main: '主候选', watch: '观察池' },
 }
 const k = computed(() => data.value?.kpis?.[horizon.value] || {})
 const hasData = computed(() => Object.values(data.value?.kpis || {}).some((x: any) => x.n > 0))
@@ -112,7 +112,7 @@ onMounted(load)
 
 <template>
   <div class="page" v-loading="loading && !data">
-    <PageHeader title="推荐跟踪" subtitle="每条推荐按次日开盘价入场，统计之后 5/10/20 个交易日的收益，以及相对沪深 300、中证 1000 的超额；次日一字涨停视为买不进，不计入统计">
+    <PageHeader title="候选跟踪" subtitle="每条候选按次日开盘价入场，统计之后 5/10/20 个交易日的收益，以及相对沪深 300、中证 1000 的超额；次日一字涨停视为买不进，不计入统计">
       <el-radio-group v-model="horizon" size="small">
         <el-radio-button value="5">5 日</el-radio-button>
         <el-radio-button value="10">10 日</el-radio-button>
@@ -123,17 +123,17 @@ onMounted(load)
 
     <SectionCard v-if="data && !hasData">
       <EmptyState
-        title="推荐满 5 个交易日后开始有数据"
-        :description="`目前共跟踪 ${data.total_items} 条推荐。每个交易日收盘后会自动更新；有了数据后，这里会显示推荐的真实表现，用来检验和调整打分权重。`"
+        title="候选满 5 个交易日后开始有数据"
+        :description="`目前共跟踪 ${data.total_items} 条候选。每个交易日收盘后会自动更新；有了数据后，这里会显示候选股的真实后续表现，用来检验回测结论是否在实盘中成立。`"
         icon="DataLine"
       >
-        <el-button @click="router.push('/picker')">查看当前推荐</el-button>
+        <el-button @click="router.push('/picker')">查看当前候选</el-button>
       </EmptyState>
     </SectionCard>
 
     <template v-if="data && hasData">
       <div class="grid grid-4">
-        <StatCard :label="`${horizon} 日平均收益（主推荐）`" :value="percent(k.avg_ret, 2)" :value-class="colorClass(k.avg_ret)" :sub="`${k.n} 条 · 胜率 ${ratioPct(k.win_rate, 1)}`" />
+        <StatCard :label="`${horizon} 日平均收益（主候选）`" :value="percent(k.avg_ret, 2)" :value-class="colorClass(k.avg_ret)" :sub="`${k.n} 条 · 胜率 ${ratioPct(k.win_rate, 1)}`" />
         <StatCard :label="`${horizon} 日超额 · 中证 1000`" :value="percent(k.avg_ex1000, 2)" :value-class="colorClass(k.avg_ex1000)" :sub="`跑赢比例 ${ratioPct(k.beat_rate, 1)}`" />
         <StatCard :label="`${horizon} 日超额 · 沪深 300`" :value="percent(k.avg_ex300, 2)" :value-class="colorClass(k.avg_ex300)" />
         <StatCard
@@ -141,15 +141,15 @@ onMounted(load)
           :value="num(data.ic.mean, 3)"
           :value-class="colorClass(data.ic.mean)"
           :sub="`${data.ic.horizon} 日 · ${data.ic.n_runs} 批 · IC>0 占 ${ratioPct(data.ic.positive_ratio)}`"
-          hint="每批推荐中综合分与之后收益的排序相关系数。持续大于 0 说明分数越高的股票表现越好，一般 0.03 以上就有参考价值。"
+          hint="每批候选中综合分与之后收益的排序相关系数。持续大于 0 说明分数越高的股票表现越好，一般 0.03 以上就有参考价值。"
         />
       </div>
 
       <div class="grid mt two">
-        <SectionCard title="累计超额曲线" subtitle="每批主推荐 5 日平均超额（相对中证 1000）的累加">
+        <SectionCard title="累计超额曲线" subtitle="每批主候选 5 日平均超额（相对中证 1000）的累加">
           <div :ref="curveChart.el" style="height: 280px" />
         </SectionCard>
-        <SectionCard title="先到目标还是先止损" subtitle="主推荐，至少跟踪 5 天">
+        <SectionCard title="先到目标还是先止损" subtitle="主候选，至少跟踪 5 天">
           <div :ref="hitChart.el" style="height: 280px" />
         </SectionCard>
       </div>
@@ -160,7 +160,7 @@ onMounted(load)
             <el-radio-button value="by_signal">信号类型</el-radio-button>
             <el-radio-button value="by_scope">信号级别</el-radio-button>
             <el-radio-button value="by_regime">市场温度</el-radio-button>
-            <el-radio-button value="by_pool">主推荐 / 观察池</el-radio-button>
+            <el-radio-button value="by_pool">主候选 / 观察池</el-radio-button>
           </el-radio-group>
         </template>
         <div class="grid group-grid">
@@ -176,12 +176,12 @@ onMounted(load)
       </SectionCard>
     </template>
 
-    <SectionCard v-if="data?.runs?.length" title="推荐批次" subtitle="点击查看每只股票的后续表现" class="mt" flush>
+    <SectionCard v-if="data?.runs?.length" title="候选批次" subtitle="点击查看每只股票的后续表现" class="mt" flush>
       <el-table :data="data.runs" size="small" @row-click="openRun" class="clickable">
         <el-table-column prop="run_id" label="#" width="56" />
-        <el-table-column prop="run_date" label="推荐日期" width="110" />
+        <el-table-column prop="run_date" label="入选日期" width="110" />
         <el-table-column label="市场" width="70"><template #default="{ row }">{{ GROUP_NAMES.by_regime[row.regime] || row.regime }}</template></el-table-column>
-        <el-table-column label="主推荐 / 观察" width="110"><template #default="{ row }">{{ row.n_main }} / {{ row.n_watch }}</template></el-table-column>
+        <el-table-column label="主候选 / 观察" width="110"><template #default="{ row }">{{ row.n_main }} / {{ row.n_watch }}</template></el-table-column>
         <el-table-column prop="days" label="已跟踪天数" width="100" />
         <el-table-column label="5 日收益 / 超额" width="150"><template #default="{ row }"><span class="num" :class="colorClass(row.avg_ret5)">{{ percent(row.avg_ret5, 2) }}</span> / <span class="num" :class="colorClass(row.avg_ex5)">{{ percent(row.avg_ex5, 2) }}</span></template></el-table-column>
         <el-table-column label="10 日收益 / 超额" width="150"><template #default="{ row }"><span class="num" :class="colorClass(row.avg_ret10)">{{ percent(row.avg_ret10, 2) }}</span> / <span class="num" :class="colorClass(row.avg_ex10)">{{ percent(row.avg_ex10, 2) }}</span></template></el-table-column>
@@ -190,12 +190,12 @@ onMounted(load)
       </el-table>
     </SectionCard>
 
-    <el-drawer v-model="detail.visible" :title="`推荐批次 #${detail.run?.run_id || ''} · ${detail.run?.run_date || ''}`" size="820px">
+    <el-drawer v-model="detail.visible" :title="`候选批次 #${detail.run?.run_id || ''} · ${detail.run?.run_date || ''}`" size="820px">
       <el-table :data="detail.rows" size="small" height="100%">
         <el-table-column label="股票" min-width="120">
           <template #default="{ row }"><router-link :to="`/stock/${row.code}`" class="bold">{{ row.name || row.code }}</router-link><div class="muted small num">{{ row.code }}</div></template>
         </el-table-column>
-        <el-table-column label="池" width="64"><template #default="{ row }">{{ row.pool === 'main' ? '主推荐' : '观察' }}</template></el-table-column>
+        <el-table-column label="池" width="64"><template #default="{ row }">{{ row.pool === 'main' ? '主候选' : '观察' }}</template></el-table-column>
         <el-table-column label="信号" width="90"><template #default="{ row }"><SignalBadge :type="row.signal_type" :scope="row.scope" size="sm" /></template></el-table-column>
         <el-table-column label="入场" width="120">
           <template #default="{ row }"><span v-if="row.blocked" class="muted">一字涨停未买入</span><span v-else class="num">{{ row.entry_date?.slice(5) }} @ {{ num(row.entry_price) }}</span></template>

@@ -47,7 +47,7 @@ class Settings(BaseSettings):
     analysis_weekly_bars: int = 400
 
     app_sync_enabled: bool = True
-    app_sync_group_name: str = "缠论推荐"
+    app_sync_group_name: str = "缠论结构候选"
 
     @property
     def effective_db_name(self) -> str:

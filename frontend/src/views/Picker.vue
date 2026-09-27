@@ -25,7 +25,7 @@ const entry = ref<{ visible: boolean; row: any }>({ visible: false, row: null })
 
 const poller = useJobPoller((job) => {
   if (job.job_name === 'recommend' || job.job_name === 'post_close_pipeline') {
-    ElMessage[job.status === 'success' ? 'success' : 'error'](job.message || '推荐任务结束')
+    ElMessage[job.status === 'success' ? 'success' : 'error'](job.message || '扫描结束')
     load()
   }
 })
@@ -105,7 +105,7 @@ onMounted(() => {
 
 <template>
   <div class="page">
-    <PageHeader title="智能选股">
+    <PageHeader title="结构候选">
       <template #subtitle>
         <template v-if="data?.run">批次 #{{ data.run.id }} · 数据日期 {{ data.run.run_date }} · {{ data.run.message }}</template>
       </template>
@@ -117,8 +117,17 @@ onMounted(() => {
       </el-button>
     </PageHeader>
 
+    <el-alert
+      type="info"
+      show-icon
+      :closable="false"
+      class="position-note"
+      title="这里列出的是处于缠论买点结构、并通过基本面、风险与流动性过滤的股票，用于缩小关注范围、配合止损与仓位规则使用。"
+      description="2026 年 9 月的回测（两份 1000 只股票样本、约 4 年）显示，这些买点整体并不跑赢同期随机入场，不能单独作为买入依据。已知跑输的组合（大盘上涨期的一买、下跌期的三买）已自动放入观察池。"
+    />
+
     <div v-if="data?.run" class="grid grid-4">
-      <StatCard :label="pool === 'main' ? '主推荐' : '观察池'" :value="stats.total" :sub="pool === 'main' ? `基本面与风险初筛 ${data.run.total_scanned} 只` : '信号所在的笔或线段尚未确认'" />
+      <StatCard :label="pool === 'main' ? '主候选' : '观察池'" :value="stats.total" :sub="pool === 'main' ? `基本面与风险初筛 ${data.run.total_scanned} 只` : '信号所在的笔或线段尚未确认'" />
       <StatCard label="信号构成" :value="`${stats.b1} / ${stats.b2} / ${stats.b3}`" :sub="`一买 / 二买 / 三买 · 线段级别 ${stats.seg} · 强背驰 ${stats.strong}`" />
       <StatCard label="盈亏比 ≥ 2" :value="stats.goodRR" :sub="`占 ${stats.total ? Math.round((stats.goodRR / stats.total) * 100) : 0}%`" />
       <StatCard label="市场仓位上限" :value="ratioPct(data.run.position_cap)" sub="开仓数量会按此上限约束" />
@@ -127,7 +136,7 @@ onMounted(() => {
     <SectionCard class="mt" padding="12px 16px">
       <div class="toolbar">
         <el-radio-group v-model="pool" size="small">
-          <el-radio-button value="main">主推荐（{{ data?.items?.length || 0 }}）</el-radio-button>
+          <el-radio-button value="main">主候选（{{ data?.items?.length || 0 }}）</el-radio-button>
           <el-radio-button value="watch">观察池（{{ data?.watch?.length || 0 }}）</el-radio-button>
         </el-radio-group>
         <el-checkbox-group v-model="filterSignals" size="small">
@@ -157,7 +166,7 @@ onMounted(() => {
 
     <div v-loading="loading" class="mt">
       <SectionCard v-if="!loading && !items.length">
-        <EmptyState :title="pool === 'main' ? '暂无主推荐' : '观察池为空'" description="数据初始化完成后，每个交易日收盘后会自动生成；也可以点右上角重新扫描。">
+        <EmptyState :title="pool === 'main' ? '暂无主候选' : '观察池为空'" description="数据初始化完成后，每个交易日收盘后会自动生成；也可以点右上角重新扫描。">
           <el-button type="primary" @click="trigger">重新扫描全市场</el-button>
         </EmptyState>
       </SectionCard>
@@ -263,6 +272,9 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.position-note {
+  margin-bottom: var(--gap);
+}
 .toolbar {
   display: flex;
   align-items: center;

@@ -31,7 +31,7 @@ DEFAULT_PARAMS: dict = {
     "fees": {"commission": 0.00025, "min_commission": 5.0, "stamp_tax": 0.0005},
     # 市场温度 → 总仓位上限
     "regime_caps": {"strong": 0.8, "neutral": 0.5, "weak": 0.2},
-    # 推荐打分
+    # 候选打分
     "weights": {"chan": 0.5, "fund": 0.3, "sector": 0.2},
     "signal_weights": {"B1": 0.8, "B2": 1.0, "B3": 0.9},
     "regime_multiplier": {"strong": 1.0, "neutral": 0.9, "weak": 0.75},
@@ -43,7 +43,7 @@ DEFAULT_PARAMS: dict = {
     "min_float_mv": 30e8,  # 流通市值下限（元）
     "risk_label_penalty": 8,  # 每个扣分类风险标签扣的基本面分
     # 信号质量
-    "recommend_confirmed_only": True,  # 主推荐只收已确认信号，未确认的进观察池
+    "recommend_confirmed_only": True,  # 主候选只收已确认信号，未确认的进观察池
     "scope_weight": 1.2,  # 线段级别信号相对笔级别的加权
     "resonance_weight": 0.0,  # 周线共振在缠论分中的权重；回测显示共振向上时入场反而更差，默认不加分
     "regime_block": ["B1|up", "B3|down"],  # 这些"信号|指数市场状态"组合回测显著跑输随机组，只进观察池
@@ -52,7 +52,7 @@ DEFAULT_PARAMS: dict = {
     # 回测
     "slippage": 0.001,  # 单边滑点
     "backtest_split_ratio": 0.7,  # 样本内占回看区间的比例
-    "finance_time_budget": 480,  # 每次推荐补拉候选股财报的最长时间（秒），受 MCP 限频影响
+    "finance_time_budget": 480,  # 每次扫描补拉候选股财报的最长时间（秒），受 MCP 限频影响
 }
 
 

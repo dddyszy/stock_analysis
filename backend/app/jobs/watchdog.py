@@ -41,7 +41,7 @@ async def check_pipeline_ran(d: date | None = None) -> bool:
     if not await is_trading(d) or pipeline_succeeded_on(d):
         return True
     notify("pipeline_missing", f"{d:%m月%d日}的收盘后流水线没有成功运行",
-           "当天的推荐、持仓评估、推荐跟踪和写回 App 都没有执行。可以在设置页点「收盘后流水线（强制运行）」补跑。",
+           "当天的结构候选、持仓评估、候选跟踪和写回 App 都没有执行。可以在设置页点「收盘后流水线（强制运行）」补跑。",
            "error", key=d.isoformat())
     return False
 

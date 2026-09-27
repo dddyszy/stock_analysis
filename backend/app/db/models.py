@@ -247,7 +247,7 @@ class ChanSignal(Base):
     extra: Mapped[dict | None] = mapped_column(JSON)
 
 
-# ---------- 推荐 ----------
+# ---------- 结构候选（表名沿用 recommend_*） ----------
 
 
 class RecommendRun(Base):
@@ -295,7 +295,7 @@ class RecommendItem(Base):
 
 
 class RecommendPerf(Base):
-    """推荐跟踪：推荐之后 5/10/20 个交易日的表现，入场价取推荐日次日开盘价。"""
+    """候选跟踪：入选之后 5/10/20 个交易日的表现，入场价取入选日次日开盘价。"""
 
     __tablename__ = "recommend_perf"
     __table_args__ = (Index("ix_recommend_perf_run", "run_id"),)

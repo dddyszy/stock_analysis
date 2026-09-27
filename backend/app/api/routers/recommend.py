@@ -21,7 +21,7 @@ def runs(limit: int = 30) -> list[dict]:
 def run_detail(run_id: int) -> dict:
     r = latest_run(run_id)
     if r is None:
-        raise HTTPException(404, "推荐批次不存在")
+        raise HTTPException(404, "候选批次不存在")
     return r
 
 

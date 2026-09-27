@@ -264,9 +264,9 @@ onMounted(load)
         </SectionCard>
       </div>
 
-      <!-- 推荐 + 预警 -->
+      <!-- 结构候选 + 预警 -->
       <div class="grid bottom mt">
-        <SectionCard :title="`今日推荐`" :subtitle="rec?.run ? `${rec.run.run_date} · ${rec.run.message}` : ''">
+        <SectionCard :title="`今日结构候选`" :subtitle="rec?.run ? `${rec.run.run_date} · ${rec.run.message}` : ''">
           <template #extra><el-button link type="primary" @click="router.push('/picker')">查看全部</el-button></template>
           <div v-if="topPicks.length" class="grid grid-3">
             <div v-for="it in topPicks" :key="it.code" class="pick" @click="router.push(`/stock/${it.code}`)">
@@ -288,7 +288,7 @@ onMounted(load)
               </div>
             </div>
           </div>
-          <EmptyState v-else title="暂无推荐" description="收盘后流水线会自动生成，也可以在智能选股页手动扫描" />
+          <EmptyState v-else title="暂无结构候选" description="收盘后流水线会自动生成，也可以在结构候选页手动扫描" />
         </SectionCard>
         <SectionCard title="持仓与预警">
           <template #extra><el-button link type="primary" @click="router.push('/portfolio')">持仓页</el-button></template>

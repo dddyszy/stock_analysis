@@ -17,9 +17,9 @@ let notifyTimer: number | undefined
 
 const menus = [
   { path: '/', title: '市场总览', icon: 'DataBoard' },
-  { path: '/picker', title: '智能选股', icon: 'MagicStick' },
-  { path: '/tracking', title: '推荐跟踪', icon: 'DataLine' },
   { path: '/portfolio', title: '持仓策略', icon: 'Wallet' },
+  { path: '/picker', title: '结构候选', icon: 'MagicStick' },
+  { path: '/tracking', title: '候选跟踪', icon: 'DataLine' },
   { path: '/sim', title: '模拟盘', icon: 'Coin' },
   { path: '/backtest', title: '策略回测', icon: 'TrendCharts' },
   { path: '/settings', title: '设置', icon: 'Setting' },

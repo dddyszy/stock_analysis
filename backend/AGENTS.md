@@ -37,10 +37,10 @@
 - 股票池刷新：只要有行业拉取失败就只新增、不下线；连续两次完整刷新缺席且行情也查不到，才记 `delisted_on`。已退市股票的 K 线不删除。
 - `tests/conftest.py` 强制 `DATA_PROVIDER=mock`，所有测试只能连 `chan_stock_mock`；需要数据库的测试使用 `mock_db` fixture，并清理自己写入的数据。
 
-## 推荐、回测与跟踪
+## 结构候选、回测与跟踪（代码与表名沿用 recommend_*）
 
 - 涨跌停相关计算一律调用 `services/ashare_rules.py`（`limit_prices`、`is_one_price_limit_up` 等），传入 `is_st`；新增板块规则只改这个模块，并补 `tests/test_ashare_rules.py`。
-- 推荐流程：基本面与风险标签（硬排除 / 扣分）→ 流动性（20 日均成交额、流通市值）→ 缠论信号打分 → 按 `confirmed` 分主推荐和观察池。被过滤的原因要计入 `stats`，便于前端解释。
+- 候选流程：基本面与风险标签（硬排除 / 扣分）→ 流动性（20 日均成交额、流通市值）→ 缠论信号打分 → 按 `confirmed` 和 `regime_block` 分主候选和观察池。被过滤的原因要计入 `stats`，便于前端解释。
 - 缠论信号分笔级别（`scope="bi"`）和线段级别（`scope="seg"`）。背驰结果放在 `extra.divergence`（面积必须满足，DIF、斜率、量能至少两项同意才算强背驰），背驰离开段的日期范围放在 `extra.leave_range`。
 - 回测参数权重建议只能用样本内交易计算；结果必须同时给出样本外、随机对照组的优势和自助法置信区间。
 - 信号与随机组比较一律用 `matched_edge`（随机组按信号所在的市场状态或年份加权），避免把大盘择时误当成买点优势。每笔交易的入场属性（市场状态、周线共振、背驰强度）存在 `backtest_trade.tags`，只能用入场前可见的数据计算。
@@ -51,7 +51,7 @@
 - 入场因子只能注册在 `research/factors.py` 的 `FACTORS` 里，计算函数只能读取 `ctx.t` 及之前的数据（`tests/test_research.py` 会检查改动未来 K 线后因子值不变）；与信号无关的因子要设 `for_control=True`，随机组同样计算。
 - `matched_edge` 按入场月份整体重抽样（同期交易并不独立），不要改回按单笔重抽样；新规则进选股前必须通过 `research/analysis.py` 的六条门槛（含 BH 校正）。
 - 回测入场必须与实盘选股一致：次日开盘价不高于结构止损位的买点视为失效；1R 不得小于入场价的 `MIN_RISK_PCT`。
-- 推荐跟踪（`services/recommend_tracking.py`）每天收盘后更新最近 60 天的推荐，记录 5/10/20 日收益、相对沪深 300 和中证 1000 的超额、最大回撤、先触及止损还是目标。
+- 候选跟踪（`services/recommend_tracking.py`）每天收盘后更新最近 60 天的候选，记录 5/10/20 日收益、相对沪深 300 和中证 1000 的超额、最大回撤、先触及止损还是目标。
 
 ## 接口
 

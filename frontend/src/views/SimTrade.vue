@@ -251,7 +251,7 @@ onMounted(load)
           </el-table-column>
           <el-table-column label="" width="70"><template #default="{ row }"><el-button link type="success" @click="fromPosition(row)">卖出</el-button></template></el-table-column>
         </el-table>
-        <EmptyState v-else title="当前没有持仓" description="可以在左侧手动下单，或在智能选股页按信号开仓" icon="Wallet" />
+        <EmptyState v-else title="当前没有持仓" description="可以在左侧手动下单，或在结构候选页按信号开仓" icon="Wallet" />
       </SectionCard>
     </div>
 

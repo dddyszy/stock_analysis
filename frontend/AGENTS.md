@@ -59,7 +59,7 @@ const trend = useChart(() => (data.value.length ? { series: [/* ... */] } : null
 
 ### 后台任务
 
-触发耗时任务（同步、推荐、回测等）后使用 `useJobPoller`：`start(jobName)` 轮询进度，结束回调里刷新数据。进度要显示 `progress/total` 和 `message`，运行中的任务提供"取消"按钮。
+触发耗时任务（同步、候选扫描、回测等）后使用 `useJobPoller`：`start(jobName)` 轮询进度，结束回调里刷新数据。进度要显示 `progress/total` 和 `message`，运行中的任务提供"取消"按钮。
 
 ### 交互与安全
 

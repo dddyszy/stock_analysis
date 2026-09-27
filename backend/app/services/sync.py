@@ -686,7 +686,7 @@ async def sync_finance_details(codes: list[str], ctx: JobContext | None = None, 
 
 
 def default_detail_codes() -> list[str]:
-    """需要精细财报的股票：持仓、自选、最近一次推荐。"""
+    """需要精细财报的股票：持仓、自选、最近一次结构候选。"""
     from app.db.models import PositionPlan, RecommendItem, RecommendRun, Watchlist
 
     with session_scope() as db:
@@ -699,7 +699,7 @@ def default_detail_codes() -> list[str]:
 
 
 async def sync_fundamentals(ctx: JobContext, codes: list[str] | None = None) -> dict:
-    """基本面同步：全市场评分与估值 + 候选股（持仓、自选、最近推荐）的三大报表。"""
+    """基本面同步：全市场评分与估值 + 候选股（持仓、自选、最近一次结构候选）的三大报表。"""
     result = {"market": await sync_scores_and_valuations(ctx, codes)}
     detail = codes if codes else default_detail_codes()
     result["details"] = await sync_finance_details(detail, ctx)
