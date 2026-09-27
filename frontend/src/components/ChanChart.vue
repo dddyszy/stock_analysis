@@ -85,12 +85,12 @@ function buildOption() {
     return {
       name: s.type,
       coord: [s.dt, s.price],
-      value: `${s.scope === 'seg' ? '段' : ''}${SIGNAL_NAMES[s.type]}${s.confirmed ? '' : '?'}`,
+      value: `${SIGNAL_NAMES[s.type]}${s.confirmed ? '' : '?'}`,
       symbol: 'pin',
-      symbolSize: s.scope === 'seg' ? 46 : 40,
+      symbolSize: 40,
       symbolRotate: buy ? 180 : 0,
       symbolOffset: [0, buy ? 22 : -22],
-      itemStyle: { color, opacity: s.confirmed ? 1 : 0.6, borderColor: s.scope === 'seg' ? '#8b5cf6' : undefined, borderWidth: s.scope === 'seg' ? 2 : 0 },
+      itemStyle: { color, opacity: s.confirmed ? 1 : 0.6 },
       label: { color: '#fff', fontSize: 10, fontWeight: 600, offset: [0, buy ? 4 : -2] },
     }
   })
@@ -206,7 +206,7 @@ function buildOption() {
         const color = b[4] >= prev ? COLORS.up : COLORS.down
         const sig = signals
           .filter((s: any) => s.dt === b[0])
-          .map((s: any) => `<div style="margin-top:4px"><b style="color:${s.type.startsWith('B') ? COLORS.up : COLORS.down}">${s.scope === 'seg' ? '线段' : '笔'}${SIGNAL_NAMES[s.type]}</b> ${s.desc}</div>`)
+          .map((s: any) => `<div style="margin-top:4px"><b style="color:${s.type.startsWith('B') ? COLORS.up : COLORS.down}">${SIGNAL_NAMES[s.type]}</b> ${s.desc}</div>`)
           .join('')
         return `<div style="font-weight:600;margin-bottom:4px">${b[0]}</div>` +
           `开 ${b[1]}　高 ${b[2]}<br/>低 ${b[3]}　收 <b style="color:${color}">${b[4]}（${chg}%）</b>` +

@@ -13,7 +13,6 @@ DEFAULT_PARAMS: dict = {
     "default_equity": 1_000_000,  # 拿不到模拟账户资产时用于计算仓位
     "risk_per_trade": 0.01,
     "max_single_position": 0.20,
-    "min_reward_risk": 2.0,
     "max_stop_distance": 0.12,
     "wide_stop_action": "half",  # half：仓位减半；skip：不开仓
     # 止损
@@ -44,8 +43,6 @@ DEFAULT_PARAMS: dict = {
     "risk_label_penalty": 8,  # 每个扣分类风险标签扣的基本面分
     # 信号质量
     "recommend_confirmed_only": True,  # 主候选只收已确认信号，未确认的进观察池
-    "scope_weight": 1.2,  # 线段级别信号相对笔级别的加权
-    "resonance_weight": 0.0,  # 周线共振在缠论分中的权重；回测显示共振向上时入场反而更差，默认不加分
     "regime_block": ["B1|up", "B3|down"],  # 这些"信号|指数市场状态"组合回测显著跑输随机组，只进观察池
     "watch_top_n": 30,
     "divergence_ratio": 0.9,  # 离开段 MACD 面积小于进入段的该比例才算背驰

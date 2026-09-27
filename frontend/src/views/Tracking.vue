@@ -13,7 +13,7 @@ const router = useRouter()
 const data = ref<any>(null)
 const loading = ref(false)
 const horizon = ref<'5' | '10' | '20'>('10')
-const groupBy = ref<'by_signal' | 'by_scope' | 'by_regime' | 'by_pool'>('by_signal')
+const groupBy = ref<'by_signal' | 'by_regime' | 'by_pool'>('by_signal')
 const detail = ref<{ visible: boolean; run: any; rows: any[] }>({ visible: false, run: null, rows: [] })
 
 const poller = useJobPoller((job) => {
@@ -25,7 +25,6 @@ const poller = useJobPoller((job) => {
 
 const GROUP_NAMES: Record<string, Record<string, string>> = {
   by_signal: SIGNAL_NAMES,
-  by_scope: { bi: '笔级别', seg: '线段级别' },
   by_regime: { strong: '强势', neutral: '震荡', weak: '弱势' },
   by_pool: { main: '主候选', watch: '观察池' },
 }
@@ -158,7 +157,6 @@ onMounted(load)
         <template #extra>
           <el-radio-group v-model="groupBy" size="small">
             <el-radio-button value="by_signal">信号类型</el-radio-button>
-            <el-radio-button value="by_scope">信号级别</el-radio-button>
             <el-radio-button value="by_regime">市场温度</el-radio-button>
             <el-radio-button value="by_pool">主候选 / 观察池</el-radio-button>
           </el-radio-group>
@@ -196,7 +194,7 @@ onMounted(load)
           <template #default="{ row }"><router-link :to="`/stock/${row.code}`" class="bold">{{ row.name || row.code }}</router-link><div class="muted small num">{{ row.code }}</div></template>
         </el-table-column>
         <el-table-column label="池" width="64"><template #default="{ row }">{{ row.pool === 'main' ? '主候选' : '观察' }}</template></el-table-column>
-        <el-table-column label="信号" width="90"><template #default="{ row }"><SignalBadge :type="row.signal_type" :scope="row.scope" size="sm" /></template></el-table-column>
+        <el-table-column label="信号" width="90"><template #default="{ row }"><SignalBadge :type="row.signal_type" size="sm" /></template></el-table-column>
         <el-table-column label="入场" width="120">
           <template #default="{ row }"><span v-if="row.blocked" class="muted">一字涨停未买入</span><span v-else class="num">{{ row.entry_date?.slice(5) }} @ {{ num(row.entry_price) }}</span></template>
         </el-table-column>

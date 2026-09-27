@@ -230,7 +230,6 @@ def tracking_summary(days: int = 180) -> dict:
             "horizon": 10 if any(r["ic10"] is not None for r in run_rows) else 5,
         },
         "by_signal": _group([r for r in valid if r.pool == "main"], "signal_type"),
-        "by_scope": _group([r for r in valid if r.pool == "main"], "scope"),
         "by_pool": _group(valid, "pool"),
         "by_regime": _group([r for r in valid if r.pool == "main"], "regime"),
         "curve": curve,

@@ -17,9 +17,8 @@ const view = ref<'card' | 'table'>((localStorage.getItem('picker-view') as any) 
 const filterSignals = ref<string[]>([])
 const filterIndustry = ref('')
 const minScore = ref(0)
-const onlyGoodRR = ref(false)
 const pool = ref<'main' | 'watch'>('main')
-const sortBy = ref<'score' | 'rr' | 'chan' | 'fund' | 'date'>('score')
+const sortBy = ref<'score' | 'chan' | 'fund' | 'date'>('score')
 const expanded = ref<Set<string>>(new Set())
 const entry = ref<{ visible: boolean; row: any }>({ visible: false, row: null })
 
@@ -30,11 +29,6 @@ const poller = useJobPoller((job) => {
   }
 })
 
-function rr(row: any) {
-  const risk = row.price - row.stop_price
-  return risk > 0 && row.target1 ? (row.target1 - row.price) / risk : null
-}
-
 const source = computed<any[]>(() => (pool.value === 'main' ? data.value?.items : data.value?.watch) || [])
 const industries = computed(() => Array.from(new Set<string>(source.value.map((i: any) => i.industry).filter(Boolean))))
 const items = computed(() => {
@@ -42,12 +36,10 @@ const items = computed(() => {
     (i: any) =>
       (!filterSignals.value.length || filterSignals.value.includes(i.signal_type)) &&
       (!filterIndustry.value || i.industry === filterIndustry.value) &&
-      i.score >= minScore.value &&
-      (!onlyGoodRR.value || (rr(i) ?? 0) >= 2),
+      i.score >= minScore.value,
   )
   const key: Record<string, (x: any) => number> = {
     score: (x) => x.score,
-    rr: (x) => rr(x) ?? -99,
     chan: (x) => x.chan_score,
     fund: (x) => x.fund_score,
     date: (x) => Date.parse(x.signal_date),
@@ -58,8 +50,9 @@ const stats = computed(() => {
   const all = source.value
   const by = (t: string) => all.filter((i: any) => i.signal_type === t).length
   return {
-    total: all.length, b1: by('B1'), b2: by('B2'), b3: by('B3'), goodRR: all.filter((i: any) => (rr(i) ?? 0) >= 2).length,
-    seg: all.filter((i: any) => i.scope === 'seg').length, strong: all.filter((i: any) => i.strong_div).length,
+    total: all.length, b1: by('B1'), b2: by('B2'), b3: by('B3'),
+    strong: all.filter((i: any) => i.strong_div).length,
+    blocked: (data.value?.watch || []).filter((i: any) => (i.reasons || []).some((r: string) => r.includes('跑输随机入场'))).length,
   }
 })
 
@@ -128,8 +121,8 @@ onMounted(() => {
 
     <div v-if="data?.run" class="grid grid-4">
       <StatCard :label="pool === 'main' ? '主候选' : '观察池'" :value="stats.total" :sub="pool === 'main' ? `基本面与风险初筛 ${data.run.total_scanned} 只` : '信号所在的笔或线段尚未确认'" />
-      <StatCard label="信号构成" :value="`${stats.b1} / ${stats.b2} / ${stats.b3}`" :sub="`一买 / 二买 / 三买 · 线段级别 ${stats.seg} · 强背驰 ${stats.strong}`" />
-      <StatCard label="盈亏比 ≥ 2" :value="stats.goodRR" :sub="`占 ${stats.total ? Math.round((stats.goodRR / stats.total) * 100) : 0}%`" />
+      <StatCard label="信号构成" :value="`${stats.b1} / ${stats.b2} / ${stats.b3}`" :sub="`一买 / 二买 / 三买 · 强背驰 ${stats.strong}`" />
+      <StatCard label="按大盘状态降级" :value="stats.blocked" sub="大盘上涨期的一买、下跌期的三买，已放入观察池" />
       <StatCard label="市场仓位上限" :value="ratioPct(data.run.position_cap)" sub="开仓数量会按此上限约束" />
     </div>
 
@@ -148,10 +141,8 @@ onMounted(() => {
           <el-option v-for="i in industries" :key="i" :value="i" :label="i" />
         </el-select>
         <div class="row small"><span class="muted">最低综合分</span><el-slider v-model="minScore" :max="100" size="small" style="width: 140px" /></div>
-        <el-switch v-model="onlyGoodRR" size="small" active-text="仅盈亏比 ≥ 2" />
         <el-select v-model="sortBy" size="small" style="width: 130px">
           <el-option value="score" label="按综合分" />
-          <el-option value="rr" label="按盈亏比" />
           <el-option value="chan" label="按缠论分" />
           <el-option value="fund" label="按基本面分" />
           <el-option value="date" label="按信号日期" />
@@ -178,7 +169,7 @@ onMounted(() => {
             <div class="grow">
               <div class="row">
                 <router-link :to="`/stock/${it.code}`" class="name">{{ it.name }}</router-link>
-                <SignalBadge :type="it.signal_type" :date="it.signal_date" :scope="it.scope" :strong="it.strong_div" :confirmed="it.confirmed" size="sm" />
+                <SignalBadge :type="it.signal_type" :date="it.signal_date" :strong="it.strong_div" :confirmed="it.confirmed" size="sm" />
               </div>
               <div class="muted small">
                 <span class="num">{{ it.code }}</span> · {{ it.industry }}
@@ -233,7 +224,7 @@ onMounted(() => {
             </template>
           </el-table-column>
           <el-table-column label="信号" width="120">
-            <template #default="{ row }"><SignalBadge :type="row.signal_type" :date="row.signal_date" :scope="row.scope" :strong="row.strong_div" :confirmed="row.confirmed" size="sm" /></template>
+            <template #default="{ row }"><SignalBadge :type="row.signal_type" :date="row.signal_date" :strong="row.strong_div" :confirmed="row.confirmed" size="sm" /></template>
           </el-table-column>
           <el-table-column label="风险收益" min-width="220">
             <template #default="{ row }">

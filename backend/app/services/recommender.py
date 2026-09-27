@@ -32,7 +32,6 @@ from app.services.sync import sync_finance_details
 
 logger = logging.getLogger(__name__)
 
-SCOPE_NAMES = {"bi": "笔级别", "seg": "线段级别"}
 
 
 def _clamp(v: float, lo: float = 0.0, hi: float = 1.0) -> float:
@@ -49,7 +48,7 @@ def avg_amount_20(a: StockAnalysis) -> float | None:
 
 
 def _pick_signal(a: StockAnalysis, params: dict, confirmed: bool | None) -> Signal | None:
-    """在近期有效买点中选一个：优先最新，其次信号权重（线段级别加权）。"""
+    """在近期有效买点中选一个：优先最新，其次信号类型权重。"""
     weights = params["signal_weights"]
     price = a.day.last_close
     best, best_key = None, None
@@ -58,8 +57,7 @@ def _pick_signal(a: StockAnalysis, params: dict, confirmed: bool | None) -> Sign
             continue
         if s.stop_price is None or price is None or price <= s.stop_price:
             continue
-        w = weights.get(s.type, 0.5) * (params["scope_weight"] if s.scope == "seg" else 1.0)
-        key = (s.raw_idx, w)
+        key = (s.raw_idx, weights.get(s.type, 0.5))
         if best_key is None or key > best_key:
             best, best_key = s, key
     return best
@@ -87,30 +85,21 @@ def score_candidate(a: StockAnalysis, fund: FundamentalView, sector_strength: fl
         return None  # 价格已经越过目标一，这个买点的空间已经兑现
     div = best.extra.get("divergence") or {}
     strong = bool(div.get("strong"))
-    type_w = params["signal_weights"].get(best.type, 0.5) * (params["scope_weight"] if best.scope == "seg" else 1.0)
-    reso_w = float(params.get("resonance_weight", 0.0))
+    type_w = params["signal_weights"].get(best.type, 0.5)
     chan = 100 * _clamp(
-        (0.45 * _clamp(type_w)
-         + 0.25 * best.strength
-         + reso_w * (a.view.resonance + 1) / 2
-         + 0.10 * (1.0 if best.confirmed else 0.0)) / (0.80 + reso_w)
+        (0.45 * _clamp(type_w) + 0.25 * best.strength + 0.10 * (1.0 if best.confirmed else 0.0)) / 0.80
     )
     blocked = f"{best.type}|{index_regime}" in (params.get("regime_block") or [])
     if blocked:
         pool = "watch"
-    reasons = [f"日线{SCOPE_NAMES.get(best.scope, '')}{TYPE_NAMES[best.type]}（{best.dt.isoformat()}）：{best.desc}"]
+    reasons = [f"日线{TYPE_NAMES[best.type]}（{best.dt.isoformat()}）：{best.desc}"]
     if strong:
         reasons.append(f"强背驰：{div.get('agree', 0)} 项指标同时背驰")
     if not best.confirmed:
-        reasons.append("信号所在的笔或线段尚未确认，放入观察池")
+        reasons.append("信号所在的笔尚未确认，放入观察池")
     if blocked:
         reasons.append(f"大盘处于{INDEX_REGIME_NAMES.get(index_regime, index_regime)}期的{TYPE_NAMES[best.type]}，回测显著跑输随机入场，放入观察池")
-    reasons.extend(a.view.notes)
-    if rr < params["min_reward_risk"]:
-        chan *= 0.8
-        reasons.append(f"按现价计算盈亏比 {rr:.1f}，低于 {params['min_reward_risk']}")
-    else:
-        reasons.append(f"按现价计算盈亏比 {rr:.1f}")
+    reasons.append(f"按现价计算盈亏比 {rr:.1f}（仅供参考，不参与筛选）")
     reasons.extend(fund.highlights)
     risk_labels = fund.metrics.get("risk_labels") or []
     if risk_labels:
@@ -267,7 +256,7 @@ def _item_dict(it: RecommendItem) -> dict:
         "chan_score": it.chan_score, "fund_score": it.fund_score, "sector_score": it.sector_score,
         "signal_type": it.signal_type, "signal_name": TYPE_NAMES.get(it.signal_type), "signal_date": it.signal_date.isoformat(),
         "price": it.price, "stop_price": it.stop_price, "target1": it.target1, "target2": it.target2, "reasons": it.reasons,
-        "pool": it.pool, "scope": it.scope, "scope_name": SCOPE_NAMES.get(it.scope, it.scope), "confirmed": it.confirmed,
+        "pool": it.pool, "confirmed": it.confirmed,
         "strong_div": it.strong_div, "avg_amount": it.avg_amount, "risk_labels": it.risk_labels or [],
     }
 

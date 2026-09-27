@@ -53,7 +53,6 @@ def test_summarize_split_and_edge():
     control = [_trade("RND", -0.2, "in") for _ in range(20)]
     summary, by_sig, suggested = summarize(trades, control)
     assert summary["in_sample"]["trades"] == 12 and summary["out_sample"]["trades"] == 6
-    assert summary["by_scope"]["seg"]["trades"] == 6
     assert summary["control"]["trades"] == 20 and summary["edge_ci"]["edge"] > 0
     assert set(suggested) == {"B1"}  # 只用样本内数据，且每类至少 10 笔
 

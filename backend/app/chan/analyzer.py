@@ -152,9 +152,9 @@ def analyze(bars: list, level: str = "day", cfg: ChanConfig | None = None) -> Ch
     bi_zss = build_zhongshus(bis, "bi")
     seg_moves = segments_as_moves(segments, dates)
     seg_zss = build_zhongshus(seg_moves, "seg")
-    signals = detect_signals(bis, bi_zss, hist, dif, dates, lows, highs, level, cfg, volumes, scope="bi")
-    signals += detect_signals(seg_moves, seg_zss, hist, dif, dates, lows, highs, level, cfg, volumes, scope="seg")
-    signals.sort(key=lambda s: (s.raw_idx, s.scope, s.type))
+    # 买卖点只在笔级别生成；线段级别买点 4 年只有个位数样本，已按回测结论删除，线段仅用于结构展示
+    signals = detect_signals(bis, bi_zss, hist, dif, dates, lows, highs, level, cfg, volumes)
+    signals.sort(key=lambda s: (s.raw_idx, s.type))
 
     last_bi = bis[-1] if bis else None
     last_zs = bi_zss[-1] if bi_zss else None

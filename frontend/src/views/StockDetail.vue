@@ -159,7 +159,7 @@ onMounted(load)
             <span><i class="lg seg" />线段</span>
             <span><i class="lg zs" />笔中枢</span>
             <span><i class="lg zs2" />线段中枢</span>
-            <span>“段”为线段级别信号；标记带 ? 为未确认，灰色为已失效；MACD 浅色区为背驰段</span>
+            <span>标记带 ? 为未确认，灰色为已失效；MACD 浅色区为背驰段</span>
           </div>
           <ChanChart v-if="chan" :data="chan" :lines="lines" :layers="layers" height="640px" />
         </div>
@@ -194,14 +194,6 @@ onMounted(load)
               <span class="chip">{{ POSITION_NAMES[summary.position] }}</span>
               <span class="chip">{{ DIRECTION(summary.last_bi_direction) }}</span>
             </div>
-          </div>
-          <div class="resonance">
-            <span class="muted small">共振分</span>
-            <div class="res-track">
-              <div class="res-mid" />
-              <div class="res-fill" :style="{ left: (ml.resonance ?? 0) >= 0 ? '50%' : `${50 + (ml.resonance ?? 0) * 50}%`, width: `${Math.abs(ml.resonance ?? 0) * 50}%`, background: (ml.resonance ?? 0) >= 0 ? 'var(--c-up)' : 'var(--c-down)' }" />
-            </div>
-            <b class="num" :class="(ml.resonance ?? 0) >= 0 ? 'up' : 'down'">{{ num(ml.resonance) }}</b>
           </div>
           <ul class="reasons small">
             <li v-for="n in ml.notes || []" :key="n">{{ n }}</li>
@@ -262,10 +254,9 @@ onMounted(load)
           <el-table v-if="recentSignals.length" :data="recentSignals" size="small">
             <el-table-column label="信号" width="150">
               <template #default="{ row }">
-                <SignalBadge :type="row.type" :confirmed="row.confirmed" :invalid="!!row.extra?.invalidated" :scope="row.scope" :strong="!!row.extra?.divergence?.strong" />
+                <SignalBadge :type="row.type" :confirmed="row.confirmed" :invalid="!!row.extra?.invalidated" :strong="!!row.extra?.divergence?.strong" />
               </template>
             </el-table-column>
-            <el-table-column label="级别" width="80"><template #default="{ row }">{{ row.scope === 'seg' ? '线段级别' : '笔级别' }}</template></el-table-column>
             <el-table-column prop="dt" label="日期" width="110" />
             <el-table-column label="价格" width="90"><template #default="{ row }"><span class="num">{{ num(row.price) }}</span></template></el-table-column>
             <el-table-column label="力度" width="130"><template #default="{ row }"><ScoreBar :value="row.strength * 100" /></template></el-table-column>
@@ -441,33 +432,6 @@ onMounted(load)
   color: var(--c-up);
   border-color: #f8c9ca;
   background: var(--c-up-soft);
-}
-.resonance {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 12px 0 6px;
-}
-.res-track {
-  position: relative;
-  flex: 1;
-  height: 8px;
-  border-radius: 4px;
-  background: #eef1f5;
-}
-.res-mid {
-  position: absolute;
-  left: 50%;
-  top: -2px;
-  width: 1px;
-  height: 12px;
-  background: #b8bfca;
-}
-.res-fill {
-  position: absolute;
-  top: 0;
-  height: 100%;
-  border-radius: 4px;
 }
 .mt-12 {
   margin-top: 12px;

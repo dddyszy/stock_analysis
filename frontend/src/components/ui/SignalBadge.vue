@@ -3,22 +3,22 @@ import { computed } from 'vue'
 import { SIGNAL_NAMES } from '@/utils/format'
 
 const props = withDefaults(
-  defineProps<{ type: string; confirmed?: boolean; invalid?: boolean; date?: string; size?: 'sm' | 'md'; scope?: string; strong?: boolean }>(),
-  { confirmed: true, invalid: false, size: 'md', scope: 'bi', strong: false },
+  defineProps<{ type: string; confirmed?: boolean; invalid?: boolean; date?: string; size?: 'sm' | 'md'; strong?: boolean }>(),
+  { confirmed: true, invalid: false, size: 'md', strong: false },
 )
 
 const buy = computed(() => props.type?.startsWith('B'))
 const state = computed(() => (props.invalid ? 'invalid' : props.confirmed ? 'confirmed' : 'pending'))
 const title = computed(() => {
-  const st = { invalid: '已失效', confirmed: '已确认', pending: '未确认（所在笔或线段还在延伸）' }[state.value]
-  return `${props.scope === 'seg' ? '线段级别' : '笔级别'} · ${st}${props.strong ? ' · 多指标强背驰' : ''}`
+  const st = { invalid: '已失效', confirmed: '已确认', pending: '未确认（所在的笔还在延伸）' }[state.value]
+  return `${st}${props.strong ? ' · 多指标强背驰' : ''}`
 })
 </script>
 
 <template>
   <span class="signal-badge" :class="[buy ? 'buy' : 'sell', state, size]" :title="title">
     <span class="dot" />
-    <span v-if="scope === 'seg'" class="scope">段</span>{{ SIGNAL_NAMES[type] || type }}<span v-if="state === 'pending'">?</span>
+    {{ SIGNAL_NAMES[type] || type }}<span v-if="state === 'pending'">?</span>
     <span v-if="strong" class="strong" title="多指标强背驰">强</span>
     <span v-if="date" class="date">{{ date.slice(5) }}</span>
   </span>
@@ -63,14 +63,6 @@ const title = computed(() => {
   color: var(--c-text-3);
   background: #f1f3f6;
   text-decoration: line-through;
-}
-.scope {
-  font-size: 10px;
-  padding: 0 3px;
-  border-radius: 3px;
-  background: #8b5cf6;
-  color: #fff;
-  margin-right: 1px;
 }
 .strong {
   font-size: 10px;

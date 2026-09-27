@@ -92,9 +92,6 @@ def build_entry_plan(a: StockAnalysis, signal: Signal, equity: float, params: di
         return EntryPlan(a.code, signal.type, signal.dt, price, structural, stop, 0, signal.target1, signal.target2, 0, 0, 0,
                          False, ["现价已低于止损位，信号失效"])
     rr = (signal.target1 - price) / r if signal.target1 else 0.0
-    if rr < params["min_reward_risk"]:
-        allowed = False
-        warnings.append(f"盈亏比 {rr:.2f} 低于 {params['min_reward_risk']}，不开仓")
     qty = equity * params["risk_per_trade"] / r
     stop_dist = r / price
     if stop_dist > params["max_stop_distance"]:

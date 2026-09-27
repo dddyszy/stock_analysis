@@ -24,19 +24,13 @@ def test_area_is_required_and_weak_divergence():
     assert r["divergent"] and r["agree"] == 1 and not r["strong"]
 
 
-def test_segment_level_signals_exist_and_reference_segments():
-    seg_signals = []
-    for s in UNIVERSE[:60]:
-        bars = list(_series(s.code, date(2026, 9, 1)))[-900:]
-        r = analyze(bars, "day")
-        for sig in r.signals:
-            assert sig.scope in ("bi", "seg")
-            if sig.scope == "seg":
-                assert 0 <= sig.bi_idx < len(r.segments)
-                if sig.is_buy:
-                    assert sig.stop_price is not None and sig.target1 and sig.target1 > sig.price
-                seg_signals.append(sig)
-    assert seg_signals, "合成行情中应能找到线段级别的买卖点"
+def test_only_bi_level_signals_but_segments_still_built():
+    has_segments = False
+    for s in UNIVERSE[:30]:
+        r = analyze(list(_series(s.code, date(2026, 9, 1)))[-900:], "day")
+        assert all(sig.scope == "bi" and 0 <= sig.bi_idx < len(r.bis) for sig in r.signals)
+        has_segments |= bool(r.segments) and bool(r.seg_zhongshus)
+    assert has_segments, "线段与线段中枢仍用于结构展示"
 
 
 def test_first_buy_carries_leave_range():

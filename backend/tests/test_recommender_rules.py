@@ -21,15 +21,12 @@ def _signal(sig_type: str) -> Signal:
 FUND = FundamentalView(code="sz000001", passed=True, score=70)
 
 
-def test_resonance_weight_zero_ignores_weekly():
+def test_weekly_resonance_does_not_affect_score():
     params = dict(DEFAULT_PARAMS)
     up = score_candidate(_analysis(1.0), FUND, 50, params, "neutral", _signal("B2"), index_regime="range")
     down = score_candidate(_analysis(-1.0), FUND, 50, params, "neutral", _signal("B2"), index_regime="range")
     assert up["chan_score"] == down["chan_score"] <= 100
-    params["resonance_weight"] = 0.2
-    up = score_candidate(_analysis(1.0), FUND, 50, params, "neutral", _signal("B2"), index_regime="range")
-    down = score_candidate(_analysis(-1.0), FUND, 50, params, "neutral", _signal("B2"), index_regime="range")
-    assert up["chan_score"] > down["chan_score"]
+    assert not any("周线" in r for r in up["reasons"])
 
 
 def test_regime_block_moves_to_watch_pool():

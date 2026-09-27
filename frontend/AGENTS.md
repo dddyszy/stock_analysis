@@ -29,7 +29,7 @@
 | 场景 | 组件 |
 | --- | --- |
 | 价格与涨跌 | `PriceChange` |
-| 缠论买卖点 | `SignalBadge`（区分已确认、未确认、已失效；传 `scope` 显示线段级别"段"，传 `strong` 显示强背驰） |
+| 缠论买卖点 | `SignalBadge`（区分已确认、未确认、已失效；传 `strong` 显示强背驰） |
 | 综合分 / 分项分 | `ScoreRing` / `ScoreBar` |
 | 止损、现价、目标价 | `RiskRewardBar`（自动标注盈亏比） |
 | 持仓状态机 | `StatusSteps` |

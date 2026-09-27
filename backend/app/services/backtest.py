@@ -4,14 +4,15 @@
 - 默认只在信号所在笔确认后入场（entry_mode=confirmed），次日开盘价买入；
 - 结构止损按收盘确认、次日开盘卖出；硬止损盘中触发；T+1；
 - 涨跌停按板块判断（ashare_rules），一字涨停买不进、一字跌停卖不出；买卖各计一次滑点；
-- 浮盈 1R 保本，新的确认向上笔上移止损；到目标一 / 一卖 / 二卖分批，三卖或止损清仓；时间止损减半。
+- 浮盈 1R 保本，新的确认向上笔上移止损；到目标一 / 一卖 / 二卖分批，三卖或止损清仓；时间止损减半；
+- 不按盈亏比过滤入场（两份样本显示「盈亏比 ≥ 2」过滤会让结果从接近随机变为显著跑输）。
 
 为了判断买点是否真的有优势：
 - 随机入场对照组：同一批股票、同一时段随机入场，止损距离和盈亏比取真实交易的中位数，其余规则相同；
 - 指数基准：每笔交易计算同期中证 1000 的收益和超额；
 - 样本内外：按 split_date 切分，建议权重只用样本内数据计算。
 
-诊断：每笔交易记录入场时的市场状态（中证 1000 相对 60 日均线）、周线共振和背驰强度，
+诊断：每笔交易记录入场时的市场状态（中证 1000 相对 60 日均线）、背驰强度、行业和因子值，
 按维度与同市场状态下的随机组比较；逐年滚动检验只用此前年份挑选"信号 × 市场状态"组合，再在下一年验证。
 
 已知局限：股票池是当前在市的股票，已退市股票的历史拿不到，存在幸存者偏差（会高估一买类信号）。
@@ -32,7 +33,7 @@ import numpy as np
 from sqlalchemy import or_, select
 
 from app.analysis.market_env import INDEX_REGIME_CODE, INDEX_REGIME_NAMES, index_regime_map
-from app.chan import TYPE_NAMES, analyze, combine
+from app.chan import TYPE_NAMES, analyze
 from app.research.factors import EntryCtx, compute_factors
 from app.research.industry import industry_indices
 from app.chan.types import UP
@@ -41,13 +42,13 @@ from app.db.session import session_scope
 from app.services.ashare_rules import is_one_price_limit_down, is_one_price_limit_up
 from app.services.chan_service import chan_config
 from app.services.jobs import JobContext
-from app.services.kline_utils import resample_weekly
 from app.services.strategy_config import get_active_params, save_config
 from app.services.sync import load_bars
 
 logger = logging.getLogger(__name__)
 
 WINDOW = 400
+DEFAULT_MIN_RR = 2.0  # 仅供实验「加盈亏比过滤」使用；两份样本显示该过滤让结果从接近随机变为显著跑输，默认不启用
 MIN_RISK_PCT = 0.005  # 1R 至少为入场价的 0.5%，否则 R 倍数会被极小的止损距离放大
 BENCH_CODE = INDEX_REGIME_CODE  # 中证 1000
 SURVIVORSHIP_NOTE = "股票池以当前在市股票为主，系统上线前已退市的股票拿不到历史，结果存在幸存者偏差，一买类信号可能被高估。"
@@ -88,7 +89,7 @@ def _fee(params: dict, price: float, sell: bool) -> float:
 
 
 def backtest_series(code: str, bars: list, params: dict, warmup: int = 250, entry_mode: str = "confirmed",
-                    use_rr_filter: bool = True, is_st: bool = False, control: _ControlSpec | None = None,
+                    use_rr_filter: bool = False, is_st: bool = False, control: _ControlSpec | None = None,
                     rng: random.Random | None = None, aux: dict | None = None) -> list[dict]:
     aux = aux or {}
     cfg = chan_config(params)
@@ -226,7 +227,7 @@ def backtest_series(code: str, bars: list, params: dict, warmup: int = 250, entr
             if r < entry * MIN_RISK_PCT:
                 continue
             rr = (s.target1 - entry) / r if s.target1 else 0
-            if use_rr_filter and rr < params["min_reward_risk"]:
+            if use_rr_filter and rr < params.get("min_reward_risk", DEFAULT_MIN_RR):
                 continue
             if r / entry > params["max_stop_distance"] and params["wide_stop_action"] == "skip":
                 continue
@@ -234,7 +235,7 @@ def backtest_series(code: str, bars: list, params: dict, warmup: int = 250, entr
             cap = params.get("target_cap_r")
             if cap and target1:
                 target1 = min(target1, entry + cap * r)
-            pos = _Pos(s.type, s.scope, t + 1, entry, stop, r, target1, tags=_entry_tags(code, bars, t, res, s, cfg, off, aux))
+            pos = _Pos(s.type, s.scope, t + 1, entry, stop, r, target1, tags=_entry_tags(code, bars, t, res, s, off, aux))
             pending_exit = None
             break
 
@@ -244,27 +245,16 @@ def backtest_series(code: str, bars: list, params: dict, warmup: int = 250, entr
     return trades
 
 
-SEG_CONTEXT_BARS = 20  # 入场前这么多根日线内出现过线段级别买点，视为「段内笔买点」
-
-
 def _aux_ctx(aux: dict) -> dict:
     return {k: aux.get(k) for k in ("bench", "bench_dates", "ind_index", "ind_dates")}
 
 
-def _entry_tags(code: str, bars: list, t: int, res, s, cfg, off: int, aux: dict) -> dict:
-    """入场时可见的周线共振、背驰强度、线段背景与因子值（周线由截至当天的日线合成，最后一周可能不完整）。"""
-    weekly = resample_weekly(bars[: t + 1])
-    wres = analyze(weekly, "week", cfg) if len(weekly) >= 30 else None
-    reso = combine(res, wres).resonance
+def _entry_tags(code: str, bars: list, t: int, res, s, off: int, aux: dict) -> dict:
+    """入场时可见的背驰强度、行业与因子值。"""
     div = s.extra.get("divergence")
-    seg = next((x for x in reversed(res.signals) if x.scope == "seg" and x.is_buy and not x.extra.get("invalidated")
-                and 0 <= t - (x.raw_idx + off) <= SEG_CONTEXT_BARS), None)
     ctx = EntryCtx(code, bars, t, res=res, off=off, signal=s, **_aux_ctx(aux))
     return {
-        "week": "up" if reso >= 0.2 else "down" if reso <= -0.2 else "flat",
         "div": ("strong" if div.get("strong") else "normal") if div else "none",
-        "seg_ctx": seg.type if seg is not None and s.scope == "bi" else ("self" if s.scope == "seg" else "none"),
-        "b1_kind": ("trend" if s.extra.get("trend") else "range") if s.type == "B1" else "other",
         "ind": aux.get("industry"),
         "f": compute_factors(ctx, control=False),
     }
@@ -313,9 +303,7 @@ def bootstrap_edge(a: list[float], b: list[float], n: int = 1000, seed: int = 7)
 
 
 REGIME_NAMES = INDEX_REGIME_NAMES
-WEEK_NAMES = {"up": "周线共振向上", "flat": "周线中性", "down": "周线向下"}
 DIV_NAMES = {"strong": "强背驰", "normal": "普通背驰", "none": "无背驰数据"}
-SCOPE_NAMES = {"bi": "笔级别", "seg": "线段级别"}
 
 
 def _regime(t: dict) -> str:
@@ -413,10 +401,7 @@ def _unit_name(u: str) -> str:
     return f"{TYPE_NAMES.get(sig, sig)} · {REGIME_NAMES.get(reg, reg)}"
 
 
-SEG_CTX_NAMES = {"none": "无线段买点背景", "self": "线段级别买点本身", "B1": "线段一买后的笔买点",
-                 "B2": "线段二买后的笔买点", "B3": "线段三买后的笔买点"}
 MIN_INDUSTRY_TRADES = 30
-B1_KIND_NAMES = {"trend": "趋势背驰一买", "range": "盘整背驰一买", "other": "二买、三买"}
 
 
 def _industry_of(trades: list[dict]):
@@ -441,11 +426,7 @@ def diagnose(trades: list[dict], control: list[dict]) -> list[dict]:
         ("regime", "市场状态", _regime, lambda v: REGIME_NAMES.get(v, v), _regime),
         ("type_regime", "信号 × 市场状态", _unit, _unit_name, _regime),
         ("year", "年份", lambda t: str(t["entry_date"].year), lambda v: f"{v} 年", _year_regime),
-        ("week", "周线共振", tag("week", "flat"), lambda v: WEEK_NAMES.get(v, v), _regime),
         ("div", "背驰强度", tag("div", "none"), lambda v: DIV_NAMES.get(v, v), _regime),
-        ("scope", "信号级别", lambda t: t.get("scope") or "bi", lambda v: SCOPE_NAMES.get(v, v), _regime),
-        ("seg_ctx", "线段背景", tag("seg_ctx", "none"), lambda v: SEG_CTX_NAMES.get(v, v), _regime),
-        ("b1_kind", "一买背驰类型", tag("b1_kind", "other"), lambda v: B1_KIND_NAMES.get(v, v), _regime),
         ("industry", "行业", _industry_of(trades), lambda v: v, _regime),
     ]
     out = []
@@ -519,7 +500,6 @@ def summarize(trades: list[dict], control: list[dict] | None = None) -> tuple[di
     for t in trades:
         reasons[t["exit_reason"]] = reasons.get(t["exit_reason"], 0) + 1
     summary["exit_reasons"] = reasons
-    summary["by_scope"] = _by(trades, "scope", ["bi", "seg"], {"bi": "笔级别", "seg": "线段级别"})
     ins = [t for t in trades if t.get("segment") == "in"]
     outs = [t for t in trades if t.get("segment") == "out"]
     summary["in_sample"] = {**_stat(ins), "by_signal": _by(ins, "signal_type", sig_values, TYPE_NAMES)}
@@ -611,7 +591,7 @@ async def run_backtest(ctx: JobContext, sample_size: int = 50, codes: list[str] 
         params["slippage"] = slippage
     overrides = {k: v for k, v in (overrides or {}).items() if k in EXPERIMENT_KEYS}
     params.update(overrides)
-    use_rr_filter = bool(params.pop("rr_filter", True))
+    use_rr_filter = bool(params.pop("rr_filter", False))
     entry_mode = params.pop("entry_mode", entry_mode)
     codes = _pick_codes(sample_size, codes, seed)
     bench_bars = load_bars(KlineDaily, BENCH_CODE, lookback_bars + 350)
@@ -630,7 +610,8 @@ async def run_backtest(ctx: JobContext, sample_size: int = 50, codes: list[str] 
         "sample_size": len(codes), "lookback_bars": lookback_bars, "entry_mode": entry_mode, "seed": seed,
         "split_date": split_date.isoformat(), "slippage": params["slippage"], "with_control": with_control,
         "label": label, "overrides": overrides, "experiment": experiment, "delisted_in_sample": len(delisted),
-        "strategy": {k: params[k] for k in ("hard_stop_pct", "min_reward_risk", "time_stop_bars", "batch_ratios", "signal_recent_bars")},
+        "strategy": {k: params[k] for k in ("hard_stop_pct", "time_stop_bars", "batch_ratios", "signal_recent_bars")},
+        "rr_filter": use_rr_filter,
     }
     with session_scope() as db:
         run = BacktestRun(status="running", params=run_params)
@@ -672,7 +653,7 @@ async def run_backtest(ctx: JobContext, sample_size: int = 50, codes: list[str] 
             spec = _ControlSpec(
                 prob=min(0.5, len(trades) / flat_bars),
                 stop_pct=statistics.median(t["stop_pct"] for t in trades),
-                rr=statistics.median(t["rr"] for t in trades if t["rr"]) if any(t["rr"] for t in trades) else params["min_reward_risk"],
+                rr=statistics.median(t["rr"] for t in trades if t["rr"]) if any(t["rr"] for t in trades) else DEFAULT_MIN_RR,
             )
             control = await asyncio.to_thread(_control_pass, spec)
             run_params["control_spec"] = spec.__dict__
@@ -701,11 +682,10 @@ async def run_backtest(ctx: JobContext, sample_size: int = 50, codes: list[str] 
 
 EXPERIMENTS: dict[str, tuple[str, list[tuple[str, dict]]]] = {
     "exit": ("出场规则实验", [
-        ("基线：盈亏比过滤 + 缠论目标", {}),
-        ("取消盈亏比过滤", {"rr_filter": False}),
+        ("基线：缠论目标", {}),
+        ("加盈亏比 ≥ 2 过滤", {"rr_filter": True}),
         ("目标一封顶 2R", {"target_cap_r": 2.0}),
-        ("取消过滤 + 目标一封顶 2R", {"rr_filter": False, "target_cap_r": 2.0}),
-        ("取消过滤 + 目标一封顶 1.5R", {"rr_filter": False, "target_cap_r": 1.5}),
+        ("目标一封顶 1.5R", {"target_cap_r": 1.5}),
     ]),
     "winrate": ("高胜率规则实验", [
         ("基线：现行出场规则", {}),

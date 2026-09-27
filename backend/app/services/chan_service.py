@@ -56,8 +56,7 @@ def save_signals(code: str, signals: list[Signal], calc_date: date) -> None:
     rows = [
         {
             "code": code,
-            # 线段级别与笔级别可能在同一天出现同类信号，level 里区分：day / day:seg
-            "level": s.level if s.scope == "bi" else f"{s.level}:{s.scope}",
+            "level": s.level,
             "signal_type": s.type,
             "signal_date": s.dt,
             "price": s.price,

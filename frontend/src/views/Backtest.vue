@@ -81,7 +81,6 @@ function verdict(m: any): { text: string; type: 'success' | 'danger' | 'info' | 
 function ci(m: any): string {
   return m ? `[${num(m.ci_low, 2)}, ${num(m.ci_high, 2)}]` : '--'
 }
-const scopeRows = computed(() => Object.entries(s.value.by_scope || {}).map(([k, v]: any) => ({ key: k, ...v })))
 
 const sigChart = useChart(
   () => {
@@ -323,11 +322,8 @@ onMounted(() => {
             </SectionCard>
           </div>
 
-          <SectionCard title="样本内 / 样本外 · 按信号级别" class="mt" flush>
-            <el-table :data="[
-              { name: '样本内', ...s.in_sample }, { name: '样本外', ...s.out_sample },
-              ...scopeRows.map((r: any) => ({ ...r, name: r.name })),
-            ]" size="small">
+          <SectionCard title="样本内 / 样本外" class="mt" flush>
+            <el-table :data="[{ name: '样本内', ...s.in_sample }, { name: '样本外', ...s.out_sample }]" size="small">
               <el-table-column prop="name" label="分组" width="100" />
               <el-table-column prop="trades" label="笔数" width="70" />
               <el-table-column label="胜率"><template #default="{ row }">{{ ratioPct(row.win_rate, 1) }}</template></el-table-column>
@@ -453,7 +449,7 @@ onMounted(() => {
           <SectionCard title="交易明细" :subtitle="`${trades.length} 笔`" class="mt" flush>
             <el-table v-if="trades.length" :data="trades" size="small" max-height="420">
               <el-table-column prop="code" label="代码" width="100" />
-              <el-table-column label="信号" width="90"><template #default="{ row }"><SignalBadge :type="row.signal_type" :scope="row.scope || 'bi'" size="sm" /></template></el-table-column>
+              <el-table-column label="信号" width="90"><template #default="{ row }"><SignalBadge :type="row.signal_type" size="sm" /></template></el-table-column>
               <el-table-column label="样本" width="64"><template #default="{ row }">{{ row.segment === 'out' ? '样本外' : '样本内' }}</template></el-table-column>
               <el-table-column label="买入" width="170"><template #default="{ row }"><span class="num">{{ row.entry_date }} @ {{ num(row.entry_price) }}</span></template></el-table-column>
               <el-table-column label="卖出" width="170"><template #default="{ row }"><span class="num">{{ row.exit_date }} @ {{ num(row.exit_price) }}</span></template></el-table-column>
