@@ -97,5 +97,7 @@ def compare(enter: MoveStats, leave: MoveStats, direction: int, ratio: float) ->
         "leave_area": round(leave.area, 4),
         "enter_slope": round(enter.slope, 4),
         "leave_slope": round(leave.slope, 4),
+        "enter_vol": round(enter.avg_volume, 2),
+        "leave_vol": round(leave.avg_volume, 2),
         "strength": round(min(1.0, strength), 3),
     }

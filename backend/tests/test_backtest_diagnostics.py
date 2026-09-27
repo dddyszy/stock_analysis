@@ -52,7 +52,7 @@ def test_diagnose_dimensions():
     trades = [_t("B1", "up", 1.0, week="up", div="strong") for _ in range(6)] + [_t("B3", "down", -0.5, week="down") for _ in range(6)]
     ctrl = [_t("RND", r, 0.0) for r in ("up", "down") for _ in range(10)]
     dims = {d["key"]: d for d in diagnose(trades, ctrl)}
-    assert set(dims) == {"signal_type", "regime", "type_regime", "year", "week", "div", "scope"}
+    assert set(dims) == {"signal_type", "regime", "type_regime", "year", "week", "div", "scope", "seg_ctx", "industry"}
     week = {r["key"]: r for r in dims["week"]["rows"]}
     assert week["up"]["matched"]["edge"] == 1.0 and week["down"]["matched"]["edge"] == -0.5
     assert {r["name"] for r in dims["type_regime"]["rows"]} == {"一买 · 上涨", "三买 · 下跌"}
@@ -78,3 +78,18 @@ def test_target_hit_recorded_even_if_final_exit_is_stop():
     first = trades[0]
     assert first["tags"]["target_hit"] and first["exit_reason"] != "目标一"
     assert _stat(trades)["target_hit_ratio"] > 0
+
+
+def test_month_cluster_bootstrap_widens_ci_for_correlated_trades():
+    rng = random.Random(5)
+    sig, ctrl = [], []
+    for m in range(24):
+        shock = rng.gauss(0, 1.5)  # 同一个月所有交易共同的涨跌
+        d = date(2023 + m // 12, m % 12 + 1, 10)
+        for _ in range(20):
+            sig.append({**_t("B1", "range", shock + 0.1 + rng.gauss(0, 0.3)), "entry_date": d})
+            ctrl.append({**_t("RND", "range", shock + rng.gauss(0, 0.3)), "entry_date": d})
+    m = matched_edge(sig, ctrl)
+    assert m["method"] == "month"
+    # 共同冲击在两组中相互抵消，真实优势约 0.1R 仍能被识别
+    assert m["ci_low"] > 0

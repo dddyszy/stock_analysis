@@ -37,7 +37,7 @@ JOBS = {
 }
 
 
-OTHER_LABELS = {"backtest": "策略回测", "backtest_experiment": "出场规则实验", "market_env": "计算市场环境", "mcp_probe": "探测 MCP 工具", "full_initialize": "首次初始化"}
+OTHER_LABELS = {"backtest": "策略回测", "backtest_experiment": "参数实验", "market_env": "计算市场环境", "mcp_probe": "探测 MCP 工具", "full_initialize": "首次初始化"}
 register_labels({**{k: v[0] for k, v in JOBS.items()}, **OTHER_LABELS})
 
 

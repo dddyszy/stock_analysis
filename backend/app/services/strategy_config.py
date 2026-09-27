@@ -48,6 +48,7 @@ DEFAULT_PARAMS: dict = {
     "resonance_weight": 0.0,  # 周线共振在缠论分中的权重；回测显示共振向上时入场反而更差，默认不加分
     "regime_block": ["B1|up", "B3|down"],  # 这些"信号|指数市场状态"组合回测显著跑输随机组，只进观察池
     "watch_top_n": 30,
+    "divergence_ratio": 0.9,  # 离开段 MACD 面积小于进入段的该比例才算背驰
     # 回测
     "slippage": 0.001,  # 单边滑点
     "backtest_split_ratio": 0.7,  # 样本内占回看区间的比例

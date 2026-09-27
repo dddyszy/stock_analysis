@@ -6,7 +6,7 @@ from sqlalchemy import select
 
 from app.db.models import BacktestRun
 from app.db.session import session_scope
-from app.services.backtest import apply_suggested_weights, compare_runs, run_backtest, run_exit_experiment, run_to_dict
+from app.services.backtest import EXPERIMENTS, apply_suggested_weights, compare_runs, run_backtest, run_param_experiment, run_to_dict
 from app.services.jobs import start_job
 
 router = APIRouter(prefix="/api/backtest", tags=["backtest"])
@@ -36,15 +36,22 @@ class ExperimentRequest(BaseModel):
     seed: int = 2026
 
 
-@router.post("/experiments/exit")
-async def start_exit_experiment(req: ExperimentRequest) -> dict:
-    start_job("backtest_experiment", lambda ctx: run_exit_experiment(ctx, req.sample_size, req.lookback_bars, req.seed))
+@router.get("/experiments")
+def experiment_kinds() -> list[dict]:
+    return [{"kind": k, "title": title, "variants": [label for label, _ in variants]} for k, (title, variants) in EXPERIMENTS.items()]
+
+
+@router.post("/experiments/{kind}")
+async def start_experiment(kind: str, req: ExperimentRequest) -> dict:
+    if kind not in EXPERIMENTS:
+        raise HTTPException(404, f"未知实验 {kind}")
+    start_job("backtest_experiment", lambda ctx: run_param_experiment(ctx, kind, req.sample_size, req.lookback_bars, req.seed))
     return {"started": True}
 
 
 @router.get("/experiments/latest")
-def latest_experiment(experiment: str | None = None) -> dict:
-    return compare_runs(experiment)
+def latest_experiment(experiment: str | None = None, kind: str | None = None) -> dict:
+    return compare_runs(experiment, kind)
 
 
 @router.get("/runs")

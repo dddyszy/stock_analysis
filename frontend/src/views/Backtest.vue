@@ -21,7 +21,7 @@ const poller = useJobPoller((job) => {
     loadRuns(true)
   }
   if (job.job_name === 'backtest_experiment') {
-    ElMessage[job.status === 'success' ? 'success' : 'error'](job.status === 'success' ? '出场规则实验完成' : job.message || '实验失败')
+    ElMessage[job.status === 'success' ? 'success' : 'error'](job.status === 'success' ? '参数实验完成' : job.message || '实验失败')
     loadRuns()
     loadExp()
   }
@@ -34,12 +34,15 @@ const bestExp = computed(() => {
   const items: any[] = exp.value?.items || []
   return items.length ? items.reduce((a, b) => ((b.avg_r ?? -99) > (a.avg_r ?? -99) ? b : a)) : null
 })
+const expKinds = ref<any[]>([])
+const expKind = ref('exit')
+const expMeta = computed(() => expKinds.value.find((k: any) => k.kind === expKind.value))
 async function loadExp() {
-  exp.value = await api.backtestExperimentLatest()
+  exp.value = await api.backtestExperimentLatest(expKind.value)
 }
 async function startExp() {
-  await api.backtestExperimentStart({ sample_size: 1000, lookback_bars: 950 })
-  ElMessage.success('出场规则实验已开始：1000 只股票 × 5 组规则')
+  await api.backtestExperimentStart(expKind.value, { sample_size: 1000, lookback_bars: 950 })
+  ElMessage.success(`${expMeta.value?.title || '参数实验'}已开始：1000 只股票 × ${expMeta.value?.variants?.length || 5} 组`)
   poller.start('backtest_experiment')
 }
 const sigRows = computed(() =>
@@ -52,6 +55,23 @@ const diagDim = ref('type_regime')
 const diagDims = computed<any[]>(() => s.value.diagnostics || [])
 const diagRows = computed<any[]>(() => diagDims.value.find((d: any) => d.key === diagDim.value)?.rows || [])
 const wf = computed(() => s.value.walk_forward)
+const fr = computed(() => s.value.factor_research)
+const frKey = ref('rs20')
+const frFactor = computed(() => (fr.value?.factors || []).find((f: any) => f.key === frKey.value))
+const GROUP_LABELS: Record<string, string> = { ALL: '全部买点', B1: '一买', B2: '二买', B3: '三买' }
+const BUCKET_LABELS: Record<string, string> = { low: '低档', mid: '中档', high: '高档' }
+const CRITERIA = [
+  { key: 'trades', label: '≥200 笔' },
+  { key: 'walk_forward', label: '滚动显著' },
+  { key: 'positive_years', label: '≥3 年为正' },
+  { key: 'out_sample', label: '样本外为正' },
+  { key: 'fdr', label: '校正后显著' },
+  { key: 'explained', label: '符合假设' },
+]
+function fmtFactor(v: number | null | undefined, fmt: string) {
+  if (v === null || v === undefined) return '--'
+  return fmt === 'pct' ? `${(v * 100).toFixed(1)}%` : fmt === 'ratio' ? `${v.toFixed(2)} 倍` : v.toFixed(2)
+}
 
 function verdict(m: any): { text: string; type: 'success' | 'danger' | 'info' | 'warning' } {
   if (!m) return { text: '样本不足', type: 'info' }
@@ -159,6 +179,7 @@ async function apply() {
 
 onMounted(() => {
   loadRuns()
+  api.backtestExperimentKinds().then((k) => (expKinds.value = k))
   loadExp()
   poller.tick().then(() => {
     if (poller.running.value.backtest || poller.running.value.backtest_experiment) poller.start()
@@ -205,8 +226,11 @@ onMounted(() => {
           <el-progress v-if="running && running.total" :percentage="Math.round((running.progress / running.total) * 100)" :stroke-width="6" class="mt-8" />
         </SectionCard>
 
-        <SectionCard title="出场规则实验" class="mt">
-          <p class="muted small exp-desc">同一批 1000 只股票、同一随机种子，比较 5 组出场规则：基线、取消盈亏比过滤、目标一封顶 2R，以及两者组合。</p>
+        <SectionCard title="参数实验" class="mt">
+          <el-radio-group v-model="expKind" size="small" class="exp-kinds" @change="loadExp">
+            <el-radio-button v-for="k in expKinds" :key="k.kind" :value="k.kind">{{ k.title }}</el-radio-button>
+          </el-radio-group>
+          <p class="muted small exp-desc">同一批 1000 只股票、同一随机种子比较：{{ (expMeta?.variants || []).join('、') }}。</p>
           <el-button style="width: 100%" :loading="!!expRunning" :disabled="!!running" @click="startExp">
             {{ expRunning ? expRunning.message || '实验进行中' : '运行实验' }}
           </el-button>
@@ -233,7 +257,7 @@ onMounted(() => {
       </div>
 
       <div class="right">
-        <SectionCard v-if="exp?.items?.length" title="出场规则实验对比" :subtitle="`${exp.sample_size} 只股票 · 同一样本同一种子 · 点击行查看该组详情`" class="exp-card" flush>
+        <SectionCard v-if="exp?.items?.length" :title="`${expMeta?.title || '参数实验'}对比`" :subtitle="`${exp.sample_size} 只股票 · 同一样本同一种子 · 点击行查看该组详情`" class="exp-card" flush>
           <el-table :data="exp.items" size="small" highlight-current-row @row-click="(row: any) => open(row.id)">
             <el-table-column label="规则" min-width="170">
               <template #default="{ row }">
@@ -355,6 +379,61 @@ onMounted(() => {
             </el-table>
           </SectionCard>
 
+          <SectionCard v-if="fr?.factors?.length" title="因子研究" :subtitle="fr.criteria_note" class="mt" flush>
+            <div class="fr-accepted">
+              <span class="muted small">共检验 {{ fr.tested }} 条规则，通过全部门槛：</span>
+              <template v-if="fr.accepted.length">
+                <el-tag v-for="a in fr.accepted" :key="a" size="small" type="success" effect="light" class="wf-tag">{{ a }}</el-tag>
+              </template>
+              <span v-else class="small bold">没有</span>
+            </div>
+            <div class="sub-head">规则总览 · 按逐年滚动检验优势排序（前 15）</div>
+            <el-table :data="fr.top" size="small" @row-click="(row: any) => (frKey = row.factor)">
+              <el-table-column prop="name" label="规则" min-width="200" />
+              <el-table-column prop="trades" label="笔数" width="64" />
+              <el-table-column label="滚动优势" width="150">
+                <template #default="{ row }"><span class="num" :class="colorClass(row.wf_edge)">{{ num(row.wf_edge, 2) }}</span> <span class="muted small">[{{ num(row.wf_ci[0], 2) }}, {{ num(row.wf_ci[1], 2) }}]</span></template>
+              </el-table-column>
+              <el-table-column prop="positive_years" label="为正年份" width="80" />
+              <el-table-column label="q 值" width="70"><template #default="{ row }"><span class="num">{{ num(row.q, 3) }}</span></template></el-table-column>
+              <el-table-column label="门槛" min-width="260">
+                <template #default="{ row }">
+                  <span v-for="c in CRITERIA" :key="c.key" class="crit" :class="{ ok: row.criteria[c.key] }">{{ c.label }}</span>
+                </template>
+              </el-table-column>
+            </el-table>
+            <div class="sub-head row-between">
+              <span>单个因子明细</span>
+              <el-select v-model="frKey" size="small" style="width: 220px">
+                <el-option v-for="f in fr.factors" :key="f.key" :value="f.key" :label="f.name" />
+              </el-select>
+            </div>
+            <div v-if="frFactor" class="fr-meta small">
+              <span>假设：{{ frFactor.hypothesis }}</span>
+              <span v-if="frFactor.thresholds" class="muted">三分位阈值 {{ fmtFactor(frFactor.thresholds[0], frFactor.fmt) }} / {{ fmtFactor(frFactor.thresholds[1], frFactor.fmt) }}</span>
+              <span v-if="!frFactor.for_control" class="muted">只对信号计算，与全部随机交易比较</span>
+            </div>
+            <el-table v-if="frFactor?.rows?.length" :data="frFactor.rows" size="small">
+              <el-table-column label="分组" width="96"><template #default="{ row }">{{ GROUP_LABELS[row.group] }}</template></el-table-column>
+              <el-table-column label="档位" width="64"><template #default="{ row }">{{ BUCKET_LABELS[row.bucket] }}</template></el-table-column>
+              <el-table-column prop="trades" label="笔数" width="64" />
+              <el-table-column label="平均 R" width="72"><template #default="{ row }"><span class="num" :class="colorClass(row.avg_r)">{{ num(row.avg_r) }}</span></template></el-table-column>
+              <el-table-column label="同档随机 R" width="92"><template #default="{ row }"><span class="num">{{ num(row.vs_control?.control_avg_r) }}</span></template></el-table-column>
+              <el-table-column label="缠论额外优势" width="150">
+                <template #default="{ row }"><span class="num" :class="colorClass(row.vs_control?.edge)">{{ num(row.vs_control?.edge, 2) }}</span> <span class="muted small">{{ ci(row.vs_control) }}</span></template>
+              </el-table-column>
+              <el-table-column label="因子本身" width="84">
+                <template #default="{ row }"><span class="num" :class="colorClass(row.factor_alone?.edge)">{{ row.factor_alone ? num(row.factor_alone.edge, 2) : '--' }}</span></template>
+              </el-table-column>
+              <el-table-column label="滚动优势" width="84"><template #default="{ row }"><span class="num" :class="colorClass(row.rule?.overall?.edge)">{{ num(row.rule?.overall?.edge, 2) }}</span></template></el-table-column>
+              <el-table-column label="为正年份" width="76"><template #default="{ row }">{{ row.rule?.positive_years ?? '--' }}</template></el-table-column>
+              <el-table-column label="q 值" width="66"><template #default="{ row }"><span class="num">{{ num(row.q, 3) }}</span></template></el-table-column>
+              <el-table-column label="结论" width="84">
+                <template #default="{ row }"><el-tag size="small" :type="row.criteria?.passed ? 'success' : 'info'" effect="light">{{ row.criteria?.passed ? '通过' : '未通过' }}</el-tag></template>
+              </el-table-column>
+            </el-table>
+          </SectionCard>
+
           <SectionCard title="建议信号权重" subtitle="只用样本内交易计算，每类信号至少 10 笔才给出建议" class="mt">
             <div v-if="current.suggested_weights && Object.keys(current.suggested_weights).length" class="row wrap weights">
               <div v-for="(v, k) in current.suggested_weights" :key="k" class="weight">
@@ -432,6 +511,43 @@ onMounted(() => {
 }
 .weight b {
   font-size: 16px;
+}
+.fr-accepted {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--c-border);
+}
+.sub-head {
+  padding: 10px 16px 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.fr-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 0 16px 8px;
+}
+.crit {
+  display: inline-block;
+  margin: 1px 3px 1px 0;
+  padding: 0 6px;
+  font-size: 11px;
+  border-radius: 4px;
+  color: var(--c-text-3);
+  background: var(--c-surface-2);
+  text-decoration: line-through;
+}
+.crit.ok {
+  color: var(--c-down);
+  background: var(--c-down-soft);
+  text-decoration: none;
+}
+.exp-kinds {
+  margin-bottom: 8px;
 }
 .exp-desc {
   margin: 0 0 10px;

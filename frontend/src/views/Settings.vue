@@ -98,6 +98,7 @@ const GROUPS: { title: string; items: Param[] }[] = [
       { key: 'resonance_weight', label: '周线共振权重', desc: '周线共振在缠论分中的权重。1000 只股票回测显示共振向上时入场反而更差，默认 0（只展示不加分）', kind: 'num', step: 0.05 },
       { key: 'regime_block', label: '按大盘状态降级的信号', desc: '勾选的"信号 × 大盘状态"组合只进观察池。大盘状态按中证 1000 相对 60 日均线划分，与回测口径一致', kind: 'units' },
       { key: 'watch_top_n', label: '观察池数量', desc: '每次推荐保留的观察池股票数', kind: 'int', step: 5 },
+      { key: 'divergence_ratio', label: '背驰阈值', desc: '离开段 MACD 面积小于进入段的这个比例才算背驰。越小越严格，可用回测页的「背驰阈值实验」比较', kind: 'num', step: 0.05 },
     ],
   },
   {

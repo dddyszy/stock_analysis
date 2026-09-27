@@ -47,7 +47,10 @@
 - 想用回测结果收紧选股规则时，先看「逐年滚动检验」（`walk_forward`）：只有用过去数据挑出的组合在之后年份仍跑赢随机组，才算可用。
 - 指数市场状态（中证 1000 相对 60 日均线）只从 `analysis/market_env.py` 的 `index_regime_map` / `latest_index_regime` 取，回测诊断和选股降级（`regime_block`）必须用同一口径。
 - 回测按股票多进程并行（`_run_parallel`），每只股票的随机数种子由"种子 + 代码"决定；`backtest_series` 必须保持无副作用、可序列化，不能在里面访问数据库。
-- 比较规则变体用 `run_exit_experiment`：同一批股票、同一种子，各组存为带 `label` / `experiment` 的回测记录，再用 `compare_runs` 对比。
+- 比较规则变体用 `run_param_experiment`（实验组定义在 `EXPERIMENTS`）：同一批股票、同一种子，各组存为带 `label` / `experiment` 的回测记录，再用 `compare_runs` 对比。
+- 入场因子只能注册在 `research/factors.py` 的 `FACTORS` 里，计算函数只能读取 `ctx.t` 及之前的数据（`tests/test_research.py` 会检查改动未来 K 线后因子值不变）；与信号无关的因子要设 `for_control=True`，随机组同样计算。
+- `matched_edge` 按入场月份整体重抽样（同期交易并不独立），不要改回按单笔重抽样；新规则进选股前必须通过 `research/analysis.py` 的六条门槛（含 BH 校正）。
+- 回测入场必须与实盘选股一致：次日开盘价不高于结构止损位的买点视为失效；1R 不得小于入场价的 `MIN_RISK_PCT`。
 - 推荐跟踪（`services/recommend_tracking.py`）每天收盘后更新最近 60 天的推荐，记录 5/10/20 日收益、相对沪深 300 和中证 1000 的超额、最大回撤、先触及止损还是目标。
 
 ## 接口

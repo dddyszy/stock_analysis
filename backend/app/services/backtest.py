@@ -33,6 +33,8 @@ from sqlalchemy import or_, select
 
 from app.analysis.market_env import INDEX_REGIME_CODE, INDEX_REGIME_NAMES, index_regime_map
 from app.chan import TYPE_NAMES, analyze, combine
+from app.research.factors import EntryCtx, compute_factors
+from app.research.industry import industry_indices
 from app.chan.types import UP
 from app.db.models import BacktestRun, BacktestTrade, KlineDaily, StockBasic
 from app.db.session import session_scope
@@ -46,6 +48,7 @@ from app.services.sync import load_bars
 logger = logging.getLogger(__name__)
 
 WINDOW = 400
+MIN_RISK_PCT = 0.005  # 1R 至少为入场价的 0.5%，否则 R 倍数会被极小的止损距离放大
 BENCH_CODE = INDEX_REGIME_CODE  # 中证 1000
 SURVIVORSHIP_NOTE = "股票池以当前在市股票为主，系统上线前已退市的股票拿不到历史，结果存在幸存者偏差，一买类信号可能被高估。"
 
@@ -86,7 +89,8 @@ def _fee(params: dict, price: float, sell: bool) -> float:
 
 def backtest_series(code: str, bars: list, params: dict, warmup: int = 250, entry_mode: str = "confirmed",
                     use_rr_filter: bool = True, is_st: bool = False, control: _ControlSpec | None = None,
-                    rng: random.Random | None = None) -> list[dict]:
+                    rng: random.Random | None = None, aux: dict | None = None) -> list[dict]:
+    aux = aux or {}
     cfg = chan_config(params)
     slip = float(params.get("slippage", 0.0))
     trades: list[dict] = []
@@ -188,7 +192,9 @@ def backtest_series(code: str, bars: list, params: dict, warmup: int = 250, entr
                 continue
             stop = entry * (1 - control.stop_pct)
             r = entry - stop
-            pos = _Pos("RND", "rnd", t + 1, entry, stop, r, entry + control.rr * r)
+            ctx = EntryCtx(code, bars, t, **_aux_ctx(aux))
+            pos = _Pos("RND", "rnd", t + 1, entry, stop, r, entry + control.rr * r,
+                       tags={"f": compute_factors(ctx, control=True), "ind": aux.get("industry")})
             pending_exit = None
             continue
 
@@ -198,6 +204,8 @@ def backtest_series(code: str, bars: list, params: dict, warmup: int = 250, entr
                 continue
             if entry_mode == "confirmed" and not s.confirmed:
                 continue
+            if s.type == "B1" and params.get("b1_require_strong") and not (s.extra.get("divergence") or {}).get("strong"):
+                continue
             key = (s.type, s.scope, s.dt)
             if key in seen:
                 continue
@@ -206,9 +214,12 @@ def backtest_series(code: str, bars: list, params: dict, warmup: int = 250, entr
                 continue
             atr_proxy = sum(b.high - b.low for b in window[-14:]) / min(14, len(window))
             buf = min(max(atr_proxy * params["stop_buffer_atr"], entry * 0.005), entry * 0.03)
-            stop = (s.stop_price if s.stop_price is not None else s.price) - buf
+            structure = s.stop_price if s.stop_price is not None else s.price
+            if entry <= structure:
+                continue  # 次日开盘已不高于结构止损位，买点失效（与实盘选股一致）
+            stop = structure - buf
             r = entry - stop
-            if r <= 0:
+            if r < entry * MIN_RISK_PCT:
                 continue
             rr = (s.target1 - entry) / r if s.target1 else 0
             if use_rr_filter and rr < params["min_reward_risk"]:
@@ -219,7 +230,7 @@ def backtest_series(code: str, bars: list, params: dict, warmup: int = 250, entr
             cap = params.get("target_cap_r")
             if cap and target1:
                 target1 = min(target1, entry + cap * r)
-            pos = _Pos(s.type, s.scope, t + 1, entry, stop, r, target1, tags=_entry_tags(bars, t, res, s, cfg))
+            pos = _Pos(s.type, s.scope, t + 1, entry, stop, r, target1, tags=_entry_tags(code, bars, t, res, s, cfg, off, aux))
             pending_exit = None
             break
 
@@ -229,15 +240,28 @@ def backtest_series(code: str, bars: list, params: dict, warmup: int = 250, entr
     return trades
 
 
-def _entry_tags(bars: list, t: int, res, s, cfg) -> dict:
-    """入场时可见的周线共振与背驰强度（周线由截至当天的日线合成，最后一周可能不完整）。"""
+SEG_CONTEXT_BARS = 20  # 入场前这么多根日线内出现过线段级别买点，视为「段内笔买点」
+
+
+def _aux_ctx(aux: dict) -> dict:
+    return {k: aux.get(k) for k in ("bench", "bench_dates", "ind_index", "ind_dates")}
+
+
+def _entry_tags(code: str, bars: list, t: int, res, s, cfg, off: int, aux: dict) -> dict:
+    """入场时可见的周线共振、背驰强度、线段背景与因子值（周线由截至当天的日线合成，最后一周可能不完整）。"""
     weekly = resample_weekly(bars[: t + 1])
     wres = analyze(weekly, "week", cfg) if len(weekly) >= 30 else None
     reso = combine(res, wres).resonance
     div = s.extra.get("divergence")
+    seg = next((x for x in reversed(res.signals) if x.scope == "seg" and x.is_buy and not x.extra.get("invalidated")
+                and 0 <= t - (x.raw_idx + off) <= SEG_CONTEXT_BARS), None)
+    ctx = EntryCtx(code, bars, t, res=res, off=off, signal=s, **_aux_ctx(aux))
     return {
         "week": "up" if reso >= 0.2 else "down" if reso <= -0.2 else "flat",
         "div": ("strong" if div.get("strong") else "normal") if div else "none",
+        "seg_ctx": seg.type if seg is not None and s.scope == "bi" else ("self" if s.scope == "seg" else "none"),
+        "ind": aux.get("industry"),
+        "f": compute_factors(ctx, control=False),
     }
 
 
@@ -295,9 +319,28 @@ def _year_regime(t: dict) -> str:
     return f"{t['entry_date'].year}|{_regime(t)}"
 
 
+CLUSTER_MIN_MONTHS = 12  # 月份足够多时按入场月份整体重抽样，否则退回按单笔重抽样
+
+
+def _month(t: dict) -> int:
+    d = t["entry_date"]
+    return d.year * 12 + d.month
+
+
+def _month_sums(ts: list[dict], index: dict[int, int]) -> tuple[np.ndarray, np.ndarray]:
+    total, count = np.zeros(len(index)), np.zeros(len(index))
+    for t in ts:
+        i = index[_month(t)]
+        total[i] += t["r_multiple"]
+        count[i] += 1
+    return total, count
+
+
 def matched_edge(sig: list[dict], control: list[dict], strata=_regime, n: int = 500, seed: int = 7) -> dict | None:
-    """信号组与同分层随机组的平均 R 之差。随机组按信号组在各分层的占比加权，剔除择时带来的差异；
-    置信区间用分层自助法估计。分层内随机组少于 5 笔的信号交易不参与比较。"""
+    """信号组与同分层随机组的平均 R 之差。随机组按信号组在各分层的占比加权，剔除择时带来的差异。
+
+    同一时期的交易会一起涨跌、并不独立，所以置信区间按入场月份整体重抽样（信号组与随机组抽中同一批月份）；
+    月份不足 CLUSTER_MIN_MONTHS 时退回按单笔重抽样。分层内随机组少于 5 笔的信号交易不参与比较。"""
     groups: dict[str, list[dict]] = {}
     for t in control:
         groups.setdefault(strata(t), []).append(t)
@@ -307,25 +350,48 @@ def matched_edge(sig: list[dict], control: list[dict], strata=_regime, n: int = 
     weights: dict[str, int] = {}
     for t in covered:
         weights[strata(t)] = weights.get(strata(t), 0) + 1
-    rng = np.random.default_rng(seed)
-    a = np.array([t["r_multiple"] for t in covered])
-    sig_means = a[rng.integers(0, len(a), (n, len(a)))].mean(axis=1)
-    ctrl_means = np.zeros(n)
-    ctrl_r = ctrl_ex = 0.0
-    for k, w in weights.items():
-        share = w / len(covered)
-        c = np.array([t["r_multiple"] for t in groups[k]])
-        ctrl_r += share * float(c.mean())
+    shares = {k: w / len(covered) for k, w in weights.items()}
+    ctrl_r = sum(share * float(np.mean([t["r_multiple"] for t in groups[k]])) for k, share in shares.items())
+    ctrl_ex = 0.0
+    for k, share in shares.items():
         ex = [t["excess"] for t in groups[k] if t.get("excess") is not None]
         ctrl_ex += share * (sum(ex) / len(ex) if ex else 0.0)
-        ctrl_means += share * c[rng.integers(0, len(c), (n, len(c)))].mean(axis=1)
-    diffs = np.sort(sig_means - ctrl_means)
-    lo, hi = float(diffs[int(n * 0.025)]), float(diffs[int(n * 0.975) - 1])
+    a = np.array([t["r_multiple"] for t in covered])
+    rng = np.random.default_rng(seed)
+    months = sorted({_month(t) for t in covered} | {_month(t) for k in shares for t in groups[k]})
+    if len(months) >= CLUSTER_MIN_MONTHS:
+        method = "month"
+        index = {m: i for i, m in enumerate(months)}
+        picks = rng.multinomial(len(months), np.full(len(months), 1 / len(months)), size=n)
+        s_sum, s_cnt = _month_sums(covered, index)
+        with np.errstate(invalid="ignore", divide="ignore"):
+            sig_means = (picks @ s_sum) / (picks @ s_cnt)
+            ctrl_means = np.zeros(n)
+            for k, share in shares.items():
+                c_sum, c_cnt = _month_sums(groups[k], index)
+                m = (picks @ c_sum) / (picks @ c_cnt)
+                ctrl_means += share * np.where(np.isfinite(m), m, c_sum.sum() / c_cnt.sum())
+        diffs = sig_means - ctrl_means
+        diffs = np.sort(diffs[np.isfinite(diffs)])
+    else:
+        method = "trade"
+        sig_means = a[rng.integers(0, len(a), (n, len(a)))].mean(axis=1)
+        ctrl_means = np.zeros(n)
+        for k, share in shares.items():
+            c = np.array([t["r_multiple"] for t in groups[k]])
+            ctrl_means += share * c[rng.integers(0, len(c), (n, len(c)))].mean(axis=1)
+        diffs = np.sort(sig_means - ctrl_means)
+    m_ = len(diffs)
+    lo, hi = float(diffs[int(m_ * 0.025)]), float(diffs[int(m_ * 0.975) - 1])
+    # 自助法双侧 p 值（用于多重检验校正），最小取 1/n
+    p = max(1.0 / n, min(1.0, 2 * min(float((diffs <= 0).mean()), float((diffs >= 0).mean()))))
     sig_ex = [t["excess"] for t in covered if t.get("excess") is not None]
     return {
         "trades": len(covered),
         "edge": round(float(a.mean()) - ctrl_r, 3), "ci_low": round(lo, 3), "ci_high": round(hi, 3),
         "significant": lo > 0 or hi < 0,
+        "p": round(p, 4),
+        "method": method,
         "control_avg_r": round(ctrl_r, 3),
         "excess_edge": round((sum(sig_ex) / len(sig_ex) if sig_ex else 0.0) - ctrl_ex, 2),
     }
@@ -340,6 +406,25 @@ def _unit_name(u: str) -> str:
     return f"{TYPE_NAMES.get(sig, sig)} · {REGIME_NAMES.get(reg, reg)}"
 
 
+SEG_CTX_NAMES = {"none": "无线段买点背景", "self": "线段级别买点本身", "B1": "线段一买后的笔买点",
+                 "B2": "线段二买后的笔买点", "B3": "线段三买后的笔买点"}
+MIN_INDUSTRY_TRADES = 30
+
+
+def _industry_of(trades: list[dict]):
+    """按行业分组，样本少于 MIN_INDUSTRY_TRADES 笔的行业合并为「其他」。"""
+    counts: dict[str, int] = {}
+    for t in trades:
+        ind = (t.get("tags") or {}).get("ind") or "未分类"
+        counts[ind] = counts.get(ind, 0) + 1
+
+    def fn(t: dict) -> str:
+        ind = (t.get("tags") or {}).get("ind") or "未分类"
+        return ind if counts.get(ind, 0) >= MIN_INDUSTRY_TRADES else "其他"
+
+    return fn
+
+
 def diagnose(trades: list[dict], control: list[dict]) -> list[dict]:
     """按维度拆分信号交易，每组与同市场状态的随机组比较。"""
     tag = lambda k, default: (lambda t: (t.get("tags") or {}).get(k, default))  # noqa: E731
@@ -351,6 +436,8 @@ def diagnose(trades: list[dict], control: list[dict]) -> list[dict]:
         ("week", "周线共振", tag("week", "flat"), lambda v: WEEK_NAMES.get(v, v), _regime),
         ("div", "背驰强度", tag("div", "none"), lambda v: DIV_NAMES.get(v, v), _regime),
         ("scope", "信号级别", lambda t: t.get("scope") or "bi", lambda v: SCOPE_NAMES.get(v, v), _regime),
+        ("seg_ctx", "线段背景", tag("seg_ctx", "none"), lambda v: SEG_CTX_NAMES.get(v, v), _regime),
+        ("industry", "行业", _industry_of(trades), lambda v: v, _regime),
     ]
     out = []
     for key, title, fn, name, strata in dims:
@@ -435,6 +522,9 @@ def summarize(trades: list[dict], control: list[dict] | None = None) -> tuple[di
             summary["matched_edge"] = matched_edge(trades, control, _year_regime)
             summary["diagnostics"] = diagnose(trades, control)
             summary["walk_forward"] = walk_forward(trades, control)
+            from app.research.analysis import factor_research
+
+            summary["factor_research"] = factor_research(trades, control)
     summary["note"] = SURVIVORSHIP_NOTE
     suggested = suggest_weights(summary["in_sample"]["by_signal"] if ins else by_sig)
     return summary, by_sig, suggested
@@ -499,7 +589,8 @@ def _attach_bench(trades: list[dict], bench: dict[date, float], bench_dates: lis
             t.setdefault("tags", {})["regime"] = regimes.get(bench_dates[i - 1], "unknown") if i else "unknown"
 
 
-EXPERIMENT_KEYS = {"target_cap_r", "rr_filter", "min_reward_risk", "hard_stop_pct", "time_stop_bars"}
+EXPERIMENT_KEYS = {"target_cap_r", "rr_filter", "min_reward_risk", "hard_stop_pct", "time_stop_bars",
+                   "divergence_ratio", "b1_require_strong"}
 
 
 async def run_backtest(ctx: JobContext, sample_size: int = 50, codes: list[str] | None = None, lookback_bars: int = 750,
@@ -523,6 +614,7 @@ async def run_backtest(ctx: JobContext, sample_size: int = 50, codes: list[str] 
     with session_scope() as db:
         st_codes = set(db.execute(select(StockBasic.code).where(StockBasic.is_st.is_(True))).scalars())
         delisted = set(db.execute(select(StockBasic.code).where(StockBasic.delisted_on.is_not(None), StockBasic.code.in_(codes))).scalars())
+        industries = dict(db.execute(select(StockBasic.code, StockBasic.industry).where(StockBasic.code.in_(codes))).all())
 
     run_params = {
         "sample_size": len(codes), "lookback_bars": lookback_bars, "entry_mode": entry_mode, "seed": seed,
@@ -540,16 +632,25 @@ async def run_backtest(ctx: JobContext, sample_size: int = 50, codes: list[str] 
 
     series: dict[str, list] = {}
     tag = f"{label}：" if label else ""
+    ctx.update(message=f"{tag}计算行业等权指数", force=True)
+    ind_idx = await asyncio.to_thread(industry_indices, bench_dates[0]) if bench_dates else {}
+    ind_dates = {k: sorted(v) for k, v in ind_idx.items()}
+
+    def aux_for(code: str) -> dict:
+        ind = industries.get(code)
+        return {"bench": bench, "bench_dates": bench_dates, "industry": ind,
+                "ind_index": ind_idx.get(ind) if ind else None, "ind_dates": ind_dates.get(ind) if ind else None}
 
     def _signals_pass() -> list[dict]:
         for code in codes:
             series[code] = load_bars(KlineDaily, code, lookback_bars + 250)
         kw = {"warmup": 250, "entry_mode": entry_mode, "use_rr_filter": use_rr_filter}
-        tasks = [(c, b, params, {**kw, "is_st": c in st_codes}, f"{seed}-{c}") for c, b in series.items() if len(b) >= 400]
+        tasks = [(c, b, params, {**kw, "is_st": c in st_codes, "aux": aux_for(c)}, f"{seed}-{c}")
+                 for c, b in series.items() if len(b) >= 400]
         return _run_parallel(tasks, lambda i, n: ctx.update(done=i, message=f"{tag}信号回测 {i}/{len(tasks)}，累计 {n} 笔"))
 
     def _control_pass(spec: _ControlSpec) -> list[dict]:
-        tasks = [(c, b, params, {"warmup": 250, "is_st": c in st_codes, "control": spec}, f"{seed}-ctrl-{c}")
+        tasks = [(c, b, params, {"warmup": 250, "is_st": c in st_codes, "control": spec, "aux": aux_for(c)}, f"{seed}-ctrl-{c}")
                  for c, b in series.items() if len(b) >= 400]
         return _run_parallel(tasks, lambda i, n: ctx.update(done=len(codes) + i, message=f"{tag}随机对照 {i}/{len(tasks)}，累计 {n} 笔"))
 
@@ -568,7 +669,8 @@ async def run_backtest(ctx: JobContext, sample_size: int = 50, codes: list[str] 
         _attach_bench(trades, bench, bench_dates, split_date, regimes)
         if control:
             _attach_bench(control, bench, bench_dates, split_date, regimes)
-        summary, by_sig, suggested = summarize(trades, control)
+        ctx.update(message=f"{tag}统计与因子研究", force=True)
+        summary, by_sig, suggested = await asyncio.to_thread(summarize, trades, control)
         cols = {c.name for c in BacktestTrade.__table__.columns} - {"id", "run_id"}
         with session_scope() as db:
             for t in trades + (control or []):
@@ -587,32 +689,44 @@ async def run_backtest(ctx: JobContext, sample_size: int = 50, codes: list[str] 
     return {"run_id": run_id, "trades": len(trades), "summary": {k: summary.get(k) for k in ("trades", "avg_r", "win_rate")}}
 
 
-EXIT_VARIANTS = [
-    ("基线：盈亏比过滤 + 缠论目标", {}),
-    ("取消盈亏比过滤", {"rr_filter": False}),
-    ("目标一封顶 2R", {"target_cap_r": 2.0}),
-    ("取消过滤 + 目标一封顶 2R", {"rr_filter": False, "target_cap_r": 2.0}),
-    ("取消过滤 + 目标一封顶 1.5R", {"rr_filter": False, "target_cap_r": 1.5}),
-]
+EXPERIMENTS: dict[str, tuple[str, list[tuple[str, dict]]]] = {
+    "exit": ("出场规则实验", [
+        ("基线：盈亏比过滤 + 缠论目标", {}),
+        ("取消盈亏比过滤", {"rr_filter": False}),
+        ("目标一封顶 2R", {"target_cap_r": 2.0}),
+        ("取消过滤 + 目标一封顶 2R", {"rr_filter": False, "target_cap_r": 2.0}),
+        ("取消过滤 + 目标一封顶 1.5R", {"rr_filter": False, "target_cap_r": 1.5}),
+    ]),
+    "divergence": ("背驰阈值实验", [
+        ("基线：阈值 0.9", {}),
+        ("阈值 0.7", {"divergence_ratio": 0.7}),
+        ("阈值 0.5", {"divergence_ratio": 0.5}),
+        ("阈值 0.9 + 一买要求强背驰", {"b1_require_strong": True}),
+        ("阈值 0.7 + 一买要求强背驰", {"divergence_ratio": 0.7, "b1_require_strong": True}),
+    ]),
+}
 
 
-async def run_exit_experiment(ctx: JobContext, sample_size: int = 1000, lookback_bars: int = 950, seed: int = 2026) -> dict:
-    """同一批股票、同一随机种子下比较几组出场规则，每组存为一条回测记录。"""
-    experiment = f"exit-{datetime.now():%Y%m%d%H%M}"
+async def run_param_experiment(ctx: JobContext, kind: str = "exit", sample_size: int = 1000, lookback_bars: int = 950,
+                               seed: int = 2026) -> dict:
+    """同一批股票、同一随机种子下比较几组参数，每组存为一条回测记录。"""
+    title, variants = EXPERIMENTS[kind]
+    experiment = f"{kind}-{datetime.now():%Y%m%d%H%M}"
     codes = _pick_codes(sample_size, None, seed)
     run_ids = []
-    for label, overrides in EXIT_VARIANTS:
+    for label, overrides in variants:
         res = await run_backtest(ctx, codes=codes, lookback_bars=lookback_bars, seed=seed, overrides=overrides,
-                                 label=label, experiment=experiment)
+                                 label=f"{title} · {label}", experiment=experiment)
         run_ids.append(res["run_id"])
     return {"experiment": experiment, "run_ids": run_ids}
 
 
-def compare_runs(experiment: str | None = None) -> dict:
-    """一次实验内各组的关键指标；不指定时取最近一次实验。"""
+def compare_runs(experiment: str | None = None, kind: str | None = None) -> dict:
+    """一次实验内各组的关键指标；不指定时取该类别最近一次实验。"""
     with session_scope() as db:
         rows = db.execute(select(BacktestRun).where(BacktestRun.status == "success").order_by(BacktestRun.id.desc()).limit(200)).scalars().all()
-        runs = [r for r in rows if (r.params or {}).get("experiment")]
+        runs = [r for r in rows if (r.params or {}).get("experiment")
+                and (kind is None or r.params["experiment"].startswith(f"{kind}-"))]
         if experiment is None and runs:
             experiment = runs[0].params["experiment"]
         runs = sorted((r for r in runs if r.params["experiment"] == experiment), key=lambda r: r.id)
@@ -622,7 +736,7 @@ def compare_runs(experiment: str | None = None) -> dict:
             reasons = s.get("exit_reasons") or {}
             n = s.get("trades") or 0
             items.append({
-                "id": r.id, "label": r.params.get("label"), "overrides": r.params.get("overrides"),
+                "id": r.id, "label": (r.params.get("label") or "").split(" · ", 1)[-1], "overrides": r.params.get("overrides"),
                 "trades": n, "win_rate": s.get("win_rate"), "avg_r": s.get("avg_r"), "avg_pnl_pct": s.get("avg_pnl_pct"),
                 "avg_excess": s.get("avg_excess"), "profit_factor": s.get("profit_factor"),
                 "avg_holding_days": s.get("avg_holding_days"),

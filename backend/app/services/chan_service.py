@@ -25,7 +25,8 @@ class StockAnalysis:
 
 def chan_config(params: dict | None = None) -> ChanConfig:
     params = params or get_active_params()
-    return ChanConfig(b2_stop_mode=params.get("b2_stop_mode", "loose"), signal_recent_bars=params.get("signal_recent_bars", 10))
+    return ChanConfig(b2_stop_mode=params.get("b2_stop_mode", "loose"), signal_recent_bars=params.get("signal_recent_bars", 10),
+                      divergence_ratio=float(params.get("divergence_ratio", 0.9)))
 
 
 def analyze_stock(code: str, end: date | None = None, cfg: ChanConfig | None = None) -> StockAnalysis | None:
