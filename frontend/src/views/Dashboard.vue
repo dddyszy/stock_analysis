@@ -7,7 +7,7 @@ import { useChart } from '@/composables/useChart'
 import { useJobPoller } from '@/composables/useJobPoller'
 import { COLORS, heatColor } from '@/utils/echartsTheme'
 import { POSITION_NAMES, REGIME_COLORS, WALK_NAMES, money, num, ratioPct } from '@/utils/format'
-import { EmptyState, PageHeader, PriceChange, RiskRewardBar, ScoreBar, ScoreRing, SectionCard, SignalBadge, Sparkline } from '@/components/ui'
+import { EmptyState, PageHeader, PriceChange, ScoreBar, SectionCard, SignalBadge, Sparkline } from '@/components/ui'
 
 const router = useRouter()
 const env = ref<any>(null)
@@ -28,7 +28,11 @@ const upRatio = computed(() => {
   return total ? { up: (b.value.up / total) * 100, flat: (b.value.flat / total) * 100, down: (b.value.down / total) * 100 } : null
 })
 const overview = computed(() => env.value?.detail?.tencent_overview)
-const topPicks = computed(() => (rec.value?.items || []).slice(0, 6))
+const dist = computed(() => {
+  const c: Record<string, number> = rec.value?.counts || {}
+  const total = Object.values(c).reduce((a, b) => a + b, 0) || 1
+  return Object.entries(c).map(([k, n]) => ({ key: k, name: rec.value?.state_names?.[k] || k, n, share: n / total }))
+})
 
 const gauge = useChart(
   () => {
@@ -133,7 +137,7 @@ async function load() {
     const [e, h, r, p, w] = await Promise.all([
       api.marketEnv(),
       api.marketEnvHistory(180),
-      api.recommendLatest(),
+      api.recommendStructures({ limit: 0 }),
       api.plans('open'),
       api.events(10, 'warning'),
     ])
@@ -266,29 +270,16 @@ onMounted(load)
 
       <!-- 结构候选 + 预警 -->
       <div class="grid bottom mt">
-        <SectionCard :title="`今日结构候选`" :subtitle="rec?.run ? `${rec.run.run_date} · ${rec.run.message}` : ''">
-          <template #extra><el-button link type="primary" @click="router.push('/picker')">查看全部</el-button></template>
-          <div v-if="topPicks.length" class="grid grid-3">
-            <div v-for="it in topPicks" :key="it.code" class="pick" @click="router.push(`/stock/${it.code}`)">
-              <div class="row-between">
-                <div class="grow">
-                  <div class="pick-name">{{ it.name }}</div>
-                  <div class="muted small"><span class="num">{{ it.code }}</span> · {{ it.industry }}</div>
-                </div>
-                <ScoreRing :value="it.score" :size="46" :stroke="5" />
-              </div>
-              <div class="row pick-mid">
-                <SignalBadge :type="it.signal_type" :date="it.signal_date" size="sm" />
-                <span class="num bold">{{ num(it.price) }}</span>
-              </div>
-              <RiskRewardBar :stop="it.stop_price" :price="it.price" :target1="it.target1" :show-labels="false" />
-              <div class="row-between small muted num">
-                <span class="down">止损 {{ num(it.stop_price) }}</span>
-                <span class="up">目标 {{ num(it.target1) }}</span>
-              </div>
+        <SectionCard title="今日结构分布" :subtitle="rec?.date ? `${rec.date} · 基本面与风险初筛通过的股票` : ''">
+          <template #extra><el-button link type="primary" @click="router.push('/picker')">结构筛选</el-button></template>
+          <div v-if="dist.length" class="dist">
+            <div v-for="d in dist" :key="d.key" class="dist-row" @click="router.push('/picker')">
+              <span class="dist-name">{{ d.name }}</span>
+              <div class="dist-bar"><div class="dist-fill" :style="{ width: `${Math.max(2, d.share * 100)}%` }" /></div>
+              <span class="num dist-n">{{ d.n }}</span>
             </div>
           </div>
-          <EmptyState v-else title="暂无结构候选" description="收盘后流水线会自动生成，也可以在结构候选页手动扫描" />
+          <EmptyState v-else title="暂无结构数据" description="收盘后流水线会自动生成，也可以在结构筛选页手动扫描" />
         </SectionCard>
         <SectionCard title="持仓与预警">
           <template #extra><el-button link type="primary" @click="router.push('/portfolio')">持仓页</el-button></template>
@@ -488,5 +479,31 @@ onMounted(load)
   padding-left: 2px;
   max-height: 300px;
   overflow-y: auto;
+}
+.dist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dist-row {
+  display: grid;
+  grid-template-columns: 150px 1fr 48px;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.dist-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--c-surface-2);
+}
+.dist-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--c-primary);
+}
+.dist-n {
+  text-align: right;
 }
 </style>

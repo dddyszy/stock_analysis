@@ -11,6 +11,7 @@ from app.providers.parsing import normalize_code
 from app.services.chan_service import analyze_stock
 from app.services.position_strategy import build_entry_plan
 from app.services.strategy_config import get_active_params
+from app.services.structure_report import build_report
 
 router = APIRouter(prefix="/api", tags=["stocks"])
 
@@ -63,6 +64,8 @@ def stock_chan(code: str, level: str = "day", bars: int = 400) -> dict:
         payload["zhongshus"] = [z for z in payload["zhongshus"] if z["end_dt"] >= cut]
         payload["signals"] = [s for s in payload["signals"] if s["dt"] >= cut]
     payload["multi_level"] = a.view.to_dict()
+    if level == "day":
+        payload["structure"] = build_report(code, a)
 
     params = get_active_params()
     env = latest_market_env()
@@ -73,6 +76,14 @@ def stock_chan(code: str, level: str = "day", bars: int = 400) -> dict:
         entry = build_entry_plan(a, recent[-1], params["default_equity"], params, cap).to_dict()
     payload["entry_plan"] = entry
     return payload
+
+
+@router.get("/stocks/{code}/structure")
+def stock_structure(code: str) -> dict:
+    report = build_report(_code(code))
+    if report is None:
+        raise HTTPException(404, "K 线数据不足")
+    return report
 
 
 @router.get("/stocks/{code}/quote")

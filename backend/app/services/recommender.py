@@ -24,10 +24,12 @@ from app.chan import TYPE_NAMES, Signal
 from app.db.models import KlineDaily, RecommendItem, RecommendRun, StockBasic
 from app.db.session import session_scope
 from app.providers import create_provider
+from app.analysis.structure import classify
 from app.services.ashare_rules import volume_lot
 from app.services.chan_service import StockAnalysis, analyze_stock, chan_config, save_signals, save_snapshot
 from app.services.jobs import JobContext
 from app.services.strategy_config import get_active_params
+from app.services.structure_state import save_states, state_row
 from app.services.sync import sync_finance_details
 
 logger = logging.getLogger(__name__)
@@ -128,7 +130,7 @@ def score_candidate(a: StockAnalysis, fund: FundamentalView, sector_strength: fl
 
 def _scan(codes: list[str], views: dict[str, FundamentalView], sectors: dict[str, float], industries: dict[str, str | None],
           params: dict, regime: str, calc_date: date, ctx: JobContext, stats: dict,
-          index_regime: str = "unknown") -> list[tuple[dict, StockAnalysis]]:
+          index_regime: str = "unknown", state_rows: list | None = None) -> list[tuple[dict, StockAnalysis]]:
     cfg = chan_config(params)
     results = []
     for i, code in enumerate(codes):
@@ -143,6 +145,8 @@ def _scan(codes: list[str], views: dict[str, FundamentalView], sectors: dict[str
             if a.week is not None:
                 wn = len(a.week.dates)
                 save_signals(code, [s for s in a.week.signals if wn - 1 - s.raw_idx <= 8], calc_date)
+            if state_rows is not None:
+                state_rows.append(state_row(code, calc_date, classify(a.day), classify(a.week) if a.week else None))
             amt = avg_amount_20(a)
             float_mv = views[code].metrics.get("float_mv")
             if amt is not None and amt < params["min_avg_amount"]:
@@ -187,7 +191,10 @@ async def run_recommendation(ctx: JobContext) -> dict:
     industries = {c: s.industry for c, s in basics.items()}
     stats = {"illiquid": 0, "small_cap": 0}
     ctx.update(done=0, total=len(passed), message=f"基本面与风险通过 {len(passed)}/{len(views)}，开始缠论扫描", force=True)
-    results = await asyncio.to_thread(_scan, passed, views, sectors, industries, params, regime, latest_bar, ctx, stats, index_regime)
+    state_rows: list[dict] = []
+    results = await asyncio.to_thread(_scan, passed, views, sectors, industries, params, regime, latest_bar, ctx, stats,
+                                      index_regime, state_rows)
+    save_states(latest_bar, state_rows)
     main = sorted([x for x in results if x[0]["pool"] == "main"], key=lambda x: x[0]["score"], reverse=True)
     watch = sorted([x for x in results if x[0]["pool"] == "watch"], key=lambda x: x[0]["score"], reverse=True)
     scan_count = len(results)

@@ -33,6 +33,8 @@ export const api = {
   addWatch: (code: string, note?: string) => post('/watchlist', { code, note }),
   delWatch: (code: string) => del(`/watchlist/${code}`),
   // 结构候选
+  recommendStructures: (params: Any) => get('/recommend/structures', params),
+  baseRates: () => get('/recommend/base-rates'),
   recommendLatest: () => get('/recommend/latest'),
   recommendRuns: () => get('/recommend/runs'),
   recommendRun: (id: number) => get(`/recommend/runs/${id}`),

@@ -198,6 +198,41 @@ class StockRiskLabelDaily(Base):
     severity: Mapped[str] = mapped_column(String(8))
 
 
+class StructureStateDaily(Base):
+    """每只股票每天的日线结构状态（收盘后扫描时写入），供结构筛选和结构异动使用。"""
+
+    __tablename__ = "structure_state_daily"
+    __table_args__ = (Index("ix_structure_state_daily_date_state", "trade_date", "state"),)
+
+    code: Mapped[str] = mapped_column(String(16), primary_key=True)
+    trade_date: Mapped[date] = mapped_column(Date, primary_key=True)
+    state: Mapped[str] = mapped_column(String(32))
+    price: Mapped[float | None] = mapped_column(Double)
+    upper: Mapped[float | None] = mapped_column(Double)
+    lower: Mapped[float | None] = mapped_column(Double)
+    levels: Mapped[list | None] = mapped_column(JSON)
+    signal: Mapped[dict | None] = mapped_column(JSON)
+    weekly_state: Mapped[str | None] = mapped_column(String(32))
+
+
+class StructureBaseRate(Base):
+    """结构基准率：按当时可见信息判定的结构状态，之后 N 日先触及上方还是下方价位的比例与收益分布。"""
+
+    __tablename__ = "structure_base_rate"
+
+    state: Mapped[str] = mapped_column(String(32), primary_key=True)
+    regime: Mapped[str] = mapped_column(String(8), primary_key=True)  # all / up / range / down
+    horizon: Mapped[int] = mapped_column(Integer, primary_key=True)
+    n: Mapped[int] = mapped_column(Integer)
+    outcomes: Mapped[dict] = mapped_column(JSON)  # {continue, exception, undecided, break_up, break_down} 的比例
+    mean_ret: Mapped[float | None] = mapped_column(Double)
+    median_ret: Mapped[float | None] = mapped_column(Double)
+    p_positive: Mapped[float | None] = mapped_column(Double)
+    mean_excess: Mapped[float | None] = mapped_column(Double)
+    computed_at: Mapped[datetime] = _now_col()
+    meta: Mapped[dict | None] = mapped_column(JSON)
+
+
 class MarketEnvDaily(Base):
     __tablename__ = "market_env_daily"
 

@@ -15,6 +15,7 @@ from app.services import app_sync, strategy_config, sync
 from app.services.jobs import cancel_job, register_labels, running_jobs, start_job
 from app.services.runtime_state import cooldown_until
 from app.services.position_strategy import evaluate_all
+from app.research.base_rates import run_base_rates
 from app.services.recommend_tracking import update_tracking
 from app.services.recommender import run_recommendation
 
@@ -32,6 +33,7 @@ JOBS = {
     "fundamentals": ("同步基本面（评分估值 + 候选股财报）", sync.sync_fundamentals),
     "recommend": ("扫描结构候选", run_recommendation),
     "tracking": ("更新候选跟踪", update_tracking),
+    "base_rates": ("统计结构基准率（逐日回放 1000 只，约 5 分钟）", run_base_rates),
     "evaluate_positions": ("评估持仓", evaluate_all),
     "post_close_pipeline": ("收盘后流水线（强制运行）", lambda ctx: post_close_pipeline(ctx, force=True)),
 }

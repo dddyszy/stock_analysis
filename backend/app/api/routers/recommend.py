@@ -1,8 +1,10 @@
 from fastapi import APIRouter, HTTPException
 
+from app.research.base_rates import base_rate_table
 from app.services.jobs import start_job
 from app.services.recommend_tracking import run_perf, tracking_summary, update_tracking
 from app.services.recommender import latest_run, list_runs, run_recommendation
+from app.services.structure_state import screen
 
 router = APIRouter(prefix="/api/recommend", tags=["recommend"])
 
@@ -23,6 +25,16 @@ def run_detail(run_id: int) -> dict:
     if r is None:
         raise HTTPException(404, "候选批次不存在")
     return r
+
+
+@router.get("/structures")
+def structures(states: str | None = None, industry: str | None = None, exclude_risk: bool = False, limit: int = 500) -> dict:
+    return screen([x for x in (states or "").split(",") if x] or None, industry or None, exclude_risk, limit)
+
+
+@router.get("/base-rates")
+def base_rates() -> dict:
+    return base_rate_table()
 
 
 @router.get("/tracking")

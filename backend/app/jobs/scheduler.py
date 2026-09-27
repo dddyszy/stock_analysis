@@ -93,6 +93,12 @@ async def job_intraday_stops() -> None:
         logger.exception("盘中止损检查失败")
 
 
+async def job_base_rates() -> None:
+    from app.research.base_rates import run_base_rates
+
+    await _guarded("base_rates", run_base_rates)
+
+
 async def job_data_check() -> None:
     try:
         await watchdog.check_data_fresh()
@@ -133,6 +139,7 @@ def start_scheduler() -> None:
     scheduler.add_job(job_fundamentals, CronTrigger(month="5,9,11", day="1-10", hour=18), id="fund_b", replace_existing=True)
     scheduler.add_job(job_intraday_stops, CronTrigger(day_of_week=weekdays, hour="9-14", minute="*/5"), id="intraday_stops", replace_existing=True)
     scheduler.add_job(job_sim_orders, CronTrigger(day_of_week=weekdays, hour="9-15", minute="*"), id="sim_orders", replace_existing=True)
+    scheduler.add_job(job_base_rates, CronTrigger(day_of_week="sat", hour=12), id="base_rates", replace_existing=True)
     scheduler.add_job(job_data_check, CronTrigger(day_of_week=weekdays, hour=16, minute=30), id="data_check", replace_existing=True)
     scheduler.add_job(job_evening_check, CronTrigger(day_of_week=weekdays, hour=17, minute=30), id="evening_check", replace_existing=True)
     scheduler.start()

@@ -7,7 +7,7 @@ import ChanChart from '@/components/ChanChart.vue'
 import EntryDialog from '@/components/EntryDialog.vue'
 import { useChart } from '@/composables/useChart'
 import { COLORS } from '@/utils/echartsTheme'
-import { POSITION_NAMES, WALK_NAMES, money, num, pct, percent } from '@/utils/format'
+import { POSITION_NAMES, WALK_NAMES, colorClass, money, num, pct, percent } from '@/utils/format'
 import { EmptyState, PriceChange, RiskRewardBar, ScoreBar, ScoreRing, SectionCard, SignalBadge, StatusSteps } from '@/components/ui'
 
 const route = useRoute()
@@ -33,15 +33,30 @@ const entryPlan = computed(() => (level.value === 'day' ? chan.value?.entry_plan
 const recentSignals = computed(() => [...(chan.value?.signals || [])].reverse().slice(0, 30))
 const lastBar = computed(() => chan.value?.bars?.[chan.value.bars.length - 1])
 const price = computed(() => quote.value?.price ?? lastBar.value?.[4])
+const structure = ref<any>(null)
+const LEVEL_COLORS: Record<string, string> = { stop: COLORS.down, target: COLORS.up, zg: COLORS.primary, zd: COLORS.primary, high: COLORS.text2, low: COLORS.text2 }
+const levelRows = computed(() =>
+  (structure.value?.state?.levels || []).map((l: any) => ({ ...l, dist: price.value && l.price ? (l.price / price.value - 1) * 100 : null })),
+)
+const HORIZONS = [5, 10, 20]
+const ret10 = computed(() => structure.value?.returns?.['10'] || structure.value?.returns?.[10])
+function rateOf(sc: any, h: number) {
+  const v = sc.rates?.[h] ?? sc.rates?.[String(h)]
+  return v == null ? '--' : `${Math.round(v * 100)}%`
+}
 const lines = computed(() => {
   const out: any[] = []
   if (plan.value) {
     out.push({ name: '止损', value: plan.value.current_stop, color: COLORS.down })
     out.push({ name: '成本', value: plan.value.entry_price, color: COLORS.text2 })
     if (plan.value.target1) out.push({ name: '目标一', value: plan.value.target1, color: COLORS.up })
-  } else if (entryPlan.value) {
-    out.push({ name: '建议止损', value: entryPlan.value.stop, color: COLORS.down })
-    if (entryPlan.value.target1) out.push({ name: '目标一', value: entryPlan.value.target1, color: COLORS.up })
+  } else if (level.value === 'day') {
+    for (const l of structure.value?.state?.levels || []) {
+      if (!l.price) continue
+      const same = out.find((o) => Math.abs(o.value / l.price - 1) < 0.001)
+      if (same) same.name += ` / ${l.name}`
+      else out.push({ name: l.name, value: l.price, color: LEVEL_COLORS[l.kind] || COLORS.text2 })
+    }
   }
   return out
 })
@@ -72,6 +87,7 @@ async function loadChan() {
   loading.value = true
   try {
     chan.value = await api.stockChan(code.value, level.value, bars.value)
+    if (level.value === 'day') structure.value = chan.value?.structure || null
   } finally {
     loading.value = false
   }
@@ -129,6 +145,46 @@ onMounted(load)
           <el-button v-if="entryPlan && !plan && !isIndex" type="danger" @click="entryVisible = true">按信号开仓</el-button>
         </div>
       </div>
+    </SectionCard>
+
+    <SectionCard v-if="structure" title="结构解读" :subtitle="`${structure.date} · 大盘处于${structure.index_regime_name}期 · 只描述结构，不预测涨跌`" class="mt">
+      <div class="st-head">
+        <span class="st-state">日线：{{ structure.state.name }}</span>
+        <span v-if="structure.weekly_state" class="muted">周线：{{ structure.weekly_state.name }}</span>
+        <span v-if="structure.state.signal" class="muted">信号：{{ structure.state.signal.name }}（{{ structure.state.signal.date }}，{{ structure.state.signal.confirmed ? '已确认' : '未确认' }}）</span>
+      </div>
+      <div class="st-body">
+        <div class="scenarios">
+          <div v-for="sc in structure.scenarios" :key="sc.kind" class="scenario" :class="sc.kind">
+            <div class="sc-title">{{ sc.title }}</div>
+            <div class="sc-cond">{{ sc.condition }}</div>
+            <div class="sc-rate small">
+              <span class="muted">同类结构历史上先走出这一情形的比例：</span>
+              <span v-for="h in HORIZONS" :key="h" class="num">{{ h }} 日内 {{ rateOf(sc, h) }}</span>
+            </div>
+          </div>
+          <div v-if="ret10" class="muted small">
+            10 日内两条线都没碰到的占 {{ rateOf({ rates: structure.undecided }, 10) }} · 样本 {{ ret10.n }} 个（{{ ret10.regime === 'all' ? '全部市场状态' : `大盘${structure.index_regime_name}期` }}）
+          </div>
+          <div v-else class="muted small">历史比例尚未统计：到设置页运行「统计结构基准率」（每周六也会自动运行）。</div>
+        </div>
+        <div class="levels">
+          <el-table :data="levelRows" size="small">
+            <el-table-column prop="name" label="关键价位" />
+            <el-table-column label="价格" width="90"><template #default="{ row }"><span class="num">{{ num(row.price) }}</span></template></el-table-column>
+            <el-table-column label="距现价" width="90"><template #default="{ row }"><span class="num" :class="colorClass(row.dist)">{{ row.dist == null ? '--' : `${row.dist > 0 ? '+' : ''}${row.dist.toFixed(1)}%` }}</span></template></el-table-column>
+          </el-table>
+          <div v-if="ret10" class="small ret">
+            同类结构之后 10 个交易日：平均 <b class="num" :class="colorClass(ret10.mean_ret)">{{ num(ret10.mean_ret, 2) }}%</b>，
+            上涨比例 <b class="num">{{ Math.round((ret10.p_positive || 0) * 100) }}%</b>，
+            相对中证 1000 <b class="num" :class="colorClass(ret10.mean_excess)">{{ num(ret10.mean_excess, 2) }}%</b>
+          </div>
+        </div>
+      </div>
+      <ul v-if="structure.notes.length" class="reasons small st-notes">
+        <li v-for="n in structure.notes" :key="n">{{ n }}</li>
+      </ul>
+      <div class="muted small">{{ structure.caveat }}</div>
     </SectionCard>
 
     <div class="grid body mt">
@@ -209,7 +265,7 @@ onMounted(load)
             <div class="full"><span>止损来源</span><b class="small">{{ plan.stop_source }}</b></div>
           </div>
         </SectionCard>
-        <SectionCard v-else-if="entryPlan" :title="`开仓参考 · ${entryPlan.signal_name}`">
+        <SectionCard v-else-if="entryPlan" :title="`如果按这个结构交易 · ${entryPlan.signal_name}`" subtitle="认错位与按风险计算的仓位">
           <template #extra><SignalBadge :type="entryPlan.signal_type" :date="entryPlan.signal_date" size="sm" /></template>
           <RiskRewardBar :stop="entryPlan.stop" :price="entryPlan.entry_price" :target1="entryPlan.target1" :target2="entryPlan.target2" />
           <div class="kv mt-12">
@@ -427,6 +483,65 @@ onMounted(load)
   background: var(--c-surface-2);
   border: 1px solid var(--c-border);
   color: var(--c-text-2);
+}
+.st-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+.st-state {
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--c-primary-soft);
+  color: var(--c-primary);
+  font-size: 15px;
+  font-weight: 600;
+}
+.st-body {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: var(--gap);
+}
+.scenarios {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.scenario {
+  border: 1px solid var(--c-border);
+  border-left: 4px solid var(--c-text-3);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+.scenario.continue,
+.scenario.break_up {
+  border-left-color: var(--c-up);
+}
+.scenario.exception,
+.scenario.break_down {
+  border-left-color: var(--c-down);
+}
+.sc-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.sc-cond {
+  line-height: 1.6;
+}
+.sc-rate {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+}
+.ret {
+  margin-top: 10px;
+  line-height: 1.8;
+}
+.st-notes {
+  margin: 12px 0 6px;
 }
 .chip.hot {
   color: var(--c-up);

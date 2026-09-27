@@ -80,9 +80,9 @@ const hitChart = useChart(
       series: [{
         type: 'pie', radius: ['48%', '72%'], center: ['38%', '50%'], label: { show: false },
         data: [
-          { name: '先到目标一', value: h.target, itemStyle: { color: COLORS.up } },
-          { name: '先触及止损', value: h.stop, itemStyle: { color: COLORS.down } },
-          { name: '都未触及', value: h.none, itemStyle: { color: '#cbd2dc' } },
+          { name: '延续（先到目标一）', value: h.target, itemStyle: { color: COLORS.up } },
+          { name: '例外（先跌破认错位）', value: h.stop, itemStyle: { color: COLORS.down } },
+          { name: '未分出', value: h.none, itemStyle: { color: '#cbd2dc' } },
         ],
       }],
     }
@@ -111,7 +111,7 @@ onMounted(load)
 
 <template>
   <div class="page" v-loading="loading && !data">
-    <PageHeader title="候选跟踪" subtitle="每条候选按次日开盘价入场，统计之后 5/10/20 个交易日的收益，以及相对沪深 300、中证 1000 的超额；次日一字涨停视为买不进，不计入统计">
+    <PageHeader title="结构跟踪" subtitle="每天筛出的买点结构，之后是先走出延续（到达目标一）还是例外（跌破认错位），用来核对结构基准率在实盘中是否成立；收益按次日开盘价计算">
       <el-radio-group v-model="horizon" size="small">
         <el-radio-button value="5">5 日</el-radio-button>
         <el-radio-button value="10">10 日</el-radio-button>
@@ -122,11 +122,11 @@ onMounted(load)
 
     <SectionCard v-if="data && !hasData">
       <EmptyState
-        title="候选满 5 个交易日后开始有数据"
-        :description="`目前共跟踪 ${data.total_items} 条候选。每个交易日收盘后会自动更新；有了数据后，这里会显示候选股的真实后续表现，用来检验回测结论是否在实盘中成立。`"
+        title="买点结构满 5 个交易日后开始有数据"
+        :description="`目前共跟踪 ${data.total_items} 条买点结构。每个交易日收盘后会自动更新；有了数据后，这里会显示它们实际走出延续还是例外，用来核对历史比例在实盘中是否成立。`"
         icon="DataLine"
       >
-        <el-button @click="router.push('/picker')">查看当前候选</el-button>
+        <el-button @click="router.push('/picker')">查看结构筛选</el-button>
       </EmptyState>
     </SectionCard>
 
@@ -148,7 +148,7 @@ onMounted(load)
         <SectionCard title="累计超额曲线" subtitle="每批主候选 5 日平均超额（相对中证 1000）的累加">
           <div :ref="curveChart.el" style="height: 280px" />
         </SectionCard>
-        <SectionCard title="先到目标还是先止损" subtitle="主候选，至少跟踪 5 天">
+        <SectionCard title="先走出延续还是例外" subtitle="主候选，至少跟踪 5 天">
           <div :ref="hitChart.el" style="height: 280px" />
         </SectionCard>
       </div>
@@ -203,9 +203,9 @@ onMounted(load)
         <el-table-column label="20 日" width="80"><template #default="{ row }"><span class="num" :class="colorClass(row.ret20)">{{ percent(row.ret20, 1) }}</span></template></el-table-column>
         <el-table-column label="10 日超额" width="90"><template #default="{ row }"><span class="num" :class="colorClass(row.ex1000_10)">{{ percent(row.ex1000_10, 1) }}</span></template></el-table-column>
         <el-table-column label="最大回撤" width="90"><template #default="{ row }"><span class="num down">{{ percent(row.max_drawdown, 1) }}</span></template></el-table-column>
-        <el-table-column label="先触及" width="80">
+        <el-table-column label="走出" width="80">
           <template #default="{ row }">
-            <el-tag v-if="row.first_hit" size="small" effect="plain" :type="row.first_hit === 'target' ? 'danger' : 'success'">{{ row.first_hit === 'target' ? '目标一' : '止损' }}</el-tag>
+            <el-tag v-if="row.first_hit" size="small" effect="plain" :type="row.first_hit === 'target' ? 'danger' : 'success'">{{ row.first_hit === 'target' ? '延续' : '例外' }}</el-tag>
             <span v-else class="muted">--</span>
           </template>
         </el-table-column>

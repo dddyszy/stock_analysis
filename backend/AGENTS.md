@@ -30,6 +30,12 @@
 - 需要让用户知道的异常（任务失败、步骤部分失败、数据过期、授权失效、盘中止损等）调用 `services/notify.py` 的 `notify(event, title, message, level, key)`；同一 `event + key` 每天只记一次。任务失败和重启中断已在 `services/jobs.py` 自动通知，不要重复发。
 - 限频严格的 MCP 工具在一次运行中被限频过多时，用 `services/runtime_state.py` 的 `set_cooldown` 记下冷却时间，后续运行先查 `cooldown_until` 再决定是否调用。
 
+## 结构分析（v0.6 起的核心）
+
+- 结构状态只能用 `analysis/structure.py` 的 `classify()` 判定；实盘报告（`services/structure_report.py`）、每日状态表（`structure_state_daily`）和历史基准率（`research/base_rates.py`）必须共用它，保证页面上的历史比例统计的是同一种结构。新增状态要同时补 `STATE_NAMES`、`scenarios()` 的文案和 `tests/test_structure.py`。
+- 每个状态的上方 / 下方价位必须满足「下方 ≤ 现价 ≤ 上方」；「延续 / 例外」按之后收盘价先越过哪条线判定（`first_touch` / `outcome`）。
+- 历史比例只能按当时可见的数据逐日回放统计，样本少于 `MIN_CELL` 的格子不展示；报告文案只描述结构和比例，不写「建议买入」「看涨」之类的预测性结论。
+
 ## 快照与测试数据
 
 - 只保留最新值的表（`stock_basic`、`stock_risk_label`）必须同时写每日快照（`stock_status_daily`、`stock_risk_label_daily`）；回测读取历史状态一律用 `services/snapshot.py` 的 `snapshot_at(日期)`。

@@ -188,7 +188,7 @@ onMounted(() => {
 
 <template>
   <div class="page">
-    <PageHeader title="策略回测" subtitle="逐根 K 线向前推进，每一步只用当时可见的数据重算缠论结构，避免笔和线段“重画”带来的未来函数；止损止盈规则与持仓策略一致" />
+    <PageHeader title="规律检验" subtitle="检验一个看法在历史上是否成立：逐根 K 线推进、每一步只用当时可见的数据，并与同期、同市场状态的随机入场比较。结果只说明过去，不预测未来" />
 
     <div class="grid layout">
       <div class="left">
