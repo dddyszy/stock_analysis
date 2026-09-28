@@ -34,10 +34,11 @@ settings = get_settings()
 VALUE_START = date(2014, 1, 1)
 FIN_START = "2011-12-31"
 POOL_MIN_YIELD = 3.0
-FIN_BATCH = 5
+# 一次调用返回的记录数有上限：5 只 × 约 60 期时排在后面的股票会被截掉，3 只以内完整
+FIN_BATCH = 3
 FIN_MAX_AGE_DAYS = 30
 # data_finance 实测最紧：配额用完后约每 5～60 秒才放行 1 次，所以被限频时原地等待重试同一批
-FIN_LIMIT_WAITS = (30, 60, 120, 300, 600)
+FIN_LIMIT_WAITS = (10, 20, 40, 80, 160, 300)
 DAILY_REFRESH_DAYS = 30
 KLINE_WORKERS = 6
 FILTER_START = date(2018, 1, 1)
@@ -255,7 +256,10 @@ async def convert_stored_klines(ctx: JobContext | None = None) -> dict:
 
 async def sync_value_finance(ctx: JobContext | None = None, codes: list[str] | None = None,
                              max_age_days: int = FIN_MAX_AGE_DAYS, time_budget: float | None = None) -> dict:
-    """给价值池拉 2011 年以来的利润表指标（带公告日）；每批 5 只一次调用，受 MCP 限频约束，断点续传。"""
+    """给价值池拉 2011 年以来的利润表指标（带公告日）；每批 3 只一次调用，受 MCP 限频约束，断点续传。
+
+    批次里缺失的股票放回队尾重试一次，仍然拿不到才记为失败（不记完成），下次运行再拉。
+    """
     if _is_mock():
         return {"skipped": "mock"}
     codes = codes or pool_codes()
@@ -266,12 +270,16 @@ async def sync_value_finance(ctx: JobContext | None = None, codes: list[str] | N
         ctx.update(done=0, total=len(todo), message=f"拉取价值池财报历史：待处理 {len(todo)} 只（{stats['cached']} 只已是最新）", force=True)
     deadline = time.monotonic() + time_budget if time_budget else None
     end = date.today().isoformat()
+    queue = [todo[i : i + FIN_BATCH] for i in range(0, len(todo), FIN_BATCH)]
+    retried: set[str] = set()
+    done = 0
     async with create_provider() as provider:
-        for i in range(0, len(todo), FIN_BATCH):
+        while queue:
             if deadline is not None and time.monotonic() > deadline:
-                stats["deferred"] = len(todo) - i
+                stats["deferred"] = sum(len(c) for c in queue)
                 break
-            chunk = todo[i : i + FIN_BATCH]
+            chunk = queue.pop(0)
+            i = done
             batch = None
             for wait in (*FIN_LIMIT_WAITS, None):
                 try:
@@ -291,16 +299,25 @@ async def sync_value_finance(ctx: JobContext | None = None, codes: list[str] | N
             if batch is None:
                 stats["failed_batches"] += 1
                 continue
+            missing = []
             for code in chunk:
                 rows = finance_rows(code, batch.get(code, []))
                 if rows:
-                    _upsert_finance(rows)
+                    await asyncio.to_thread(_upsert_finance, rows)
                     stats["ok"] += 1
+                    await asyncio.to_thread(_set_progress, "value_finance", code, "done", date.today())
+                    done += 1
+                elif code not in retried:
+                    missing.append(code)
                 else:
                     stats["empty"] += 1
-                _set_progress("value_finance", code, "done", last_date=date.today())
+                    await asyncio.to_thread(_set_progress, "value_finance", code, "failed", None, "财报接口没有返回这只股票的数据")
+                    done += 1
+            if missing:
+                retried.update(missing)
+                queue.append(missing)
             if ctx:
-                ctx.update(done=min(i + FIN_BATCH, len(todo)), message=f"财报历史 {min(i + FIN_BATCH, len(todo))}/{len(todo)}，成功 {stats['ok']}，无数据 {stats['empty']}")
+                ctx.update(done=done, message=f"财报历史 {done}/{len(todo)}，成功 {stats['ok']}，无数据 {stats['empty']}")
     return stats
 
 

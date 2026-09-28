@@ -159,6 +159,12 @@ def _log_call(tool: str, args: dict | None, ok: bool, duration_ms: int, error: s
         logger.exception("写入 mcp_call_log 失败")
 
 
+# 实测（app/mcp/rate_probe.py）：data_finance 配额用完后约每 5～10 秒放行一次，默认的最低速率（30 秒一次）太保守
+TOOL_LIMITS: dict[str, dict] = {
+    "data_finance": {"min_rate": 1 / 10, "max_cooldown": 60.0, "base_cooldown": 5.0},
+}
+
+
 class _Limits:
     """进程内共享的限流器，所有会话共用：全局令牌桶 + 并发上限 + 每个工具的自适应限流。"""
 
@@ -171,7 +177,7 @@ class _Limits:
 
     def tool(self, name: str) -> AdaptiveLimiter:
         if name not in self.per_tool:
-            self.per_tool[name] = AdaptiveLimiter(self.rate)
+            self.per_tool[name] = AdaptiveLimiter(self.rate, **TOOL_LIMITS.get(name, {}))
         return self.per_tool[name]
 
 
