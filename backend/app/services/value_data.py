@@ -17,7 +17,7 @@ from app.analysis.value import Event, FinRow, build_series, max_dividend_yield, 
 from app.core.config import get_settings
 from app.db.models import DividendEvent, FilterSnapshot, FinanceHistory, KlineDailyRaw, StockBasic, SyncProgress, ValuationSnapshot
 from app.db.session import session_scope
-from app.mcp.errors import McpAuthError, McpBusinessError, McpRateLimited
+from app.mcp.errors import McpAuthError, McpBusinessError, McpRateLimited, McpTransportError
 from app.providers import create_provider
 from app.providers.parsing import to_date, to_float
 from app.providers.tencent_public import TencentPublicQuotes
@@ -33,6 +33,8 @@ FIN_START = "2011-12-31"
 POOL_MIN_YIELD = 3.0
 FIN_BATCH = 5
 FIN_MAX_AGE_DAYS = 30
+# data_finance 实测最紧：配额用完后约每 5～60 秒才放行 1 次，所以被限频时原地等待重试同一批
+FIN_LIMIT_WAITS = (30, 60, 120, 300, 600)
 DAILY_REFRESH_DAYS = 30
 KLINE_WORKERS = 6
 FILTER_START = date(2018, 1, 1)
@@ -219,13 +221,24 @@ async def sync_value_finance(ctx: JobContext | None = None, codes: list[str] | N
                 stats["deferred"] = len(todo) - i
                 break
             chunk = todo[i : i + FIN_BATCH]
-            try:
-                batch = await provider.finance_history(chunk, FIN_START, end)
-            except McpAuthError:
-                raise
-            except (McpBusinessError, McpRateLimited) as exc:
+            batch = None
+            for wait in (*FIN_LIMIT_WAITS, None):
+                try:
+                    batch = await provider.finance_history(chunk, FIN_START, end)
+                    break
+                except McpAuthError:
+                    raise
+                except McpRateLimited:
+                    if wait is None:
+                        break
+                    if ctx:
+                        ctx.update(message=f"财报接口限频，{wait} 秒后重试（已完成 {i}/{len(todo)}）", force=True)
+                    await asyncio.sleep(wait)
+                except (McpBusinessError, McpTransportError) as exc:
+                    logger.warning("财报历史批次失败: %s", exc)
+                    break
+            if batch is None:
                 stats["failed_batches"] += 1
-                logger.warning("财报历史批次失败: %s", exc)
                 continue
             for code in chunk:
                 rows = finance_rows(code, batch.get(code, []))

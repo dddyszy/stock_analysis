@@ -23,6 +23,8 @@ cd backend && DATA_PROVIDER=mock uv run uvicorn app.main:app --port 8000
 
 ## 数据来源分工（不要随意更改）
 
+数据源只用两类：腾讯自选股 MCP（westock-mcp）和腾讯公开接口，保持口径一致；不要引入东方财富、新浪、Tushare 等其他来源，即使它们更快。
+
 | 数据 | 来源 |
 | --- | --- |
 | 历史日线、行情快照、PE/PB/市值 | 腾讯公开接口（`backend/app/providers/tencent_public.py`，自适应限速、多域名轮换） |
@@ -35,7 +37,7 @@ cd backend && DATA_PROVIDER=mock uv run uvicorn app.main:app --port 8000
 
 | 风险标签与风险事件 | MCP `tool_label` / `tool_event` 批量名单（部分标签上游只返回前 200 只） |
 
-westock-mcp 的行情类工具每个约每分钟只允许 3～5 次调用。新增 MCP 调用必须考虑限频：能批量就批量；可选数据必须设超时，拿不到就降级。
+westock-mcp 各工具限频差别很大（2026-09-28 用 `uv run python -m app.mcp.rate_probe` 实测）：`data_dividend`、`data_changedist` 连续 60 次不限；`tool_filter` 约 20 次后限频、5 秒恢复；`data_score` 约 25 次后限频、30 秒恢复；`data_kline` 约 16 次、`data_quote` 约 8 次后限频，恢复要 1～2.5 分钟；`data_finance`、`data_risk` 最紧，配额用完后约每 5～60 秒才放行 1 次，而且还有更长周期的配额。大批量的行情、K 线、估值、分红一律走腾讯公开接口；新增 MCP 调用必须考虑限频：能批量就批量；可选数据必须设超时，拿不到就降级。
 
 ## 投资口径（不要随意更改）
 

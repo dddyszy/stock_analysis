@@ -14,7 +14,7 @@
 - 一律走 `McpSession.call`。它负责：全局限流和按工具的自适应限流、"服务限频"冷却重试、临时错误重试、401 自动续期、记录 `mcp_call_log`。
 - 字段解析用 `providers/parsing.py` 的 `pick` / `find_records` / `to_float` 等容错函数。接入新工具时，先运行 `uv run python -m app.mcp.probe` 保存真实样本到 `tests/fixtures/mcp/`，再按真实字段写解析，并在 `tests/test_real_fixtures.py` 补用例。
 - 可选数据（风险、市场画像、实时宽度等）必须用 `asyncio.wait_for` 设超时，失败就降级，不能让任务卡住。
-- 已知限制：`data_finance` 单次只能可靠返回 5 只；`data_score` 单次 100 只；`data_sector` 的成份股 code 字段有误，股票池改用 `tool_filter` 按行业获取。
+- 已知限制：`data_finance` 单次只能可靠返回 5 只，限频最紧（见根目录 AGENTS.md 的实测值），批量任务被限频时要原地等待重试，不能跳过；`data_score` 单次 100 只；`data_sector` 的成份股 code 字段有误，股票池改用 `tool_filter` 按行业获取。
 
 ## 数据库
 
