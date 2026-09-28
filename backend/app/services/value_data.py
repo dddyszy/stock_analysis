@@ -32,10 +32,10 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 VALUE_START = date(2014, 1, 1)
-FIN_START = "2011-12-31"
+FIN_START = "2020-03-31"  # 近三年 ROE 从 2022 年报公告（2023 年 4 月）起才完整
 POOL_MIN_YIELD = 3.0
-# 一次调用返回的记录数有上限：5 只 × 约 60 期时排在后面的股票会被截掉，3 只以内完整
-FIN_BATCH = 3
+# 一次调用返回的记录数有上限（约 200 条）：从 2020 年起每只约 26 期，6 只一批不会被截断
+FIN_BATCH = 6
 FIN_MAX_AGE_DAYS = 30
 # data_finance 实测最紧：配额用完后约每 5～60 秒才放行 1 次，所以被限频时原地等待重试同一批
 FIN_LIMIT_WAITS = (10, 20, 40, 80, 160, 300)
@@ -256,13 +256,15 @@ async def convert_stored_klines(ctx: JobContext | None = None) -> dict:
 
 async def sync_value_finance(ctx: JobContext | None = None, codes: list[str] | None = None,
                              max_age_days: int = FIN_MAX_AGE_DAYS, time_budget: float | None = None) -> dict:
-    """给价值池拉 2011 年以来的利润表指标（带公告日）；每批 3 只一次调用，受 MCP 限频约束，断点续传。
+    """给价值池拉 2020 年以来的利润表指标（带公告日）；每批 6 只一次调用，受 MCP 限频约束，断点续传。
+
+    默认按优先级排序：今天的行情里 PE、股息率、市值接近点金术门槛的股票先拉，策略页可以更早可用。
 
     批次里缺失的股票放回队尾重试一次，仍然拿不到才记为失败（不记完成），下次运行再拉。
     """
     if _is_mock():
         return {"skipped": "mock"}
-    codes = codes or pool_codes()
+    codes = codes or _prioritized(pool_codes())
     fresh = _done_codes("value_finance", datetime.now() - timedelta(days=max_age_days))
     todo = [c for c in codes if c not in fresh]
     stats = {"total": len(todo), "ok": 0, "empty": 0, "failed_batches": 0, "cached": len(codes) - len(todo)}
@@ -322,6 +324,18 @@ async def sync_value_finance(ctx: JobContext | None = None, codes: list[str] | N
 
 
 # ---------- 条件选股快照与核对 ----------
+
+
+def _prioritized(codes: list[str]) -> list[str]:
+    with session_scope() as db:
+        latest = db.scalar(select(func.max(ValuationSnapshot.trade_date)))
+        near = set() if latest is None else set(db.execute(
+            select(ValuationSnapshot.code).where(
+                ValuationSnapshot.trade_date == latest, ValuationSnapshot.pe_ttm > 0, ValuationSnapshot.pe_ttm < 25,
+                ValuationSnapshot.dividend_yield >= 2.5, ValuationSnapshot.total_mv >= 4e9,
+            )
+        ).scalars())
+    return sorted(codes, key=lambda c: (c not in near, c))
 
 
 def _snapshot_dates() -> list[date]:
