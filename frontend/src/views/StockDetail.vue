@@ -34,6 +34,7 @@ const recentSignals = computed(() => [...(chan.value?.signals || [])].reverse().
 const lastBar = computed(() => chan.value?.bars?.[chan.value.bars.length - 1])
 const price = computed(() => quote.value?.price ?? lastBar.value?.[4])
 const structure = ref<any>(null)
+const views = ref<any[]>([])
 const LEVEL_COLORS: Record<string, string> = { stop: COLORS.down, target: COLORS.up, zg: COLORS.primary, zd: COLORS.primary, high: COLORS.text2, low: COLORS.text2 }
 const levelRows = computed(() =>
   (structure.value?.state?.levels || []).map((l: any) => ({ ...l, dist: price.value && l.price ? (l.price / price.value - 1) * 100 : null })),
@@ -107,6 +108,8 @@ async function load() {
   api.stockQuote(code.value).then((q) => (quote.value = q)).catch(() => undefined)
   api.stockFundamentals(code.value).then((r) => (fundRows.value = r)).catch(() => undefined)
   api.plans('open').then((p) => (plans.value = p)).catch(() => undefined)
+  const want = code.value
+  api.stockStrategies(want).then((v: any[]) => { if (want === code.value) views.value = v }).catch(() => (views.value = []))
 }
 
 async function toggleWatch() {
@@ -193,6 +196,27 @@ onMounted(load)
         <li v-for="n in structure.notes" :key="n">{{ n }}</li>
       </ul>
       <div class="muted small">{{ structure.caveat }}</div>
+    </SectionCard>
+
+    <SectionCard v-if="views.length" title="多策略视角" subtitle="每种策略对这只股票的判定；各策略的检验结论见「策略」页" class="mt">
+      <div class="views">
+        <div v-for="v in views" :key="v.key" class="view" :class="{ off: !v.available }">
+          <div class="row-between">
+            <span class="bold">{{ v.name }}</span>
+            <el-tag v-if="v.available && v.key !== 'chan'" size="small" effect="plain" :type="v.passed ? 'danger' : 'info'">{{ v.passed ? v.zone_name : '未通过筛选' }}</el-tag>
+            <el-tag v-else-if="v.available" size="small" effect="plain">{{ v.zone_name }}</el-tag>
+          </div>
+          <div class="muted small mt-8">{{ v.summary }}</div>
+          <div v-if="v.criteria?.length" class="crit">
+            <span v-for="c in v.criteria" :key="c.key" class="chip" :class="c.passed ? 'ok' : c.passed === false ? 'bad' : ''">
+              {{ c.passed ? '✓' : c.passed === false ? '✗' : '?' }} {{ c.name }} {{ c.value }}<span class="muted">（{{ c.rule }}）</span>
+            </span>
+          </div>
+          <div v-if="v.metrics?.ma120" class="muted small mt-8 num">
+            MA120 {{ num(v.metrics.ma120) }} · 买入线 {{ num(v.metrics.buy_line) }} · 卖出线 {{ num(v.metrics.sell_line) }}
+          </div>
+        </div>
+      </div>
     </SectionCard>
 
     <div class="grid body mt">
@@ -371,6 +395,35 @@ onMounted(load)
 </template>
 
 <style scoped>
+.views {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.view {
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+.view.off {
+  opacity: 0.6;
+}
+.crit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-top: 8px;
+}
+.chip {
+  font-size: 12px;
+}
+.chip.ok {
+  color: var(--c-text);
+}
+.chip.bad {
+  color: var(--c-text-3);
+  text-decoration: line-through;
+}
 .header {
   display: flex;
   align-items: center;

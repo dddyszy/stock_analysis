@@ -34,6 +34,9 @@ export const api = {
   delWatch: (code: string) => del(`/watchlist/${code}`),
   // 结构候选
   recommendStructures: (params: Any) => get('/recommend/structures', params),
+  strategies: () => get('/strategies'),
+  strategyScreen: (key: string, params: Any) => get(`/strategies/${key}/screen`, params),
+  stockStrategies: (code: string) => get(`/strategies/stock/${code}`, undefined, true),
   baseRates: () => get('/recommend/base-rates'),
   recommendLatest: () => get('/recommend/latest'),
   recommendRuns: () => get('/recommend/runs'),

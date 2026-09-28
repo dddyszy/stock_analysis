@@ -481,6 +481,9 @@ async def value_daily(ctx: JobContext) -> dict:
     finally:
         await pub.close()
     stats["finance"] = await sync_value_finance(ctx, time_budget=600)
+    from app.services.strategy_scan import scan_strategies
+
+    stats["strategies"] = await scan_strategies(ctx)
     return stats
 
 

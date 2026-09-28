@@ -30,6 +30,11 @@
 - 需要让用户知道的异常（任务失败、步骤部分失败、数据过期、授权失效、盘中止损等）调用 `services/notify.py` 的 `notify(event, title, message, level, key)`；同一 `event + key` 每天只记一次。任务失败和重启中断已在 `services/jobs.py` 自动通知，不要重复发。
 - 限频严格的 MCP 工具在一次运行中被限频过多时，用 `services/runtime_state.py` 的 `set_cooldown` 记下冷却时间，后续运行先查 `cooldown_until` 再决定是否调用。
 
+## 多策略
+
+- 策略放在 `app/strategies/`，每个策略提供单只股票的判定函数（如 `dianjin.evaluate(series, params, i)`），实盘扫描（`services/strategy_scan.py`）和回测必须调用同一个函数，第 i 根 K 线的判定只能用到第 i 根及以前的数据。
+- 策略页必须显示该策略的回测结论（未检验时显示「尚未检验」）和幸存者偏差提示；新策略不能进入「推荐」页的综合分。
+
 ## 价值类指标
 
 - 股息率、PE、市值、近三年 ROE、MA120 只能用 `analysis/value.py` 的 `build_series()` 计算，实盘判定和回测共用。

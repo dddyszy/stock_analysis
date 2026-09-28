@@ -156,6 +156,21 @@ class FinanceHistory(Base):
     updated_at: Mapped[datetime] = _updated_col()
 
 
+class StrategySignalDaily(Base):
+    """各策略每天对价值池股票的判定：是否通过筛选条件、所处区域和各项数值。"""
+
+    __tablename__ = "strategy_signal_daily"
+    __table_args__ = (Index("ix_strategy_signal_daily_date", "strategy", "trade_date", "zone"),)
+
+    strategy: Mapped[str] = mapped_column(String(32), primary_key=True)
+    code: Mapped[str] = mapped_column(String(16), primary_key=True)
+    trade_date: Mapped[date] = mapped_column(Date, primary_key=True)
+    passed: Mapped[bool] = mapped_column(Boolean, default=False)
+    zone: Mapped[str] = mapped_column(String(16))
+    metrics: Mapped[dict | None] = mapped_column(JSON)
+    criteria: Mapped[list | None] = mapped_column(JSON)
+
+
 class FilterSnapshot(Base):
     """腾讯条件选股在历史日期的结果，用来核对自算的估值指标。"""
 

@@ -147,7 +147,7 @@ const JOB_GROUPS = [
   { title: '初始化', names: ['full_initialize', 'stock_pool', 'backfill'] },
   { title: '日常', names: ['daily_update', 'risk_labels', 'scores', 'fundamentals', 'recommend', 'tracking', 'evaluate_positions', 'post_close_pipeline'] },
   { title: '研究', names: ['base_rates'] },
-  { title: '价值数据', names: ['value_backfill', 'value_daily'] },
+  { title: '价值数据', names: ['value_backfill', 'value_daily', 'strategy_scan'] },
 ]
 const jobLabel = (name: string) => overview.value?.available_jobs?.find((j: any) => j.name === name)?.label || name
 const limiters = computed(() => Object.entries(overview.value?.limiters || {}).map(([tool, v]: any) => ({ tool, ...v })))

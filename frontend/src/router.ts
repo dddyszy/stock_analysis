@@ -6,6 +6,7 @@ const router = createRouter({
     { path: '/', name: 'dashboard', component: () => import('./views/Dashboard.vue'), meta: { title: '市场总览' } },
     { path: '/picker', name: 'picker', component: () => import('./views/Picker.vue'), meta: { title: '结构筛选' } },
     { path: '/recommend', name: 'recommend', component: () => import('./views/Recommend.vue'), meta: { title: '推荐' } },
+    { path: '/strategies', name: 'strategies', component: () => import('./views/Strategies.vue'), meta: { title: '策略' } },
     { path: '/stock/:code', name: 'stock', component: () => import('./views/StockDetail.vue'), meta: { title: '个股分析' } },
     { path: '/tracking', name: 'tracking', component: () => import('./views/Tracking.vue'), meta: { title: '结构跟踪' } },
     { path: '/portfolio', name: 'portfolio', component: () => import('./views/Portfolio.vue'), meta: { title: '持仓与策略' } },
