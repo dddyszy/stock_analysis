@@ -14,7 +14,7 @@ from app.services.snapshot import snapshot_health
 
 logger = logging.getLogger(__name__)
 
-PIPELINE_DEADLINE = time(17, 30)  # 交易日这个时间之后还没有成功的流水线就提醒
+PIPELINE_DEADLINE = time(19, 30)  # 交易日这个时间之后还没有成功的收盘链就提醒
 
 
 async def is_trading(d: date) -> bool:
@@ -30,7 +30,7 @@ def pipeline_succeeded_on(d: date) -> bool:
     with session_scope() as db:
         return bool(db.scalar(
             select(func.count()).select_from(JobLog).where(
-                JobLog.job_name == "post_close_pipeline", JobLog.status == "success",
+                JobLog.job_name.in_(("post_close_pipeline", "after_close")), JobLog.status == "success",
                 JobLog.started_at >= start, JobLog.started_at < start + timedelta(days=1),
             )
         ))
@@ -40,8 +40,8 @@ async def check_pipeline_ran(d: date | None = None) -> bool:
     d = d or date.today()
     if not await is_trading(d) or pipeline_succeeded_on(d):
         return True
-    notify("pipeline_missing", f"{d:%m月%d日}的收盘后流水线没有成功运行",
-           "当天的结构候选、持仓评估、候选跟踪和写回 App 都没有执行。可以在设置页点「收盘后流水线（强制运行）」补跑。",
+    notify("pipeline_missing", f"{d:%m月%d日}的收盘链没有成功运行",
+           "当天的日线更新、结构扫描、持仓评估、跟踪和策略扫描可能都没有执行。可以在设置页点「收盘链（强制运行）」补跑。",
            "error", key=d.isoformat())
     return False
 
@@ -55,7 +55,7 @@ async def check_data_fresh(d: date | None = None) -> bool:
     if latest is not None and latest >= d:
         return True
     notify("data_stale", "日线数据没有更新到今天",
-           f"最新日线日期为 {latest or '无'}。请检查 15:30 的「每日增量更新」任务，或在设置页手动运行。", "error")
+           f"最新日线日期为 {latest or '无'}。请检查 15:30 收盘链里的「每日增量更新」，或在设置页手动运行。", "error")
     return False
 
 

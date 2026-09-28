@@ -442,7 +442,7 @@ async def value_backfill(ctx: JobContext) -> dict:
 
 
 async def value_daily(ctx: JobContext) -> dict:
-    """每日：刷新价值池近 30 天不复权日线（顺带发现新的除权），补进当天股息率达到 3% 的新股票，分批刷新旧财报。"""
+    """每日：刷新价值池近 30 天不复权日线（顺带发现新的除权），补进当天股息率达到 3% 的新股票，然后扫描策略。财报由夜间任务刷新。"""
     if _is_mock():
         return {"skipped": "mock"}
     today = date.today()
@@ -497,7 +497,6 @@ async def value_daily(ctx: JobContext) -> dict:
         await asyncio.gather(*(worker() for _ in range(KLINE_WORKERS)))
     finally:
         await pub.close()
-    stats["finance"] = await sync_value_finance(ctx, time_budget=600)
     from app.services.strategy_scan import scan_strategies
 
     stats["strategies"] = await scan_strategies(ctx)
@@ -516,10 +515,15 @@ def _seconds_until_morning(now: datetime | None = None) -> float:
 
 
 async def value_finance_nightly(ctx: JobContext) -> dict:
-    """每晚接口空闲时续拉价值池财报历史，最晚到早上 7:30；拉完后补做核对和策略扫描（已完成的步骤会自动跳过）。"""
+    """夜间财报：接口空闲时先刷新候选股、持仓、自选的三大报表，再续拉价值池财报历史，最晚到早上 7:30；
+    价值池首次补齐完成后补做核对和策略扫描（已完成的步骤会自动跳过）。"""
     if _is_mock():
         return {"skipped": "mock"}
-    out = {"finance": await sync_value_finance(ctx, time_budget=_seconds_until_morning())}
+    from app.services.sync import default_detail_codes, sync_finance_details
+
+    # 先拉候选股、持仓、自选的三大报表（推荐打分要用），再续拉价值池
+    out = {"details": await sync_finance_details(default_detail_codes(), ctx, time_budget=min(3600, _seconds_until_morning()))}
+    out["finance"] = await sync_value_finance(ctx, time_budget=_seconds_until_morning())
     if out["finance"].get("deferred"):
         ctx.update(message=f"财报历史还剩 {out['finance']['deferred']} 只，明晚继续", force=True)
         return out

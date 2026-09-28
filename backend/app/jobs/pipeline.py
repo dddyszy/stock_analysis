@@ -26,7 +26,7 @@ WAIT_DAILY_UPDATE_MINUTES = 30
 STEP_NAMES = {"sim_sync": "同步模拟盘委托", "sim_snapshot": "记录模拟盘快照", "tracking": "更新候选跟踪", "app_group": "写回自选分组"}
 
 
-async def post_close_pipeline(ctx: JobContext, force: bool = False) -> dict:
+async def post_close_pipeline(ctx: JobContext, force: bool = False, fetch_finance: bool = True) -> dict:
     result: dict = {}
     async with create_provider() as provider:
         if not force and not await is_trading_day(provider):
@@ -52,7 +52,7 @@ async def post_close_pipeline(ctx: JobContext, force: bool = False) -> dict:
         env = await compute_market_env(provider)
         result["market_env"] = {"score": env["score"], "regime": env["regime"]}
 
-    result["recommend"] = await run_recommendation(ctx)
+    result["recommend"] = await run_recommendation(ctx, fetch_finance=fetch_finance)
     ctx.update(message="评估持仓", force=True)
     result["positions"] = await evaluate_all(ctx)
 

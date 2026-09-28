@@ -145,7 +145,7 @@ const initStep = computed(() => {
 })
 const JOB_GROUPS = [
   { title: '初始化', names: ['full_initialize', 'stock_pool', 'backfill'] },
-  { title: '日常', names: ['daily_update', 'risk_labels', 'scores', 'fundamentals', 'recommend', 'tracking', 'evaluate_positions', 'post_close_pipeline'] },
+  { title: '日常', names: ['after_close', 'daily_update', 'risk_labels', 'scores', 'fundamentals', 'recommend', 'tracking', 'evaluate_positions', 'post_close_pipeline'] },
   { title: '研究', names: ['base_rates'] },
   { title: '价值数据', names: ['value_backfill', 'value_daily', 'value_finance_nightly', 'strategy_scan'] },
 ]
@@ -371,8 +371,8 @@ onMounted(async () => {
                 v-for="n in g.names"
                 :key="n"
                 size="small"
-                :type="n === 'full_initialize' || n === 'post_close_pipeline' ? 'primary' : 'default'"
-                :plain="n === 'post_close_pipeline'"
+                :type="n === 'full_initialize' || n === 'after_close' ? 'primary' : 'default'"
+                :plain="n === 'after_close'"
                 :loading="!!poller.running.value[n]"
                 @click="runJob(n)"
               >{{ jobLabel(n) }}</el-button>

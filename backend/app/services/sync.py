@@ -603,7 +603,7 @@ def _derive(records: list[FinanceRecord]) -> list[dict]:
     return out
 
 
-async def sync_scores_and_valuations(ctx: JobContext | None = None, codes: list[str] | None = None) -> dict:
+async def sync_scores_and_valuations(ctx: JobContext | None = None, codes: list[str] | None = None, with_valuations: bool = True) -> dict:
     """全市场层：腾讯诊股评分（每次 100 只）+ 行情快照里的 PE、PB、市值。调用量小，每天可以跑。"""
     codes = codes or active_codes(include_index=False)
     today = date.today()
@@ -626,19 +626,21 @@ async def sync_scores_and_valuations(ctx: JobContext | None = None, codes: list[
                 )
             if ctx:
                 ctx.update(done=min(i + SCORE_BATCH, len(codes)), message=f"诊股评分 {min(i + SCORE_BATCH, len(codes))}/{len(codes)}")
-        if ctx:
-            ctx.update(message="同步估值（PE、PB、市值）", force=True)
-        for i in range(0, len(codes), settings.quote_batch_size):
-            chunk = codes[i : i + settings.quote_batch_size]
-            try:
-                quotes = await provider.quotes(chunk)
-            except Exception as exc:
-                logger.warning("估值批次失败: %s", exc)
-                continue
-            for c, q in quotes.items():
-                rows.setdefault(c, {"code": c, "trade_date": today}).update(
-                    pe_ttm=q.pe_ttm, pb=q.pb, dividend_yield=q.dividend_yield, total_mv=q.total_mv, float_mv=q.float_mv
-                )
+        # 收盘链里每日增量已经从行情写过估值，不再重复拉；估值列按 coalesce 写入，不会被空值覆盖
+        if with_valuations:
+            if ctx:
+                ctx.update(message="同步估值（PE、PB、市值）", force=True)
+            for i in range(0, len(codes), settings.quote_batch_size):
+                chunk = codes[i : i + settings.quote_batch_size]
+                try:
+                    quotes = await provider.quotes(chunk)
+                except Exception as exc:
+                    logger.warning("估值批次失败: %s", exc)
+                    continue
+                for c, q in quotes.items():
+                    rows.setdefault(c, {"code": c, "trade_date": today}).update(
+                        pe_ttm=q.pe_ttm, pb=q.pb, dividend_yield=q.dividend_yield, total_mv=q.total_mv, float_mv=q.float_mv
+                    )
     cols = ("comp_score", "funm_score", "risk_score", "pe_ttm", "pb", "dividend_yield", "total_mv", "float_mv")
     values = [{"code": r["code"], "trade_date": today, **{k: r.get(k) for k in cols}} for r in rows.values()]
     with session_scope() as db:

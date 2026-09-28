@@ -162,7 +162,7 @@ def _scan(codes: list[str], views: dict[str, FundamentalView], sectors: dict[str
     return results
 
 
-async def run_recommendation(ctx: JobContext) -> dict:
+async def run_recommendation(ctx: JobContext, fetch_finance: bool = True) -> dict:
     params = get_active_params()
     with session_scope() as db:
         latest_bar = db.scalar(select(func.max(KlineDaily.trade_date)))
@@ -202,7 +202,8 @@ async def run_recommendation(ctx: JobContext) -> dict:
     # 主候选补拉三大报表（有缓存），用精细基本面重新打分，并补做依赖财报的硬过滤
     shortlist = main[: params["recommend_top_n"] * 2]
     fin: dict = {}
-    if shortlist:
+    # 收盘链里不拉财报（data_finance 限频最紧，统一放到夜间任务），只用已缓存的财报
+    if shortlist and fetch_finance:
         try:
             fin = await sync_finance_details([c["code"] for c, _ in shortlist], ctx,
                                              time_budget=params.get("finance_time_budget", 480))

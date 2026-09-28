@@ -9,7 +9,6 @@ from app.core.config import get_settings
 from app.db.models import SimOrder
 from app.db.session import session_scope
 from app.jobs import watchdog
-from app.jobs.pipeline import post_close_pipeline
 from app.mcp.errors import McpAuthError
 from app.mcp.oauth import oauth_manager
 from app.providers import create_provider
@@ -53,30 +52,14 @@ async def _trading_now() -> bool:
         return date.today().weekday() < 5
 
 
-async def job_daily_update() -> None:
-    await _guarded("daily_update", sync.daily_update)
+async def job_after_close() -> None:
+    from app.jobs.after_close import after_close_chain
 
-
-async def job_post_close() -> None:
-    await _guarded("post_close_pipeline", post_close_pipeline)
+    await _guarded("after_close", after_close_chain)
 
 
 async def job_stock_pool() -> None:
     await _guarded("stock_pool", sync.sync_stock_pool)
-
-
-async def job_scores() -> None:
-    if not await _trading_now():
-        return
-    await _guarded("scores", sync.sync_scores_and_valuations)
-
-
-async def job_risk_labels() -> None:
-    await _guarded("risk_labels", sync.sync_risk_labels)
-
-
-async def job_fundamentals() -> None:
-    await _guarded("fundamentals", sync.sync_fundamentals)
 
 
 async def job_intraday_stops() -> None:
@@ -99,23 +82,10 @@ async def job_base_rates() -> None:
     await _guarded("base_rates", run_base_rates)
 
 
-async def job_value_daily() -> None:
-    from app.services.value_data import value_daily
-
-    await _guarded("value_daily", value_daily)
-
-
 async def job_value_finance_nightly() -> None:
     from app.services.value_data import value_finance_nightly
 
     await _guarded("value_finance_nightly", value_finance_nightly)
-
-
-async def job_data_check() -> None:
-    try:
-        await watchdog.check_data_fresh()
-    except Exception:
-        logger.exception("数据时效检查失败")
 
 
 async def job_evening_check() -> None:
@@ -140,22 +110,17 @@ async def job_sim_orders() -> None:
 
 def start_scheduler() -> None:
     weekdays = "mon-fri"
-    scheduler.add_job(job_daily_update, CronTrigger(day_of_week=weekdays, hour=15, minute=30), id="daily_update", replace_existing=True)
-    scheduler.add_job(job_post_close, CronTrigger(day_of_week=weekdays, hour=16, minute=0), id="post_close", replace_existing=True)
-    scheduler.add_job(job_stock_pool, CronTrigger(day_of_week="mon", hour=8, minute=30), id="stock_pool", replace_existing=True)
-    # 评分每个交易日同步一次，形成按日的评分快照（约 50 次 MCP 调用）
-    scheduler.add_job(job_scores, CronTrigger(day_of_week=weekdays, hour=15, minute=40), id="scores", replace_existing=True)
-    # 解禁、减持、停牌等事件变化快，交易日收盘前刷新一次，供当天流水线使用
-    scheduler.add_job(job_risk_labels, CronTrigger(day_of_week="mon-fri", hour=15, minute=10), id="risk_labels", replace_existing=True)
-    scheduler.add_job(job_fundamentals, CronTrigger(month="4,8,10", day="25-31", hour=18), id="fund_a", replace_existing=True)
-    scheduler.add_job(job_fundamentals, CronTrigger(month="5,9,11", day="1-10", hour=18), id="fund_b", replace_existing=True)
-    scheduler.add_job(job_intraday_stops, CronTrigger(day_of_week=weekdays, hour="9-14", minute="*/5"), id="intraday_stops", replace_existing=True)
+    # 盘中
     scheduler.add_job(job_sim_orders, CronTrigger(day_of_week=weekdays, hour="9-15", minute="*"), id="sim_orders", replace_existing=True)
-    scheduler.add_job(job_base_rates, CronTrigger(day_of_week="sat", hour=12), id="base_rates", replace_existing=True)
-    scheduler.add_job(job_value_daily, CronTrigger(day_of_week=weekdays, hour=18, minute=30), id="value_daily", replace_existing=True)
+    scheduler.add_job(job_intraday_stops, CronTrigger(day_of_week=weekdays, hour="9-14", minute="*/5"), id="intraday_stops", replace_existing=True)
+    # 收盘链：风险标签 → 每日增量 → 诊股评分 → 收盘后流水线 → 价值池与策略扫描，按顺序执行
+    scheduler.add_job(job_after_close, CronTrigger(day_of_week=weekdays, hour=15, minute=30), id="after_close", replace_existing=True)
+    scheduler.add_job(job_evening_check, CronTrigger(day_of_week=weekdays, hour=19, minute=30), id="evening_check", replace_existing=True)
+    # 夜间：data_finance 限频最紧，所有财报都放到这里拉
     scheduler.add_job(job_value_finance_nightly, CronTrigger(hour=21, minute=0), id="value_finance_nightly", replace_existing=True)
-    scheduler.add_job(job_data_check, CronTrigger(day_of_week=weekdays, hour=16, minute=30), id="data_check", replace_existing=True)
-    scheduler.add_job(job_evening_check, CronTrigger(day_of_week=weekdays, hour=17, minute=30), id="evening_check", replace_existing=True)
+    # 每周
+    scheduler.add_job(job_stock_pool, CronTrigger(day_of_week="mon", hour=8, minute=30), id="stock_pool", replace_existing=True)
+    scheduler.add_job(job_base_rates, CronTrigger(day_of_week="sat", hour=12), id="base_rates", replace_existing=True)
     scheduler.start()
     logger.info("定时任务已启动")
 

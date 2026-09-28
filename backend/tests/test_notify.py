@@ -41,7 +41,7 @@ def test_missed_pipeline_on_startup(clean_notify, monkeypatch):
     # 2000-01-08 是周六，上一个交易日是 01-07（周五），那天没有流水线记录
     missed = asyncio.run(watchdog.check_missed_on_startup(datetime(2000, 1, 8, 10, 0)))
     assert missed == date(2000, 1, 7)
-    # 17:30 之前启动，只检查前一个交易日
+    # 19:30 之前启动，只检查前一个交易日
     assert asyncio.run(watchdog.check_missed_on_startup(datetime(2000, 1, 5, 9, 0))) == date(2000, 1, 4)
 
 
