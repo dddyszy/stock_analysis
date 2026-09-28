@@ -7,6 +7,7 @@
 import logging
 from dataclasses import dataclass, field
 from datetime import date, datetime
+from datetime import time as dtime
 
 from sqlalchemy import select
 
@@ -425,10 +426,17 @@ async def evaluate_all(ctx: JobContext | None = None) -> dict:
     return {"evaluated": len(out), "actions": {k: sum(1 for x in out if x["action"] == k) for k in ACTION_NAMES}}
 
 
+def in_continuous_auction(t: dtime) -> bool:
+    """连续竞价时段：9:30–11:30、13:00–14:57；开盘前和集合竞价阶段的价格是虚拟价，不能用来判断止损。"""
+    return dtime(9, 30) <= t <= dtime(11, 30) or dtime(13, 0) <= t <= dtime(14, 57)
+
+
 async def check_intraday_stops() -> list[dict]:
     """盘中轮询：用实时价检查硬止损和止损位，只记录预警，由用户确认后下单。"""
     from app.providers import create_provider
 
+    if not in_continuous_auction(datetime.now().time()):
+        return []
     _, params = get_active_config()
     with session_scope() as db:
         plans = db.execute(select(PositionPlan).where(PositionPlan.status.in_(OPEN_STATUSES), PositionPlan.remaining_qty > 0)).scalars().all()
@@ -441,7 +449,8 @@ async def check_intraday_stops() -> list[dict]:
     with session_scope() as db:
         for p in plans:
             q = quotes.get(p.code)
-            if not q or not q.price:
+            # 停牌或行情还是前一天的，不能拿来判断止损
+            if not q or not q.price or (q.dt is not None and q.dt != today):
                 continue
             reason = None
             if q.price <= p.entry_price * (1 - params["hard_stop_pct"]):

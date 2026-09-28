@@ -31,6 +31,11 @@ class HybridProvider(TencentMcpProvider):
         # 出错直接抛出，由同步任务记为失败、下次续传；不退回限频的 MCP，避免卡住所有工作协程
         return await self.public.kline(code, period, start, end, fq)
 
+    async def kline_with_events(self, code: str, start: date, end: date, fq: str = "qfq") -> tuple[list[Bar], list[dict]]:
+        if code.startswith("bj"):
+            return await super().kline(code, "day", start, end, fq), []
+        return await self.public.kline_events(code, start, end, fq)
+
     async def quotes(self, codes: list[str]) -> dict[str, Quote]:
         try:
             out = await self.public.quotes(codes)

@@ -34,7 +34,7 @@ JOBS = {
     "recommend": ("扫描结构候选", run_recommendation),
     "tracking": ("更新候选跟踪", update_tracking),
     "base_rates": ("统计结构基准率（逐日回放 1000 只，约 5 分钟）", run_base_rates),
-    "value_backfill": ("补齐价值数据（不复权日线与分红 → 财报历史 → 核对，首次约 2～3 小时）", value_data.value_backfill),
+    "value_backfill": ("补齐价值数据（分红送转 → 日线换算为等比前复权 → 财报历史 → 核对，首次约 3～4 小时）", value_data.value_backfill),
     "value_daily": ("更新价值池数据", value_data.value_daily),
     "evaluate_positions": ("评估持仓", evaluate_all),
     "post_close_pipeline": ("收盘后流水线（强制运行）", lambda ctx: post_close_pipeline(ctx, force=True)),

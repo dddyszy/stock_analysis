@@ -93,3 +93,13 @@ def test_month_cluster_bootstrap_widens_ci_for_correlated_trades():
     assert m["method"] == "month"
     # 共同冲击在两组中相互抵消，真实优势约 0.1R 仍能被识别
     assert m["ci_low"] > 0
+
+
+def test_boot_p_is_not_floored_at_one_over_n():
+    import numpy as np
+    from app.services.backtest import _boot_p
+
+    strong = np.random.default_rng(1).normal(1.0, 0.2, 500)
+    assert _boot_p(strong) < 1e-4
+    weak = np.random.default_rng(2).normal(0.0, 1.0, 500)
+    assert 0.2 < _boot_p(weak) <= 1.0

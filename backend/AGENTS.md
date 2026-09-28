@@ -33,12 +33,13 @@
 ## 价值类指标
 
 - 股息率、PE、市值、近三年 ROE、MA120 只能用 `analysis/value.py` 的 `build_series()` 计算，实盘判定和回测共用。
-- `kline_daily` 是**减法**前复权，不能用于股息率和按比例的收益；价值类计算一律用 `kline_daily_raw`（不复权）加乘法复权因子。
+- `kline_daily` 统一存**等比前复权**（最新一天等于原价）：腾讯接口给的前复权是按除权公式逐次变换的（只有派息时等于整体减常数），拉取时由 `services/price_adjust.py` 用分红送转事件还原成原价再按比例复权；配股等没有分红文字的除权，用前复权价和原价拟合出等效系数。已存的旧日线由 `convert_stored_klines` 一次性换算，按 `sync_progress` 的 `kline_ratio` 记进度，不能重复换算。
+- 价值类计算（股息率、PE、市值）用 `kline_daily_raw`（不复权）加 `analysis/value.py` 的乘法复权因子。
 - 分红按除权日生效，财报按公告日（`publ_date`，缺失时用法定披露截止日）生效；不得使用当天还没公告的数据。
 
 ## 结构分析（v0.6 起的核心）
 
-- 结构状态只能用 `analysis/structure.py` 的 `classify()` 判定；实盘报告（`services/structure_report.py`）、每日状态表（`structure_state_daily`）和历史基准率（`research/base_rates.py`）必须共用它，保证页面上的历史比例统计的是同一种结构。新增状态要同时补 `STATE_NAMES`、`scenarios()` 的文案和 `tests/test_structure.py`。
+- 结构状态只能用 `analysis/structure.py` 的 `classify()` 判定，并且只看最近 `STATE_BARS`（401）根日线（`StockAnalysis.day_state`）；实盘报告（`services/structure_report.py`）、每日状态表（`structure_state_daily`）和历史基准率（`research/base_rates.py`）必须共用它，保证页面上的历史比例统计的是同一种结构。新增状态要同时补 `STATE_NAMES`、`scenarios()` 的文案和 `tests/test_structure.py`。
 - 每个状态的上方 / 下方价位必须满足「下方 ≤ 现价 ≤ 上方」；「延续 / 例外」按之后收盘价先越过哪条线判定（`first_touch` / `outcome`）。
 - 历史比例只能按当时可见的数据逐日回放统计，样本少于 `MIN_CELL` 的格子不展示；报告文案只描述结构和比例，不写「建议买入」「看涨」之类的预测性结论。
 

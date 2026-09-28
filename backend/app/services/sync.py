@@ -309,25 +309,22 @@ async def sync_stock_pool(ctx: JobContext | None = None) -> dict:
 # ---------- K 线回填 ----------
 
 
-async def _backfill_one(provider: DataProvider, code: str, start: date, end: date, full: bool) -> int:
-    fq = "" if code in INDEX_CODES else "qfq"
-    if not full:
-        # 多拉一根和库里最后一根重叠；收盘价对不上说明缺口期间除过权，前复权序列要整段重拉
-        with session_scope() as db:
-            stored = db.execute(
-                select(KlineDaily.trade_date, KlineDaily.close).where(KlineDaily.code == code, KlineDaily.trade_date < start)
-                .order_by(KlineDaily.trade_date.desc()).limit(1)
-            ).first()
-        bars = await provider.kline(code, "day", start=stored[0] if stored else start, end=end, fq=fq)
-        if stored and fq and stored[1]:
-            overlap = next((b for b in bars if b.dt == stored[0]), None)
-            if overlap and abs(overlap.close - stored[1]) / stored[1] > EXRIGHT_TOLERANCE:
-                return await _backfill_one(provider, code, end - timedelta(days=365 * settings.backfill_years), end, True)
-        bars = [b for b in bars if b.dt >= start]
-        n = upsert_bars(KlineDaily, code, bars)
-        rebuild_weekly(code, since=start)
-        return n
-    bars = await provider.kline(code, "day", start=start, end=end, fq=fq)
+def _last_stored(code: str, before: date) -> tuple[date, float] | None:
+    with session_scope() as db:
+        row = db.execute(
+            select(KlineDaily.trade_date, KlineDaily.close).where(KlineDaily.code == code, KlineDaily.trade_date < before)
+            .order_by(KlineDaily.trade_date.desc()).limit(1)
+        ).first()
+    return (row[0], row[1]) if row else None
+
+
+def _write_incremental(code: str, bars: list[Bar], start: date) -> int:
+    n = upsert_bars(KlineDaily, code, bars)
+    rebuild_weekly(code, since=start)
+    return n
+
+
+def _write_full(code: str, bars: list[Bar], start: date, adjusted: bool) -> int:
     with session_scope() as db:
         existing = db.scalar(select(func.count()).select_from(KlineDaily).where(KlineDaily.code == code)) or 0
     # 接口偶尔返回空或残缺的数据，这时保留原有日线，不能先删
@@ -340,7 +337,33 @@ async def _backfill_one(provider: DataProvider, code: str, start: date, end: dat
     n = upsert_bars(KlineDaily, code, bars)
     rebuild_weekly(code, since=None)
     _update_list_date_proxy(code, bars[0].dt, start)
+    if adjusted:
+        _set_progress("kline_ratio", code, "done")
     return n
+
+
+async def _backfill_one(provider: DataProvider, code: str, start: date, end: date, full: bool) -> int:
+    fq = "" if code in INDEX_CODES else "qfq"
+    if not full:
+        # 多拉一根和库里最后一根重叠；收盘价对不上说明缺口期间除过权，复权序列要整段重拉
+        stored = await asyncio.to_thread(_last_stored, code, start)
+        bars = await _fetch_daily(provider, code, stored[0] if stored else start, end, fq)
+        if stored and fq and stored[1]:
+            overlap = next((b for b in bars if b.dt == stored[0]), None)
+            if overlap and abs(overlap.close - stored[1]) / stored[1] > EXRIGHT_TOLERANCE:
+                return await _backfill_one(provider, code, end - timedelta(days=365 * settings.backfill_years), end, True)
+        return await asyncio.to_thread(_write_incremental, code, [b for b in bars if b.dt >= start], start)
+    bars = await _fetch_daily(provider, code, start, end, fq)
+    return await asyncio.to_thread(_write_full, code, bars, start, bool(fq))
+
+
+async def _fetch_daily(provider: DataProvider, code: str, start: date, end: date, fq: str) -> list[Bar]:
+    """指数取不复权；个股取腾讯前复权后换算成等比前复权（kline_daily 的统一口径）。"""
+    if not fq:
+        return await provider.kline(code, "day", start=start, end=end, fq=fq)
+    from app.services.price_adjust import adjusted_daily
+
+    return await adjusted_daily(provider, code, start, end)
 
 
 def _update_list_date_proxy(code: str, first_bar: date, requested_start: date) -> None:
@@ -422,6 +445,7 @@ async def daily_update(ctx: JobContext) -> dict:
         refetch_full: list[str] = []
         refetch_gap: list[str] = []
         val_rows = []
+        today_bars: list[tuple[str, Bar]] = []
         for i in range(0, len(codes), batch):
             chunk = codes[i : i + batch]
             try:
@@ -464,16 +488,17 @@ async def daily_update(ctx: JobContext) -> dict:
                     volume=q.volume,
                     amount=q.amount,
                 )
-                upsert_bars(KlineDaily, code, [bar])
-                rebuild_weekly(code, since=today)
+                today_bars.append((code, bar))
                 stats["updated"] += 1
                 if code not in INDEX_CODES:
                     val_rows.append(
                         {"code": code, "trade_date": today, "pe_ttm": q.pe_ttm, "pb": q.pb, "dividend_yield": q.dividend_yield,
                          "total_mv": q.total_mv, "float_mv": q.float_mv}
                     )
+            await asyncio.to_thread(_write_today, today_bars, today)
+            today_bars = []
             ctx.update(done=min(i + batch, len(codes)), message=f"已处理 {min(i + batch, len(codes))}/{len(codes)}")
-        _upsert_valuations(val_rows)
+        await asyncio.to_thread(_upsert_valuations, val_rows)
 
         stats["exright"] = len(refetch_full)
         stats["gap"] = len(refetch_gap)
@@ -492,6 +517,12 @@ async def daily_update(ctx: JobContext) -> dict:
                 _set_progress("kline", code, "failed", error=str(exc)[:1000])
     ctx.update(message=f"每日更新完成：{stats}", force=True)
     return stats
+
+
+def _write_today(rows: list[tuple[str, Bar]], today: date) -> None:
+    for code, bar in rows:
+        upsert_bars(KlineDaily, code, [bar])
+        rebuild_weekly(code, since=today)
 
 
 def _last_closes(codes: list[str], before: date) -> dict[str, float]:

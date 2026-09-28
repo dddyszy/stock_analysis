@@ -146,7 +146,7 @@ def _scan(codes: list[str], views: dict[str, FundamentalView], sectors: dict[str
                 wn = len(a.week.dates)
                 save_signals(code, [s for s in a.week.signals if wn - 1 - s.raw_idx <= 8], calc_date)
             if state_rows is not None:
-                state_rows.append(state_row(code, calc_date, classify(a.day), classify(a.week) if a.week else None))
+                state_rows.append(state_row(code, calc_date, classify(a.day_state or a.day), classify(a.week) if a.week else None))
             amt = avg_amount_20(a)
             float_mv = views[code].metrics.get("float_mv")
             if amt is not None and amt < params["min_avg_amount"]:

@@ -5,6 +5,7 @@ from datetime import date
 from sqlalchemy import delete
 from sqlalchemy.dialects.mysql import insert
 
+from app.analysis.structure import STATE_BARS
 from app.chan import ChanConfig, ChanResult, MultiLevelView, Signal, analyze, combine
 from app.core.config import get_settings
 from app.db.models import ChanSignal, ChanSnapshot, KlineDaily, KlineWeekly
@@ -21,6 +22,7 @@ class StockAnalysis:
     day: ChanResult
     week: ChanResult | None
     view: MultiLevelView
+    day_state: ChanResult | None = None  # 最近 STATE_BARS 根日线的分析，只用于结构判定
 
 
 def chan_config(params: dict | None = None) -> ChanConfig:
@@ -37,7 +39,8 @@ def analyze_stock(code: str, end: date | None = None, cfg: ChanConfig | None = N
     cfg = cfg or chan_config()
     day = analyze(daily, "day", cfg)
     week = analyze(weekly, "week", cfg) if len(weekly) >= 30 else None
-    return StockAnalysis(code, day, week, combine(day, week))
+    day_state = analyze(daily[-STATE_BARS:], "day", cfg) if len(daily) > STATE_BARS else day
+    return StockAnalysis(code, day, week, combine(day, week), day_state)
 
 
 def save_snapshot(a: StockAnalysis, calc_date: date) -> None:

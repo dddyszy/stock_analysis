@@ -12,6 +12,9 @@ from app.chan import TYPE_NAMES
 from app.chan.analyzer import ChanResult
 from app.chan.types import UP
 
+# 结构判定只看最近这么多根日线：实盘报告、每日状态表和基准率回放必须用同一个窗口，否则历史比例统计的不是同一种结构
+STATE_BARS = 401
+
 RECENT_SIGNAL_BARS = 10
 
 STATE_NAMES = {

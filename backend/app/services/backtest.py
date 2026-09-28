@@ -22,6 +22,7 @@
 import asyncio
 import bisect
 import logging
+import math
 import os
 import random
 import statistics
@@ -48,6 +49,8 @@ from app.services.sync import load_bars
 logger = logging.getLogger(__name__)
 
 WINDOW = 400
+# 历史上的 ST 状态拿不到：一字板一律按 ST 的（更窄）涨跌幅判断，涨跌 5% 以上的一字 K 线都视为买不进 / 卖不出
+HISTORY_ST = True
 DEFAULT_MIN_RR = 2.0  # 仅供实验「加盈亏比过滤」使用；两份样本显示该过滤让结果从接近随机变为显著跑输，默认不启用
 MIN_RISK_PCT = 0.005  # 1R 至少为入场价的 0.5%，否则 R 倍数会被极小的止损距离放大
 BENCH_CODE = INDEX_REGIME_CODE  # 中证 1000
@@ -336,6 +339,24 @@ def _month_sums(ts: list[dict], index: dict[int, int]) -> tuple[np.ndarray, np.n
     return total, count
 
 
+BOOT_TAIL_MIN = 5
+
+
+def _boot_p(diffs: np.ndarray) -> float:
+    """自助法双侧 p 值，用于多重检验校正。
+
+    尾部样本少于 5 个时经验 p 值会卡在 1/n（500 次抽样时为 0.002），111 条规则做 BH 校正后永远过不了门槛；
+    这时改用抽样分布的正态近似。
+    """
+    tail = min(int((diffs <= 0).sum()), int((diffs >= 0).sum()))
+    if tail >= BOOT_TAIL_MIN:
+        return min(1.0, 2 * tail / len(diffs))
+    sd = float(diffs.std(ddof=1)) if len(diffs) > 1 else 0.0
+    if sd <= 0:
+        return 1.0 if float(diffs.mean()) == 0 else 1e-12
+    return max(1e-12, math.erfc(abs(float(diffs.mean())) / sd / math.sqrt(2)))
+
+
 def matched_edge(sig: list[dict], control: list[dict], strata=_regime, n: int = 500, seed: int = 7) -> dict | None:
     """信号组与同分层随机组的平均 R 之差。随机组按信号组在各分层的占比加权，剔除择时带来的差异。
 
@@ -383,8 +404,7 @@ def matched_edge(sig: list[dict], control: list[dict], strata=_regime, n: int = 
         diffs = np.sort(sig_means - ctrl_means)
     m_ = len(diffs)
     lo, hi = float(diffs[int(m_ * 0.025)]), float(diffs[int(m_ * 0.975) - 1])
-    # 自助法双侧 p 值（用于多重检验校正），最小取 1/n
-    p = max(1.0 / n, min(1.0, 2 * min(float((diffs <= 0).mean()), float((diffs >= 0).mean()))))
+    p = _boot_p(diffs)
     sig_ex = [t["excess"] for t in covered if t.get("excess") is not None]
     return {
         "trades": len(covered),
@@ -609,7 +629,6 @@ async def run_backtest(ctx: JobContext, sample_size: int = 50, codes: list[str] 
         tail = bench_dates[350:] or bench_dates
         split_date = tail[int(len(tail) * params.get("backtest_split_ratio", 0.7))] if tail else date.today()
     with session_scope() as db:
-        st_codes = set(db.execute(select(StockBasic.code).where(StockBasic.is_st.is_(True))).scalars())
         delisted = set(db.execute(select(StockBasic.code).where(StockBasic.delisted_on.is_not(None), StockBasic.code.in_(codes))).scalars())
         industries = dict(db.execute(select(StockBasic.code, StockBasic.industry).where(StockBasic.code.in_(codes))).all())
 
@@ -643,12 +662,12 @@ async def run_backtest(ctx: JobContext, sample_size: int = 50, codes: list[str] 
         for code in codes:
             series[code] = load_bars(KlineDaily, code, lookback_bars + 250)
         kw = {"warmup": 250, "entry_mode": entry_mode, "use_rr_filter": use_rr_filter}
-        tasks = [(c, b, params, {**kw, "is_st": c in st_codes, "aux": aux_for(c)}, f"{seed}-{c}")
+        tasks = [(c, b, params, {**kw, "is_st": HISTORY_ST, "aux": aux_for(c)}, f"{seed}-{c}")
                  for c, b in series.items() if len(b) >= 400]
         return _run_parallel(tasks, lambda i, n: ctx.update(done=i, message=f"{tag}信号回测 {i}/{len(tasks)}，累计 {n} 笔"))
 
     def _control_pass(spec: _ControlSpec) -> list[dict]:
-        tasks = [(c, b, params, {"warmup": 250, "is_st": c in st_codes, "control": spec, "aux": aux_for(c)}, f"{seed}-ctrl-{c}")
+        tasks = [(c, b, params, {"warmup": 250, "is_st": HISTORY_ST, "control": spec, "aux": aux_for(c)}, f"{seed}-ctrl-{c}")
                  for c, b in series.items() if len(b) >= 400]
         return _run_parallel(tasks, lambda i, n: ctx.update(done=len(codes) + i, message=f"{tag}随机对照 {i}/{len(tasks)}，累计 {n} 笔"))
 

@@ -15,7 +15,7 @@ from datetime import datetime
 from sqlalchemy import delete, insert, or_, select
 
 from app.analysis.market_env import INDEX_REGIME_CODE, index_regime_map
-from app.analysis.structure import classify, first_touch, outcome
+from app.analysis.structure import STATE_BARS, classify, first_touch, outcome
 from app.chan import analyze
 from app.db.models import KlineDaily, StockBasic, StructureBaseRate
 from app.db.session import session_scope
@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 HORIZONS = (5, 10, 20)
 STEP = 5
-WINDOW = 400
+WINDOW = STATE_BARS - 1
 WARMUP = 250
 LOOKBACK = 1200
 MIN_CELL = 50  # 样本少于该值的格子在报告里显示「样本不足」

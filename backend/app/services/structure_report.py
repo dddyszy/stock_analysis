@@ -10,7 +10,7 @@ def build_report(code: str, a: StockAnalysis | None = None) -> dict | None:
     a = a or analyze_stock(code)
     if a is None:
         return None
-    st = classify(a.day)
+    st = classify(a.day_state or a.day)
     wk = classify(a.week) if a.week is not None else None
     regime = latest_index_regime()
     rates = {h: base_rate(st.key, regime, h) for h in HORIZONS}

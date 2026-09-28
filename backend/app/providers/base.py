@@ -121,6 +121,10 @@ class DataProvider(ABC):
         self, code: str, period: str = "day", start: date | None = None, end: date | None = None, fq: str = "qfq"
     ) -> list[Bar]: ...
 
+    async def kline_with_events(self, code: str, start: date, end: date, fq: str = "qfq") -> tuple[list[Bar], list[dict]]:
+        """日线加除权事件（腾讯公开接口的除权日行带分红明细）；拿不到事件的数据源返回空列表。"""
+        return await self.kline(code, "day", start=start, end=end, fq=fq), []
+
     @abstractmethod
     async def quotes(self, codes: list[str]) -> dict[str, Quote]: ...
 

@@ -15,15 +15,18 @@ from sqlalchemy.dialects.mysql import insert
 
 from app.analysis.value import Event, FinRow, build_series, max_dividend_yield, parse_fh, ValueSeries
 from app.core.config import get_settings
-from app.db.models import DividendEvent, FilterSnapshot, FinanceHistory, KlineDailyRaw, StockBasic, SyncProgress, ValuationSnapshot
+from app.analysis.adjust import to_ratio_adjusted
+from app.db.models import DividendEvent, FilterSnapshot, FinanceHistory, KlineDaily, KlineDailyRaw, StockBasic, SyncProgress, ValuationSnapshot
 from app.db.session import session_scope
 from app.mcp.errors import McpAuthError, McpBusinessError, McpRateLimited, McpTransportError
 from app.providers import create_provider
 from app.providers.parsing import to_date, to_float
 from app.providers.tencent_public import TencentPublicQuotes
 from app.services.jobs import JobContext
+from app.services.price_adjust import event_rows, fit_unknown_events, load_events, max_abnormal_jump, upsert_events
 from app.services.runtime_state import get_state, set_state
-from app.services.sync import _set_progress, active_codes, is_trading_day, upsert_bars
+from app.services.ashare_rules import limit_pct
+from app.services.sync import _set_progress, active_codes, is_trading_day, load_bars, rebuild_weekly, upsert_bars
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -51,29 +54,6 @@ def _is_mock() -> bool:
 
 
 # ---------- 读写 ----------
-
-
-def event_rows(code: str, raw: list[dict]) -> list[dict]:
-    rows = []
-    for e in raw:
-        ex = to_date(e.get("cqr"))
-        if ex is None:
-            continue
-        cash, bonus, transfer = parse_fh(e.get("FHcontent"))
-        rows.append({
-            "code": code, "ex_date": ex, "record_date": to_date(e.get("djr")), "year": (e.get("nd") or None),
-            "cash": cash, "bonus": bonus, "transfer": transfer, "content": (e.get("FHcontent") or None),
-        })
-    return rows
-
-
-def _upsert_events(rows: list[dict]) -> None:
-    if not rows:
-        return
-    with session_scope() as db:
-        stmt = insert(DividendEvent).values(rows)
-        stmt = stmt.on_duplicate_key_update(**{k: stmt.inserted[k] for k in ("record_date", "year", "cash", "bonus", "transfer", "content")})
-        db.execute(stmt)
 
 
 def finance_rows(code: str, raw: list[dict]) -> list[dict]:
@@ -139,7 +119,7 @@ async def _fetch_raw(pub: TencentPublicQuotes, code: str, start: date, keep: boo
 
 def _store_raw(code: str, bars: list, raw_events: list[dict], keep: bool) -> bool:
     rows = event_rows(code, raw_events)
-    _upsert_events(rows)
+    upsert_events(rows)
     if not bars:
         return False
     events = [Event(r["ex_date"], r["cash"], r["bonus"], r["transfer"]) for r in rows]
@@ -211,6 +191,63 @@ def reparse_events() -> int:
         if changed:
             db.execute(delete(SyncProgress).where(SyncProgress.task == "value_kline", SyncProgress.code.in_(changed)))
     return len(changed)
+
+
+# ---------- 复权换算 ----------
+
+
+async def fit_all_unknown_events(ctx: JobContext | None = None) -> int:
+    """拟合所有还没有系数的无文字除权（多为配股）。"""
+    with session_scope() as db:
+        codes = sorted(set(db.execute(
+            select(DividendEvent.code).where(DividendEvent.content.is_(None), DividendEvent.cash == 0,
+                                             DividendEvent.bonus == 0, DividendEvent.transfer == 0)
+        ).scalars()))
+    codes = [c for c in codes if c[:2] in ("sh", "sz")]
+    if ctx:
+        ctx.update(message=f"拟合 {len(codes)} 只股票的配股等无文字除权", force=True)
+    pub = TencentPublicQuotes()
+    fitted = 0
+    try:
+        for code in codes:
+            fitted += await fit_unknown_events(pub, code)
+    finally:
+        await pub.close()
+    return fitted
+
+
+def _convert_one(code: str) -> tuple[bool, int]:
+    # 换算期间每日更新可能已经全量重拉（重拉时已换算）过这只股票，不能再换算一次
+    with session_scope() as db:
+        row = db.get(SyncProgress, ("kline_ratio", code))
+        if row is not None and row.status == "done":
+            return False, 0
+    bars = load_bars(KlineDaily, code)
+    new = to_ratio_adjusted(bars, load_events(code))
+    changed = any(abs(a.close - b.close) > 1e-6 for a, b in zip(bars, new))
+    if changed:
+        upsert_bars(KlineDaily, code, new)
+        rebuild_weekly(code, since=None)
+    jumps = max_abnormal_jump(new, limit_pct(code))
+    _set_progress("kline_ratio", code, "done", error=f"换算后仍有 {jumps} 天单日涨跌超过涨跌停，可能有未识别的除权" if jumps else None)
+    return changed, jumps
+
+
+async def convert_stored_klines(ctx: JobContext | None = None) -> dict:
+    """把已存的腾讯前复权日线一次性换算成等比前复权；只处理分红事件已扫描过、且还没换算过的股票。"""
+    scanned = _done_codes("value_kline")
+    done = _done_codes("kline_ratio")
+    codes = [c for c in active_codes(include_index=False) if c in scanned and c not in done]
+    stats = {"total": len(codes), "changed": 0, "suspicious": 0}
+    if ctx:
+        ctx.update(done=0, total=len(codes), message=f"日线换算为等比前复权：{len(codes)} 只", force=True)
+    for n, code in enumerate(codes, 1):
+        changed, jumps = await asyncio.to_thread(_convert_one, code)
+        stats["changed"] += int(changed)
+        stats["suspicious"] += int(jumps > 0)
+        if ctx:
+            ctx.update(done=n, message=f"日线换算 {n}/{len(codes)}，有除权的 {stats['changed']} 只，可疑 {stats['suspicious']} 只")
+    return stats
 
 
 # ---------- 财报历史 ----------
@@ -373,6 +410,13 @@ async def value_backfill(ctx: JobContext) -> dict:
         return {"skipped": "mock"}
     reparsed = await asyncio.to_thread(reparse_events)
     out = {"reparsed": reparsed, "klines": await sync_value_klines(ctx)}
+    out["fitted"] = await fit_all_unknown_events(ctx)
+    out["ratio"] = await convert_stored_klines(ctx)
+    if out["ratio"].get("changed"):
+        # 基准率依赖日线口径，换算后重算一次
+        from app.research.base_rates import run_base_rates
+
+        out["base_rates"] = await run_base_rates(ctx)
     out["finance"] = await sync_value_finance(ctx)
     out["filters"] = await sync_filter_snapshots(ctx)
     out["validation"] = await asyncio.to_thread(validate_against_filters, ctx)

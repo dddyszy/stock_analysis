@@ -32,7 +32,7 @@ class ItemRef:
     stop_price: float | None
     target1: float | None
     is_st: bool = False
-    price: float | None = None  # 入选时的收盘价，用来识别之后除权重拉日线带来的价格平移
+    price: float | None = None  # 入选时的收盘价，用来识别之后除权带来的复权价缩放
     slippage: float = 0.0
 
 
@@ -67,10 +67,10 @@ def compute_perf(item: ItemRef, bars: list[Bar], benches: dict[str, list[Bar]]) 
         return out
     entry = first.open * (1 + item.slippage)
     out["entry_price"] = entry
-    # kline_daily 是减法前复权，除权后重拉会整体平移；止损、目标按同样的差值平移后再比较
-    shift = (item.price - base.close) if item.price else 0.0
-    stop = item.stop_price - shift if item.stop_price is not None else None
-    target = item.target1 - shift if item.target1 is not None else None
+    # kline_daily 是等比前复权，之后除权会让入选日及以前的价格按比例缩小；止损、目标按同一比例换算后再比较
+    scale = base.close / item.price if item.price and base.close else 1.0
+    stop = item.stop_price * scale if item.stop_price is not None else None
+    target = item.target1 * scale if item.target1 is not None else None
     window = after[: max(HORIZONS)]
     out["days"] = len(window)
     out["max_drawdown"] = (min(b.low for b in window) / entry - 1) * 100
