@@ -147,6 +147,7 @@ const JOB_GROUPS = [
   { title: '初始化', names: ['full_initialize', 'stock_pool', 'backfill'] },
   { title: '日常', names: ['daily_update', 'risk_labels', 'scores', 'fundamentals', 'recommend', 'tracking', 'evaluate_positions', 'post_close_pipeline'] },
   { title: '研究', names: ['base_rates'] },
+  { title: '价值数据', names: ['value_backfill', 'value_daily'] },
 ]
 const jobLabel = (name: string) => overview.value?.available_jobs?.find((j: any) => j.name === name)?.label || name
 const limiters = computed(() => Object.entries(overview.value?.limiters || {}).map(([tool, v]: any) => ({ tool, ...v })))
@@ -154,8 +155,14 @@ const limiters = computed(() => Object.entries(overview.value?.limiters || {}).m
 async function loadAuth() {
   auth.value = await api.authStatus()
 }
+const valueData = ref<any>(null)
+const pct = (v: number | null | undefined) => (v == null ? '--' : `${Math.round(v * 100)}%`)
+async function loadValueData() {
+  valueData.value = await api.valueData().catch(() => null)
+}
 async function loadOverview() {
   overview.value = await api.overview()
+  loadValueData()
   for (const n of overview.value.running || []) if (!poller.running.value[n]) poller.start(n)
 }
 const notices = ref<any>({ items: [], unread: 0 })
@@ -367,6 +374,17 @@ onMounted(async () => {
                 @click="runJob(n)"
               >{{ jobLabel(n) }}</el-button>
             </div>
+            <div v-if="valueData" class="value-data">
+              <div class="bold small">价值池数据（点金术等价值策略使用）</div>
+              <div class="muted small">2014 年以来股息率曾达到 3% 的沪深股票，保存不复权日线、分红送转和带公告日的财报</div>
+              <div class="grid grid-4 mt-8">
+                <StatCard label="已扫描股票" :value="valueData.scanned" :sub="`分红送转事件 ${valueData.events} 条`" />
+                <StatCard label="价值池" :value="valueData.pool" :sub="valueData.first ? `${valueData.first} ～ ${valueData.last}` : '尚未补齐'" />
+                <StatCard label="有财报历史" :value="valueData.finance_codes" :sub="valueData.finance_first ? `最早报告期 ${valueData.finance_first}` : '--'" />
+                <StatCard label="与腾讯条件选股一致" :value="pct(valueData.validation?.recall)"
+                  :sub="valueData.validation?.dates ? `${valueData.validation.dates} 个历史日期 · 自算命中率 ${pct(valueData.validation.precision)}` : '补齐后自动核对'" />
+              </div>
+            </div>
             <div v-for="(j, name) in poller.running.value" :key="name" class="running">
               <div class="row-between">
                 <span class="bold small">{{ j.label || jobLabel(String(name)) }}</span>
@@ -548,6 +566,11 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+.value-data {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--c-border);
+}
 .layout {
   display: grid;
   grid-template-columns: 168px minmax(0, 1fr);

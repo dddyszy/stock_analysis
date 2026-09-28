@@ -52,6 +52,7 @@ class Quote:
     change_pct: float | None = None
     pe_ttm: float | None = None
     pb: float | None = None
+    dividend_yield: float | None = None  # 股息率（TTM，%）
     total_mv: float | None = None
     float_mv: float | None = None
     dt: date | None = None

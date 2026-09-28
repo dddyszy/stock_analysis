@@ -117,6 +117,58 @@ class KlineWeekly(_KlineMixin, Base):
     __table_args__ = (Index("ix_kline_weekly_date", "trade_date"),)
 
 
+class KlineDailyRaw(_KlineMixin, Base):
+    """价值池股票的不复权日线（kline_daily 是减法前复权，不能用来算股息率和按比例复权）。"""
+
+    __tablename__ = "kline_daily_raw"
+
+
+class DividendEvent(Base):
+    """除权除息事件，来自腾讯 K 线除权日那一行；数值都按每 1 股计。"""
+
+    __tablename__ = "dividend_event"
+
+    code: Mapped[str] = mapped_column(String(16), primary_key=True)
+    ex_date: Mapped[date] = mapped_column(Date, primary_key=True)
+    record_date: Mapped[date | None] = mapped_column(Date)
+    year: Mapped[str | None] = mapped_column(String(8))
+    cash: Mapped[float] = mapped_column(Double, default=0.0)  # 每股现金分红（税前）
+    bonus: Mapped[float] = mapped_column(Double, default=0.0)  # 每股送股
+    transfer: Mapped[float] = mapped_column(Double, default=0.0)  # 每股转增
+    content: Mapped[str | None] = mapped_column(String(128))
+    updated_at: Mapped[datetime] = _updated_col()
+
+
+class FinanceHistory(Base):
+    """价值策略用的逐期利润表指标，带公告日，按公告日之后才可见的口径使用。"""
+
+    __tablename__ = "finance_history"
+
+    code: Mapped[str] = mapped_column(String(16), primary_key=True)
+    report_date: Mapped[date] = mapped_column(Date, primary_key=True)
+    publ_date: Mapped[date | None] = mapped_column(Date)
+    roe: Mapped[float | None] = mapped_column(Double)
+    roe_weighted: Mapped[float | None] = mapped_column(Double)
+    eps_ttm: Mapped[float | None] = mapped_column(Double)
+    np_ttm: Mapped[float | None] = mapped_column(Double)  # 近 12 个月归母净利润（元）
+    revenue_ttm: Mapped[float | None] = mapped_column(Double)
+    dividend_ttm: Mapped[float | None] = mapped_column(Double)
+    updated_at: Mapped[datetime] = _updated_col()
+
+
+class FilterSnapshot(Base):
+    """腾讯条件选股在历史日期的结果，用来核对自算的估值指标。"""
+
+    __tablename__ = "filter_snapshot"
+
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    snap_date: Mapped[date] = mapped_column(Date, primary_key=True)
+    expression: Mapped[str] = mapped_column(String(255))
+    total: Mapped[int] = mapped_column(Integer)
+    codes: Mapped[list] = mapped_column(JSON)
+    created_at: Mapped[datetime] = _now_col()
+
+
 class FundamentalQuarterly(Base):
     __tablename__ = "fundamental_quarterly"
 

@@ -11,7 +11,7 @@ from app.jobs.pipeline import post_close_pipeline
 from app.jobs.scheduler import scheduled_jobs
 from app.mcp.client import limiter_status
 from app.providers.tencent_public import public_limiter_status
-from app.services import app_sync, strategy_config, sync
+from app.services import app_sync, strategy_config, sync, value_data
 from app.services.jobs import cancel_job, register_labels, running_jobs, start_job
 from app.services.runtime_state import cooldown_until
 from app.services.position_strategy import evaluate_all
@@ -34,6 +34,8 @@ JOBS = {
     "recommend": ("扫描结构候选", run_recommendation),
     "tracking": ("更新候选跟踪", update_tracking),
     "base_rates": ("统计结构基准率（逐日回放 1000 只，约 5 分钟）", run_base_rates),
+    "value_backfill": ("补齐价值数据（不复权日线与分红 → 财报历史 → 核对，首次约 2～3 小时）", value_data.value_backfill),
+    "value_daily": ("更新价值池数据", value_data.value_daily),
     "evaluate_positions": ("评估持仓", evaluate_all),
     "post_close_pipeline": ("收盘后流水线（强制运行）", lambda ctx: post_close_pipeline(ctx, force=True)),
 }
@@ -90,6 +92,11 @@ def overview() -> dict:
             "app_sync": app_sync.status(),
             "limiters": {**limiter_status(), **public_limiter_status()},
         }
+
+
+@router.get("/value-data")
+def value_data_overview() -> dict:
+    return value_data.value_overview()
 
 
 @router.get("/jobs")

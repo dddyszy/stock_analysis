@@ -105,6 +105,7 @@ def parse_quote(code: str, r: dict) -> Quote:
         change_pct=to_float(pick(r, "change_pct", "pct", "chg_pct", "zdf", "changePercent", "pct_chg", "涨跌幅")),
         pe_ttm=to_float(pick(r, "pe_ttm", "peTTM", "PE_TTM", "pe", "syl", "市盈率")),
         pb=to_float(pick(r, "pb", "PB", "sjl", "市净率")),
+        dividend_yield=to_float(pick(r, "DividendRatioTTM", "dividend_yield", "股息率")),
         total_mv=to_float(pick(r, "total_mv", "market_cap", "totalMarketValue", "zsz", "总市值")),
         float_mv=to_float(pick(r, "float_mv", "circulating_market_cap", "floatMarketValue", "ltsz", "流通市值")),
         dt=to_date(pick(r, "date", "trade_date", "time", "update_time", "datetime")),
@@ -349,6 +350,28 @@ class TencentMcpProvider(DataProvider):
                 for d, rec in periods.items():
                     target.setdefault(d, {}).update(rec)
         return {code: finance_records(periods) for code, periods in merged.items()}
+
+    async def finance_history(self, codes: list[str], start: str, end: str) -> dict[str, list[dict]]:
+        """利润表原始记录（带公告日 InfoPublDate）；按报告期起止拉取时一次可返回 30 期以上。"""
+        data = await self._call("data_finance", {"codes": ",".join(codes), "type": "income", "start": start, "end": end, "num": 80})
+        inner = data.get("data", data) if isinstance(data, dict) else {}
+        out: dict[str, list[dict]] = {}
+        if isinstance(inner, dict):
+            for k, v in inner.items():
+                code = normalize_code(k)
+                if code and isinstance(v, list):
+                    out[code] = [r for r in v if isinstance(r, dict)]
+        return out
+
+    async def filter_codes(self, expression: str, on: date | None = None, limit: int = 1000) -> tuple[int, list[str]]:
+        """条件选股；on 为历史日期时按当天的数据筛选（约 2018 年以后可用）。"""
+        args: dict = {"expression": expression, "limit": limit}
+        if on:
+            args["date"] = on.isoformat()
+        data = await self._call("tool_filter", args)
+        stocks = data.get("stocks", []) if isinstance(data, dict) else []
+        codes = [c for c in (normalize_code(s.get("code", "")) for s in stocks if isinstance(s, dict)) if c]
+        return int(data.get("totalStocks") or len(codes)) if isinstance(data, dict) else len(codes), codes
 
     async def scores(self, codes: list[str]) -> dict[str, dict[str, float | None]]:
         """腾讯诊股评分：综合、基本面、风险（越高越安全）、资金、技术。单次最多约 100 只。"""

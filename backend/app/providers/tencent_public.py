@@ -103,6 +103,27 @@ class TencentPublicQuotes:
             cursor_end = cursor_start - timedelta(days=1)
         return [bars[d] for d in sorted(bars)]
 
+    async def kline_raw(self, code: str, start: date, end: date | None = None) -> tuple[list[Bar], list[dict]]:
+        """不复权日线和除权事件；事件在除权日那一行的第 7 列，形如 {"cqr": 除权日, "FHcontent": "10派19.72元"}。"""
+        end = end or date.today()
+        bars: dict[date, Bar] = {}
+        events: dict[str, dict] = {}
+        cursor_end = end
+        span = timedelta(days=PAGE_DAYS)
+        while cursor_end >= start:
+            cursor_start = max(start, cursor_end - span)
+            param = f"{code},day,{cursor_start.isoformat()},{cursor_end.isoformat()},{PAGE_BARS},"
+            doc = (await self._get(_next_urls(), {"param": param})).json()
+            for b in _parse_kline(doc, code, "day", ""):
+                if start <= b.dt <= end:
+                    bars[b.dt] = b
+            node = (doc.get("data") or {}).get(code)
+            for r in (node.get("day") or []) if isinstance(node, dict) else []:
+                if isinstance(r, list) and len(r) > 6 and isinstance(r[6], dict) and r[6].get("cqr"):
+                    events[r[6]["cqr"]] = r[6]
+            cursor_end = cursor_start - timedelta(days=1)
+        return [bars[d] for d in sorted(bars)], list(events.values())
+
     async def quotes(self, codes: list[str]) -> dict[str, Quote]:
         out: dict[str, Quote] = {}
         for i in range(0, len(codes), QUOTE_BATCH):
@@ -162,6 +183,7 @@ def _parse_quotes(text: str) -> dict[str, Quote]:
             change_pct=to_float(f[32]),
             pe_ttm=to_float(f[39]),
             pb=to_float(f[46]),
+            dividend_yield=to_float(f[64]) if len(f) > 64 else None,
             total_mv=total_yi * 1e8 if total_yi else None,
             float_mv=float_yi * 1e8 if float_yi else None,
             dt=dt,

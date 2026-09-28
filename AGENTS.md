@@ -28,6 +28,9 @@ cd backend && DATA_PROVIDER=mock uv run uvicorn app.main:app --port 8000
 | 历史日线、行情快照、PE/PB/市值 | 腾讯公开接口（`backend/app/providers/tencent_public.py`，自适应限速、多域名轮换） |
 | 股票池、ST、交易日历、诊股评分、市场宽度与画像 | westock-mcp |
 | 三大报表 | MCP `data_finance`，每批最多 5 只，只拉候选股并缓存 20 天 |
+| 价值池：不复权日线、分红送转 | 腾讯公开接口不复权 K 线（除权日那一行带分红明细），2014 年起，只保存股息率曾达到 3% 的股票 |
+| 价值池：财报历史（带公告日） | MCP `data_finance` 利润表按报告期起止拉取，2011 年起 |
+| 历史条件选股（只用于核对自算指标） | MCP `tool_filter` 带 `date`，约 2018 年以后可用 |
 | 模拟盘、自选分组、股价提醒 | MCP `portfolio_*` |
 
 | 风险标签与风险事件 | MCP `tool_label` / `tool_event` 批量名单（部分标签上游只返回前 200 只） |

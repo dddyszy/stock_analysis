@@ -436,7 +436,8 @@ async def daily_update(ctx: JobContext) -> dict:
                 stats["updated"] += 1
                 if code not in INDEX_CODES:
                     val_rows.append(
-                        {"code": code, "trade_date": today, "pe_ttm": q.pe_ttm, "pb": q.pb, "total_mv": q.total_mv, "float_mv": q.float_mv}
+                        {"code": code, "trade_date": today, "pe_ttm": q.pe_ttm, "pb": q.pb, "dividend_yield": q.dividend_yield,
+                         "total_mv": q.total_mv, "float_mv": q.float_mv}
                     )
             ctx.update(done=min(i + batch, len(codes)), message=f"已处理 {min(i + batch, len(codes))}/{len(codes)}")
         _upsert_valuations(val_rows)
@@ -483,7 +484,8 @@ def _upsert_valuations(rows: list[dict]) -> None:
         for i in range(0, len(rows), 1000):
             stmt = insert(ValuationSnapshot).values(rows[i : i + 1000])
             stmt = stmt.on_duplicate_key_update(
-                pe_ttm=stmt.inserted.pe_ttm, pb=stmt.inserted.pb, total_mv=stmt.inserted.total_mv, float_mv=stmt.inserted.float_mv
+                pe_ttm=stmt.inserted.pe_ttm, pb=stmt.inserted.pb, dividend_yield=stmt.inserted.dividend_yield,
+                total_mv=stmt.inserted.total_mv, float_mv=stmt.inserted.float_mv,
             )
             db.execute(stmt)
 
@@ -569,9 +571,9 @@ async def sync_scores_and_valuations(ctx: JobContext | None = None, codes: list[
                 continue
             for c, q in quotes.items():
                 rows.setdefault(c, {"code": c, "trade_date": today}).update(
-                    pe_ttm=q.pe_ttm, pb=q.pb, total_mv=q.total_mv, float_mv=q.float_mv
+                    pe_ttm=q.pe_ttm, pb=q.pb, dividend_yield=q.dividend_yield, total_mv=q.total_mv, float_mv=q.float_mv
                 )
-    cols = ("comp_score", "funm_score", "risk_score", "pe_ttm", "pb", "total_mv", "float_mv")
+    cols = ("comp_score", "funm_score", "risk_score", "pe_ttm", "pb", "dividend_yield", "total_mv", "float_mv")
     values = [{"code": r["code"], "trade_date": today, **{k: r.get(k) for k in cols}} for r in rows.values()]
     with session_scope() as db:
         for i in range(0, len(values), 1000):

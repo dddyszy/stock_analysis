@@ -30,6 +30,12 @@
 - 需要让用户知道的异常（任务失败、步骤部分失败、数据过期、授权失效、盘中止损等）调用 `services/notify.py` 的 `notify(event, title, message, level, key)`；同一 `event + key` 每天只记一次。任务失败和重启中断已在 `services/jobs.py` 自动通知，不要重复发。
 - 限频严格的 MCP 工具在一次运行中被限频过多时，用 `services/runtime_state.py` 的 `set_cooldown` 记下冷却时间，后续运行先查 `cooldown_until` 再决定是否调用。
 
+## 价值类指标
+
+- 股息率、PE、市值、近三年 ROE、MA120 只能用 `analysis/value.py` 的 `build_series()` 计算，实盘判定和回测共用。
+- `kline_daily` 是**减法**前复权，不能用于股息率和按比例的收益；价值类计算一律用 `kline_daily_raw`（不复权）加乘法复权因子。
+- 分红按除权日生效，财报按公告日（`publ_date`，缺失时用法定披露截止日）生效；不得使用当天还没公告的数据。
+
 ## 结构分析（v0.6 起的核心）
 
 - 结构状态只能用 `analysis/structure.py` 的 `classify()` 判定；实盘报告（`services/structure_report.py`）、每日状态表（`structure_state_daily`）和历史基准率（`research/base_rates.py`）必须共用它，保证页面上的历史比例统计的是同一种结构。新增状态要同时补 `STATE_NAMES`、`scenarios()` 的文案和 `tests/test_structure.py`。
