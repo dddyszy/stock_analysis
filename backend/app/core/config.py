@@ -13,7 +13,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    app_name: str = "缠论股票分析系统"
+    app_name: str = "A 股多策略分析系统"
     timezone: str = "Asia/Shanghai"
 
     db_host: str = "127.0.0.1"
@@ -47,7 +47,7 @@ class Settings(BaseSettings):
     analysis_weekly_bars: int = 400
 
     app_sync_enabled: bool = False  # 写入真实账户必须由用户在设置页主动开启
-    app_sync_group_name: str = "缠论结构候选"
+    app_sync_group_name: str = "系统候选"
 
     @property
     def effective_db_name(self) -> str:

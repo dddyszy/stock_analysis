@@ -16,7 +16,7 @@ const router = createRouter({
 })
 
 router.afterEach((to) => {
-  document.title = `${(to.meta.title as string) || ''} · 缠论股票分析系统`
+  document.title = `${(to.meta.title as string) || ''} · A 股多策略分析系统`
 })
 
 export default router

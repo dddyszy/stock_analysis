@@ -74,9 +74,9 @@ onBeforeUnmount(() => {
   <div class="shell" :class="{ collapsed }">
     <aside class="sidebar">
       <div class="brand" @click="router.push('/')">
-        <div class="logo">缠</div>
+        <div class="logo">析</div>
         <div v-if="!collapsed" class="brand-text">
-          <div class="brand-name">缠论分析</div>
+          <div class="brand-name">多策略分析</div>
           <div class="brand-sub">A 股 · 沪深</div>
         </div>
       </div>

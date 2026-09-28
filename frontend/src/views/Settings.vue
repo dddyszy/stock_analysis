@@ -267,7 +267,7 @@ async function renameGroup() {
   const { value } = await ElMessageBox.prompt(
     `把你腾讯自选股 App 里的「${appSync.value?.group_name}」分组改名，只改名称，分组里的股票不变。`,
     '分组改名',
-    { inputValue: '缠论结构候选', confirmButtonText: '确认改名', inputValidator: (v: string) => !!v.trim() || '名称不能为空' },
+    { inputValue: appSync.value?.group_name || '系统候选', confirmButtonText: '确认改名', inputValidator: (v: string) => !!v.trim() || '名称不能为空' },
   )
   const r = await api.renameAppGroup(value.trim())
   ElMessage.success(`已改名：「${r.old}」→「${r.new}」`)

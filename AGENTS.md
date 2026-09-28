@@ -1,4 +1,4 @@
-# AGENTS.md · 缠论股票分析系统
+# AGENTS.md · A 股多策略分析系统
 
 本文件是给 AI 编程助手（Cursor、Codex、Claude Code 等）和开发者的项目约定。
 子目录规范见 [frontend/AGENTS.md](frontend/AGENTS.md) 和 [backend/AGENTS.md](backend/AGENTS.md)，编辑对应目录时同时遵守。
