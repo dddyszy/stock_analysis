@@ -316,8 +316,9 @@ async def sync_value_finance(ctx: JobContext | None = None, codes: list[str] | N
                     await asyncio.to_thread(_set_progress, "value_finance", code, "failed", None, "财报接口没有返回这只股票的数据")
                     done += 1
             if missing:
+                # 批量返回时缺失的股票逐只单独重试，避免再被截断
                 retried.update(missing)
-                queue.append(missing)
+                queue.extend([c] for c in missing)
             if ctx:
                 ctx.update(done=done, message=f"财报历史 {done}/{len(todo)}，成功 {stats['ok']}，无数据 {stats['empty']}")
     return stats
