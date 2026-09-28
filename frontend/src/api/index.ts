@@ -73,7 +73,7 @@ export const api = {
   // 设置
   overview: () => get('/settings/overview'),
   valueData: () => get('/settings/value-data'),
-  jobs: (limit = 30) => get('/settings/jobs', { limit }),
+  jobs: (limit = 30, silent = false) => get('/settings/jobs', { limit }, silent),
   notifications: (limit = 50) => get('/notify', { limit }),
   notifyUnread: () => get('/notify/unread', undefined, true),
   notifyReadAll: () => post('/notify/read-all', {}),

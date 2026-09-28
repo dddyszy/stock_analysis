@@ -276,13 +276,15 @@ class McpSession:
             async with limits.semaphore:
                 await limits.bucket.acquire()
                 started = time.monotonic()
+                client = None
                 try:
                     async with self._connect_lock:
                         if self._client is None:
                             await self._connect()
+                        client = self._client
                     self._last_status = None
                     result = await asyncio.wait_for(
-                        self._client.call_tool(tool, args), timeout=self.settings.mcp_call_timeout + 5
+                        client.call_tool(tool, args), timeout=self.settings.mcp_call_timeout + 5
                     )
                     duration = int((time.monotonic() - started) * 1000)
                     payload = extract_payload(result)
@@ -327,8 +329,10 @@ class McpSession:
                         async with self._connect_lock:
                             await self._connect(force_refresh=True)
                         continue
+                    # 同一会话可能被多个协程共用：只关闭本次出错的那个连接，别人已经重连的新连接不动
                     async with self._connect_lock:
-                        await self._close()
+                        if self._client is client:
+                            await self._close()
                     attempt += 1
                     if status == 429:
                         limiter.on_limited()

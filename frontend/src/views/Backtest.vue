@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { api } from '@/api'
 import { useChart } from '@/composables/useChart'
 import { useJobPoller } from '@/composables/useJobPoller'
@@ -172,6 +172,13 @@ async function start() {
   poller.start('backtest')
 }
 async function apply() {
+  await ElMessageBox.confirm(
+    activate.value
+      ? '启用后推荐页的综合分会按这组权重重新计算。只有逐年滚动检验显著跑赢随机对照组的回测才允许启用。'
+      : '另存为一份新的策略配置，不会改变当前使用的配置。',
+    activate.value ? '保存并启用建议权重' : '另存建议权重',
+    { type: activate.value ? 'warning' : 'info' },
+  )
   const r = await api.backtestApply(current.value.id, activate.value)
   ElMessage.success(`已保存为策略配置 #${r.config_id}${activate.value ? '，并已启用' : ''}`)
 }

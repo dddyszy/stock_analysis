@@ -10,7 +10,7 @@ import logging
 import time
 from datetime import date, datetime, timedelta
 
-from sqlalchemy import distinct, func, select
+from sqlalchemy import delete, distinct, func, select
 from sqlalchemy.dialects.mysql import insert
 
 from app.analysis.value import Event, FinRow, build_series, max_dividend_yield, parse_fh, ValueSeries
@@ -199,6 +199,20 @@ async def sync_value_klines(ctx: JobContext | None = None, codes: list[str] | No
     return stats
 
 
+def reparse_events() -> int:
+    """按当前的 parse_fh 重新解析已保存的分红文字；数值有变化的股票重置进度，下次补齐时重新判断是否属于价值池。"""
+    changed: set[str] = set()
+    with session_scope() as db:
+        for ev in db.execute(select(DividendEvent).where(DividendEvent.content.is_not(None))).scalars():
+            cash, bonus, transfer = parse_fh(ev.content)
+            if any(abs((old or 0.0) - new) > 1e-9 for old, new in ((ev.cash, cash), (ev.bonus, bonus), (ev.transfer, transfer))):
+                ev.cash, ev.bonus, ev.transfer = cash, bonus, transfer
+                changed.add(ev.code)
+        if changed:
+            db.execute(delete(SyncProgress).where(SyncProgress.task == "value_kline", SyncProgress.code.in_(changed)))
+    return len(changed)
+
+
 # ---------- 财报历史 ----------
 
 
@@ -357,10 +371,11 @@ async def value_backfill(ctx: JobContext) -> dict:
     if _is_mock():
         ctx.update(message="模拟数据模式不拉取价值数据", force=True)
         return {"skipped": "mock"}
-    out = {"klines": await sync_value_klines(ctx)}
+    reparsed = await asyncio.to_thread(reparse_events)
+    out = {"reparsed": reparsed, "klines": await sync_value_klines(ctx)}
     out["finance"] = await sync_value_finance(ctx)
     out["filters"] = await sync_filter_snapshots(ctx)
-    out["validation"] = validate_against_filters(ctx)
+    out["validation"] = await asyncio.to_thread(validate_against_filters, ctx)
     ctx.update(message=f"价值数据补齐完成：价值池 {len(pool_codes())} 只，核对 {out['validation']}", force=True)
     return out
 
@@ -391,7 +406,7 @@ async def value_daily(ctx: JobContext) -> dict:
     for c in pool:
         queue.put_nowait((c, today - timedelta(days=DAILY_REFRESH_DAYS), True))
     for c in newcomers:
-        queue.put_nowait((c, VALUE_START, False))
+        queue.put_nowait((c, VALUE_START, None))
     finished = 0
 
     async def worker() -> None:
@@ -406,9 +421,11 @@ async def value_daily(ctx: JobContext) -> dict:
                     bars, raw_events = await pub.kline_raw(code, start)
                     await asyncio.to_thread(_store_raw, code, bars, raw_events, True)
                     stats["refreshed"] += 1
-                elif await _fetch_raw(pub, code, start, keep=False):
+                else:
+                    # 腾讯行情当天股息率已达 3%，自算口径略有差异时也收进价值池，避免每天重复拉全量历史
+                    await _fetch_raw(pub, code, start, keep=True)
                     stats["newcomers"] += 1
-                    _set_progress("value_kline", code, "done", last_date=today)
+                    await asyncio.to_thread(_set_progress, "value_kline", code, "done", today)
             except Exception as exc:
                 stats["failed"] += 1
                 logger.warning("价值池日线刷新失败 %s: %s", code, exc)

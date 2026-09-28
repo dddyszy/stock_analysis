@@ -60,7 +60,7 @@ const stats = computed(() => {
 
 function rateText(it: any) {
   const r = rates.value[`${it.signal_type}_${it.confirmed ? 'confirmed' : 'pending'}`]
-  if (!r) return ''
+  if (!r || r.n < 50) return ''
   const p = (v: number) => `${Math.round((v || 0) * 100)}%`
   return `同类结构历史（10 日内，样本 ${r.n}）：先到目标一 ${p(r.outcomes.continue)} · 先破认错位 ${p(r.outcomes.exception)} · 未分出 ${p(r.outcomes.undecided)}`
 }

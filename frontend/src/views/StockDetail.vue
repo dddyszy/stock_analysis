@@ -83,13 +83,21 @@ const finChart = useChart(
   () => [fundRows.value, tab.value],
 )
 
+let chanSeq = 0
 async function loadChan() {
+  const my = ++chanSeq
+  const want = { code: code.value, level: level.value, bars: bars.value }
   loading.value = true
   try {
-    chan.value = await api.stockChan(code.value, level.value, bars.value)
-    if (level.value === 'day') structure.value = chan.value?.structure || null
+    const res = await api.stockChan(want.code, want.level, want.bars)
+    if (my !== chanSeq) return
+    chan.value = res
+    if (want.level === 'day') structure.value = res?.structure || null
+  } catch (e) {
+    if (my === chanSeq) chan.value = null
+    throw e
   } finally {
-    loading.value = false
+    if (my === chanSeq) loading.value = false
   }
 }
 

@@ -32,6 +32,7 @@ class EntryRequest(BaseModel):
     quantity: int | None = None
     place_order: bool = True
     linked_sim: bool = True
+    override: bool = False  # 不满足开仓条件时，用户已在前端看过警告并确认仍要开仓
 
 
 def _pick_signal(a: StockAnalysis, signal_type: str | None, signal_date: date | None, params: dict):
@@ -77,7 +78,7 @@ async def create_plan(req: EntryRequest) -> dict:
     qty = req.quantity or entry.quantity
     if qty <= 0 or qty % 100:
         raise HTTPException(400, "数量必须为 100 的整数倍且大于 0")
-    if not entry.allowed and req.quantity is None:
+    if not entry.allowed and not req.override:
         raise HTTPException(400, "；".join(entry.warnings) or "不满足开仓条件")
     plan_id = open_plan(entry, quantity=qty, entry_price=req.entry_price, linked_sim=req.linked_sim)
     order = None
@@ -126,6 +127,17 @@ async def execute_advice(plan_id: int) -> dict:
             raise HTTPException(404, "持仓计划不存在")
         advice = p.last_advice or {}
         code, remaining, entry_signal = p.code, p.remaining_qty, p.entry_signal
+    if advice.get("executed_at"):
+        raise HTTPException(400, f"这条建议已在 {advice['executed_at']} 执行过，等下一次评估后再操作")
+    order = await _execute(plan_id, advice, code, remaining, entry_signal)
+    with session_scope() as db:
+        p = db.get(PositionPlan, plan_id)
+        if p is not None and p.last_advice:
+            p.last_advice = {**p.last_advice, "executed_at": datetime.now().isoformat(timespec="seconds")}
+    return order
+
+
+async def _execute(plan_id: int, advice: dict, code: str, remaining: int, entry_signal: str | None) -> dict:
     action = advice.get("action")
     if action in ("reduce", "close"):
         qty = remaining if action == "close" else min(remaining, int(advice.get("quantity") or 0))

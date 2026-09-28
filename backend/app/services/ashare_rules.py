@@ -1,14 +1,18 @@
 """A 股交易规则的唯一出处：涨跌停幅度、涨跌停价、一字板判断。
 
-- 主板 10%，主板 ST 5%；创业板（300/301）、科创板（688/689）20%（含 ST）；北交所 30%。
+- 主板 10%；主板 ST 在 2026-07-06 之前为 5%，之后与主板一致为 10%。
+- 创业板（300/301）2020-08-24 注册制改革后 20%（含 ST），之前 10%（ST 5%）；科创板（688/689）20%；北交所 30%。
+- 不传日期时按今天的规则；K 线的一字板判断按 K 线自己的日期。
 - 涨跌停价 = 昨收 ×（1 ± 幅度），四舍五入到分。
 - 回测用的是前复权价格，和真实成交价有细微差异，所以判断时留 0.1% 的容差。
 """
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
 TOLERANCE = 0.001
+MAIN_ST_10PCT_FROM = date(2026, 7, 6)
+GEM_20PCT_FROM = date(2020, 8, 24)
 
 
 def board(code: str) -> str:
@@ -27,46 +31,55 @@ def volume_lot(code: str) -> int:
     return 1 if board(code) == "star" else 100
 
 
-def limit_pct(code: str, is_st: bool = False) -> float:
+def limit_pct(code: str, is_st: bool = False, on: date | None = None) -> float:
     b = board(code)
-    if b in ("gem", "star"):
+    on = on or date.today()
+    if isinstance(on, datetime):  # 含 pandas.Timestamp
+        on = on.date()
+    if b == "star":
         return 0.20
+    if b == "gem":
+        if on >= GEM_20PCT_FROM:
+            return 0.20
+        return 0.05 if is_st else 0.10
     if b == "bj":
         return 0.30
-    return 0.05 if is_st else 0.10
+    if is_st and on < MAIN_ST_10PCT_FROM:
+        return 0.05
+    return 0.10
 
 
 def _round_cent(v: float) -> float:
     return float(Decimal(str(v)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
 
-def limit_prices(prev_close: float, code: str, is_st: bool = False) -> tuple[float, float]:
-    pct = limit_pct(code, is_st)
+def limit_prices(prev_close: float, code: str, is_st: bool = False, on: date | None = None) -> tuple[float, float]:
+    pct = limit_pct(code, is_st, on)
     return _round_cent(prev_close * (1 + pct)), _round_cent(prev_close * (1 - pct))
 
 
-def is_limit_up(prev_close: float | None, price: float | None, code: str, is_st: bool = False) -> bool:
+def is_limit_up(prev_close: float | None, price: float | None, code: str, is_st: bool = False, on: date | None = None) -> bool:
     if not prev_close or price is None:
         return False
-    up, _ = limit_prices(prev_close, code, is_st)
+    up, _ = limit_prices(prev_close, code, is_st, on)
     return price >= up * (1 - TOLERANCE)
 
 
-def is_limit_down(prev_close: float | None, price: float | None, code: str, is_st: bool = False) -> bool:
+def is_limit_down(prev_close: float | None, price: float | None, code: str, is_st: bool = False, on: date | None = None) -> bool:
     if not prev_close or price is None:
         return False
-    _, down = limit_prices(prev_close, code, is_st)
+    _, down = limit_prices(prev_close, code, is_st, on)
     return price <= down * (1 + TOLERANCE)
 
 
 def is_one_price_limit_up(bar, prev_close: float | None, code: str, is_st: bool = False) -> bool:
     """一字涨停：全天只有一个价格且在涨停价，买不进。"""
-    return abs(bar.high - bar.low) < 1e-9 and is_limit_up(prev_close, bar.close, code, is_st)
+    return abs(bar.high - bar.low) < 1e-9 and is_limit_up(prev_close, bar.close, code, is_st, getattr(bar, "dt", None))
 
 
 def is_one_price_limit_down(bar, prev_close: float | None, code: str, is_st: bool = False) -> bool:
     """一字跌停：全天只有一个价格且在跌停价，卖不出。"""
-    return abs(bar.high - bar.low) < 1e-9 and is_limit_down(prev_close, bar.close, code, is_st)
+    return abs(bar.high - bar.low) < 1e-9 and is_limit_down(prev_close, bar.close, code, is_st, getattr(bar, "dt", None))
 
 
 def clamp_to_limits(price: float, prev_close: float | None, code: str, is_st: bool = False) -> float:

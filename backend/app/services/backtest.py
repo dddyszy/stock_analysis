@@ -140,8 +140,13 @@ def backtest_series(code: str, bars: list, params: dict, warmup: int = 250, entr
                     pending_exit = None
                 if pos is None:
                     continue
-            res = analyze(window, "day", cfg)
             held = t - pos.entry_idx
+            if held == 0:
+                # T+1：入场当天不能卖，但收盘已跌破止损时挂次日开盘卖出
+                if bar.close < pos.stop:
+                    pending_exit = ("close", pos.remaining)
+                continue
+            res = analyze(window, "day", cfg)
             if held >= 1:
                 hard = pos.entry_price * (1 - params["hard_stop_pct"])
                 if bar.low <= hard and not is_one_price_limit_down(bar, bars[t - 1].close, code, is_st):
@@ -448,10 +453,12 @@ def walk_forward(trades: list[dict], control: list[dict], min_n: int = 10) -> di
     years = sorted({year(t) for t in trades})
     folds, picked = [], []
     for y in years[1:]:
-        train = [t for t in trades if year(t) < y]
+        # 训练集只用当年之前已经出场的交易，避免用到当年才知道的结果
+        known = lambda t: t.get("exit_date") is not None and t["exit_date"] < date(y, 1, 1)  # noqa: E731
+        train = [t for t in trades if known(t)]
         ctrl_avg: dict[str, list[float]] = {}
         for t in control:
-            if year(t) < y:
+            if known(t):
                 ctrl_avg.setdefault(_regime(t), []).append(t["r_multiple"])
         units: dict[str, list[float]] = {}
         for t in train:
@@ -757,6 +764,10 @@ def apply_suggested_weights(run_id: int, activate: bool = False) -> int:
         if run is None or not run.suggested_weights:
             raise ValueError("该回测没有可用的建议权重（样本内每类信号至少需要 10 笔交易）")
         suggested = dict(run.suggested_weights)
+        wf_edge = (((run.summary or {}).get("walk_forward") or {}).get("overall") or {}).get("edge") or {}
+    # 启用会直接改变推荐打分：必须先通过逐年滚动检验（样本外显著跑赢同市场状态随机组）
+    if activate and not (wf_edge.get("significant") and (wf_edge.get("edge") or 0) > 0):
+        raise ValueError("这次回测的逐年滚动检验没有显著跑赢随机对照组，建议权重只能另存为配置，不能直接启用")
     params = get_active_params()
     params["signal_weights"] = {**params["signal_weights"], **suggested}
     return save_config(f"backtest-{run_id}-{date.today():%Y%m%d}", params, activate=activate, note=f"根据回测 #{run_id} 样本内结果调整信号权重")

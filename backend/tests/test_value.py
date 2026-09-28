@@ -19,6 +19,10 @@ def test_parse_fh():
     assert parse_fh("10派19.72元") == pytest.approx((1.972, 0, 0))
     assert parse_fh("10送3转4派2元(含税)") == pytest.approx((0.2, 0.3, 0.4))
     assert parse_fh("10转增4股派1元") == pytest.approx((0.1, 0, 0.4))
+    assert parse_fh("10派0.125元送0.5股转9.5股") == pytest.approx((0.0125, 0.05, 0.95))
+    assert parse_fh("增加特别派息10派2.5元, 10派6.6元") == pytest.approx((0.91, 0, 0))
+    assert parse_fh("10转2股, 10派1.81元") == pytest.approx((0.181, 0, 0.2))
+    assert parse_fh("增加特别转增10转10股") == pytest.approx((0, 0, 1.0))
     assert parse_fh(None) == (0.0, 0.0, 0.0)
     assert parse_fh("") == (0.0, 0.0, 0.0)
 
@@ -43,6 +47,33 @@ def test_bonus_shares_adjustment_and_per_share_dividend():
     assert s.adj_close(2) == pytest.approx(9.5)
     assert s.div_ps[2] == pytest.approx(1.0)
     assert s.div_ps[3] == pytest.approx(0.5)
+
+
+def test_same_day_bonus_and_cash_counts_cash_on_new_share_base():
+    ds = _days(date(2024, 1, 1), 3)
+    bars = [(ds[0], 20.0, 20.0), (ds[1], 15.23, 15.23), (ds[2], 15.23, 15.23)]
+    s = build_series("sh600000", bars, [Event(ds[1], cash=0.2, bonus=0.3)], [])
+    assert s.div_ps[1] == pytest.approx(0.2 / 1.3)
+
+
+def test_annual_dividend_drifting_earlier_is_not_double_counted():
+    ds = [date(2023, 7, 17), date(2024, 7, 10), date(2024, 7, 12), date(2025, 1, 10)]
+    bars = [(d, 10.0, 10.0) for d in ds]
+    events = [Event(ds[0], cash=0.2), Event(ds[1], cash=0.2), Event(ds[3], cash=0.1)]
+    s = build_series("sh600000", bars, events, [])
+    assert s.div_ps[2] == pytest.approx(0.2)
+    assert s.div_ps[3] == pytest.approx(0.3)
+    assert max_dividend_yield(bars, events) == pytest.approx(3.0)
+
+
+def test_pe_and_market_cap_follow_splits_after_report():
+    ds = _days(date(2024, 6, 3), 3)
+    fin = [FinRow(date(2023, 12, 31), date(2024, 3, 1), eps_ttm=1.0, np_ttm=1e9)]
+    bars = [(ds[0], 20.0, 20.0), (ds[1], 10.0, 10.0), (ds[2], 10.0, 10.0)]
+    s = build_series("sh600000", bars, [Event(ds[1], transfer=1.0)], fin)
+    assert s.pe[0] == pytest.approx(20.0)
+    assert s.pe[1] == pytest.approx(20.0)
+    assert s.mv[0] == pytest.approx(s.mv[1])
 
 
 def test_dividend_drops_out_after_a_year():

@@ -105,10 +105,11 @@ def normalize_code(code: Any) -> str | None:
         ex = "sh" if m.group(2) == "ss" else m.group(2)
         return ex + m.group(1)
     if re.fullmatch(r"\d{6}", s):
-        if s[0] in "69" or s.startswith("5"):
-            return "sh" + s
+        # 北交所 920 开头的新代码也以 9 开头，必须先于沪市判断
         if s[0] in "48" or s.startswith("92"):
             return "bj" + s
+        if s[0] in "69" or s.startswith("5"):
+            return "sh" + s
         return "sz" + s
     return low
 

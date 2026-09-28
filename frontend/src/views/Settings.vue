@@ -163,7 +163,8 @@ async function loadValueData() {
 async function loadOverview() {
   overview.value = await api.overview()
   loadValueData()
-  for (const n of overview.value.running || []) if (!poller.running.value[n]) poller.start(n)
+  // 已在运行的任务不带名字接入轮询：带名字会以当前时间为起点，任务结束时会被当成旧记录忽略
+  if ((overview.value.running || []).some((n: string) => !poller.running.value[n])) poller.start()
 }
 const notices = ref<any>({ items: [], unread: 0 })
 const LEVEL_TAGS: Record<string, { text: string; type: 'danger' | 'warning' | 'info' | 'primary' }> = {
@@ -251,7 +252,9 @@ async function cancelJob(name: string) {
 }
 async function toggleAppSync(v: boolean) {
   if (v) await ElMessageBox.confirm(`开启后，每个交易日收盘会把主候选写入你的「${appSync.value?.group_name || '候选'}」自选分组，并把持仓止损价、目标价写成股价提醒。`, '开启写回 App')
-  await api.setAppSync(v)
+  else await ElMessageBox.confirm('关闭后立即停止写回；系统改过的股价提醒会恢复成你原来的设置。', '关闭写回 App')
+  const r = await api.setAppSync(v)
+  if (!v && r?.restored?.restored) ElMessage.success(`已恢复 ${r.restored.restored} 只股票的原有提醒`)
   await loadAppSync()
 }
 async function runAppSync() {
@@ -495,7 +498,7 @@ onMounted(async () => {
               <el-button size="small" :disabled="!appSync.enabled" @click="runAppSync">立即同步</el-button>
             </div>
             <div class="row mt-8">
-              <el-button size="small" :disabled="appSync.mock_mode || !appSync.group?.group_id" @click="renameGroup">分组改名</el-button>
+              <el-button size="small" :disabled="appSync.mock_mode || !appSync.enabled || !appSync.group?.group_id" @click="renameGroup">分组改名</el-button>
             </div>
             <div class="note">只改动「{{ appSync.group_name }}」分组：不再入选的系统加入股票移到「待删除」；加入前就在你自选里的股票保留不动。止损价、目标价写成股价提醒时保留你原有的其他提醒，平仓后恢复原值。</div>
             <el-table :data="appSync.logs" size="small" max-height="300" class="mt">

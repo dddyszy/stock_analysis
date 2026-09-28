@@ -1,6 +1,6 @@
 """候选跟踪：每条候选之后 5/10/20 个交易日的收益、相对指数的超额、先触及止损还是目标一，以及每批候选的 Rank IC。
 
-- 入场价取入选日次日开盘价；次日一字涨停视为买不进（blocked），不计入收益统计。
+- 入场价取入选日次日开盘价加滑点；次日一字涨停视为买不进（blocked），不计入收益统计。
 - 基准为沪深 300 和中证 1000，同样从次日开盘算到第 N 日收盘。
 - 只读本地日线，没有外部调用，可以每天收盘后全量刷新最近 60 天的候选。
 """
@@ -17,6 +17,7 @@ from app.db.session import session_scope
 from app.providers.base import Bar
 from app.services.ashare_rules import is_one_price_limit_up
 from app.services.jobs import JobContext
+from app.services.strategy_config import get_active_params
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,8 @@ class ItemRef:
     stop_price: float | None
     target1: float | None
     is_st: bool = False
+    price: float | None = None  # 入选时的收盘价，用来识别之后除权重拉日线带来的价格平移
+    slippage: float = 0.0
 
 
 def _bars_after(code: str, after: date, limit: int = 21) -> list[Bar]:
@@ -62,14 +65,18 @@ def compute_perf(item: ItemRef, bars: list[Bar], benches: dict[str, list[Bar]]) 
     if is_one_price_limit_up(first, base.close, item.code, item.is_st):
         out["blocked"] = True
         return out
-    entry = first.open
+    entry = first.open * (1 + item.slippage)
     out["entry_price"] = entry
+    # kline_daily 是减法前复权，除权后重拉会整体平移；止损、目标按同样的差值平移后再比较
+    shift = (item.price - base.close) if item.price else 0.0
+    stop = item.stop_price - shift if item.stop_price is not None else None
+    target = item.target1 - shift if item.target1 is not None else None
     window = after[: max(HORIZONS)]
     out["days"] = len(window)
     out["max_drawdown"] = (min(b.low for b in window) / entry - 1) * 100
     for b in window:
-        hit_stop = item.stop_price is not None and b.low <= item.stop_price
-        hit_target = item.target1 is not None and b.high >= item.target1
+        hit_stop = stop is not None and b.low <= stop
+        hit_target = target is not None and b.high >= target
         if hit_stop:  # 同一天都触及时保守地记为先止损
             out["first_hit"] = "stop"
             break
@@ -132,11 +139,13 @@ async def update_tracking(ctx: JobContext | None = None) -> dict:
     if ctx:
         ctx.update(done=0, total=len(todo), message=f"更新 {len(todo)} 条候选的后续表现", force=True)
     bench_cache: dict[date, dict[str, list[Bar]]] = {}
+    slippage = float(get_active_params().get("slippage", 0.0))
     values = []
     for i, (it, run_date, regime) in enumerate(todo):
         if run_date not in bench_cache:
             bench_cache[run_date] = {k: _bars_after(code, run_date)[1:] for k, code in BENCHES.items()}
-        perf = compute_perf(ItemRef(it.code, it.stop_price, it.target1, it.code in st), _bars_after(it.code, run_date), bench_cache[run_date])
+        ref = ItemRef(it.code, it.stop_price, it.target1, it.code in st, price=it.price, slippage=slippage)
+        perf = compute_perf(ref, _bars_after(it.code, run_date), bench_cache[run_date])
         values.append({
             "item_id": it.id, "run_id": it.run_id, "run_date": run_date, "code": it.code, "signal_type": it.signal_type,
             "scope": it.scope or "bi", "pool": it.pool or "main", "regime": regime, "score": it.score, **perf,

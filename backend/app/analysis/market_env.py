@@ -100,9 +100,9 @@ def breadth_from_db(end: date) -> tuple[dict, list[dict]]:
     up = int((valid["ret"] > 0.0001).sum())
     down = int((valid["ret"] < -0.0001).sum())
     total = max(len(valid), 1)
-    # 按板块涨跌停幅度判断（主板 10%、ST 5%、创业板和科创板 20%），留 0.5 个百分点容差
+    # 按当天的板块涨跌停幅度判断（规则见 ashare_rules），留 0.5 个百分点容差
     if len(valid):
-        pct = pd.Series([limit_pct(c, bool(st)) for c, st in zip(valid["code"], valid["is_st"])], index=valid.index)
+        pct = pd.Series([limit_pct(c, bool(st), last_day) for c, st in zip(valid["code"], valid["is_st"])], index=valid.index)
         limit_up = int((valid["ret"] >= pct - 0.005).sum())
         limit_down = int((valid["ret"] <= -pct + 0.005).sum())
     else:

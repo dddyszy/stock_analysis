@@ -12,6 +12,7 @@ from datetime import date, timedelta
 from app.services.ashare_rules import disclosure_deadline
 
 TTM_DAYS = 365
+SAME_SEASON_DAYS = (330, 400)
 MA_WINDOW = 120
 
 _NUM = r"(\d+(?:\.\d+)?)"
@@ -75,19 +76,25 @@ class ValueSeries:
 
 
 def parse_fh(content: str | None) -> tuple[float, float, float]:
-    """「10送3转4派2元」→ 每股（现金，送股，转增）。"""
-    if not content:
-        return 0.0, 0.0, 0.0
-    m = re.search(_NUM, content)
-    base = float(m.group(1)) if m else 10.0
-    if base <= 0:
-        return 0.0, 0.0, 0.0
+    """「10送3转4派2元」→ 每股（现金，送股，转增）。
 
-    def grab(pattern: str) -> float:
-        hit = re.search(pattern, content)
-        return float(hit.group(1)) / base if hit else 0.0
+    一条事件可能含多段，如「增加特别派息10派2.5元, 10派6.6元」「10转2股, 10派1.81元」，逐段解析后相加。
+    """
+    cash = bonus = transfer = 0.0
+    for part in re.split(r"[,，;；]", content or ""):
+        m = re.search(_NUM + r"(?=[送转派])", part)
+        base = float(m.group(1)) if m else 0.0
+        if base <= 0:
+            continue
 
-    return grab("派" + _NUM), grab("送" + _NUM), grab("转(?:增)?" + _NUM)
+        def grab(pattern: str) -> float:
+            hit = re.search(pattern, part)
+            return float(hit.group(1)) / base if hit else 0.0
+
+        cash += grab("派" + _NUM)
+        bonus += grab("送" + _NUM)
+        transfer += grab("转(?:增)?" + _NUM)
+    return cash, bonus, transfer
 
 
 def _factors(dates: list[date], close: list[float], events: list[Event]) -> list[float]:
@@ -110,16 +117,24 @@ def _factors(dates: list[date], close: list[float], events: list[Event]) -> list
 
 
 def _div_ttm(dates: list[date], events: list[Event]) -> list[float]:
+    """近 12 个月每股现金分红，按 d 当天的股本折算。
+
+    现金按除权前的股本派发，所以同一事件的送转也要折算；
+    每年的除权日会前后漂移，窗口里出现相隔约一年的两次分红时只算较新的一次，避免重复计入同一季的年度分红。
+    """
     evs = sorted(events, key=lambda e: e.ex_date)
     out = []
     for d in dates:
+        window = [e for e in evs if d - timedelta(days=TTM_DAYS) < e.ex_date <= d]
+        kept: list[Event] = []
+        for e in reversed(window):
+            if e.cash > 0 and not any(SAME_SEASON_DAYS[0] <= (k.ex_date - e.ex_date).days <= SAME_SEASON_DAYS[1] for k in kept if k.cash > 0):
+                kept.append(e)
         total = 0.0
-        for j, e in enumerate(evs):
-            if not (d - timedelta(days=TTM_DAYS) < e.ex_date <= d) or e.cash <= 0:
-                continue
-            later = 1.0
-            for e2 in evs[j + 1 :]:
-                if e2.ex_date <= d:
+        for e in kept:
+            later = e.split
+            for e2 in evs:
+                if e.ex_date < e2.ex_date <= d:
                     later *= e2.split
             total += e.cash / later
         out.append(total)
@@ -166,13 +181,14 @@ def build_series(code: str, bars: list[tuple[date, float, float]], events: list[
         latest, r3 = cached
         roe3.append(r3)
         eps = latest.eps_ttm if latest else None
-        pe.append(px / eps if eps else None)
-        shares = None
-        if latest and eps and latest.np_ttm:
-            shares = latest.np_ttm / eps
+        # 财报公告后发生的送转：价格已按新股本，EPS 和股本也要折算到同一口径
+        split_after = 1.0
+        if latest:
             for e in events:
                 if latest.visible_from < e.ex_date <= d:
-                    shares *= e.split
+                    split_after *= e.split
+        pe.append(px * split_after / eps if eps else None)
+        shares = latest.np_ttm / eps * split_after if latest and eps and latest.np_ttm else None
         mv.append(px * shares if shares and shares > 0 else None)
 
     ma: list[float | None] = [None] * len(dates)

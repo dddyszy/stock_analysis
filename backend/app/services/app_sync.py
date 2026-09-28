@@ -177,7 +177,10 @@ async def sync_recommend_group(codes: list[str]) -> dict:
         if to_add:
             # 加入前已在自选里的，记为你原有的自选，不再入选后不删除
             existing = await _members(sess, ALL_GROUP_ID)
-            pre = set(to_add) & existing
+            # 「全部」也包含被系统移进「待删除」的股票，它们不是你原有的自选
+            trash = await _group_id_by_name(sess, TRASH_GROUP_NAME)
+            trashed = await _members(sess, trash) if trash else set()
+            pre = (set(to_add) & existing) - trashed
             if pre:
                 user_owned |= pre
                 _log("watchlist_owned", True, ",".join(sorted(pre))[:255], f"{len(pre)} 只本来就在你的自选里，不再入选后保留")
@@ -242,6 +245,9 @@ def _types_from_tip(code: str, tip: dict) -> str:
 
 
 def _tip_args(code: str, existing: dict, low: str, high: str) -> dict:
+    # tips_set 是全量覆盖：已有提醒却一个字段都认不出时，说明接口字段变了，不能盲写
+    if existing and not any(k in existing for k in (*TIP_FIELDS, "notice", "research")):
+        raise ValueError(f"无法识别现有提醒的字段 {sorted(existing)[:8]}，为避免覆盖你的设置，本次不写入")
     args = {"code": code}
     for f in TIP_FIELDS:
         v = existing.get(f)
@@ -271,8 +277,9 @@ async def sync_price_alerts() -> dict:
         for code in changed:
             existing = tips.get(code, {})
             entry = state.get(code) or {"orig_low": _norm_tip(existing.get("low")), "orig_high": _norm_tip(existing.get("high"))}
-            args = _tip_args(code, existing, desired[code]["low"], desired[code]["high"])
+            args: dict = {"code": code}
             try:
+                args = _tip_args(code, existing, desired[code]["low"], desired[code]["high"])
                 await sess.call("portfolio_tips_set", args)
                 state[code] = {**entry, **desired[code]}
                 updated += 1
@@ -282,8 +289,9 @@ async def sync_price_alerts() -> dict:
         for code in closed:
             entry = state.get(code, {})
             existing = tips.get(code, {})
-            args = _tip_args(code, existing, entry.get("orig_low", ""), entry.get("orig_high", ""))
+            args = {"code": code}
             try:
+                args = _tip_args(code, existing, entry.get("orig_low", ""), entry.get("orig_high", ""))
                 await sess.call("portfolio_tips_set", args)
                 state.pop(code, None)
                 restored += 1
@@ -294,6 +302,32 @@ async def sync_price_alerts() -> dict:
         await sess.close()
         _set_state("price_alerts", state)
     return {"updated": updated, "restored": restored}
+
+
+async def restore_price_alerts() -> dict:
+    """关闭写回时把系统改过的股价提醒恢复成原值；之后不再写入。"""
+    state: dict = _get_state("price_alerts", {}) or {}
+    if not state or settings.data_provider == "mock":
+        return {"restored": 0}
+    sess = McpSession()
+    restored = 0
+    try:
+        tips = _tip_map(await sess.call("portfolio_tips_query", {}))
+        for code in list(state):
+            entry = state[code]
+            args = {"code": code}
+            try:
+                args = _tip_args(code, tips.get(code, {}), entry.get("orig_low", ""), entry.get("orig_high", ""))
+                await sess.call("portfolio_tips_set", args)
+                state.pop(code, None)
+                restored += 1
+                _log("tips_restore", True, code, "关闭写回，恢复原有提醒", {"args": args})
+            except Exception as exc:
+                _log("tips_restore", False, code, str(exc), {"args": args})
+    finally:
+        await sess.close()
+        _set_state("price_alerts", state)
+    return {"restored": restored, "failed": len(state)}
 
 
 def _norm_tip(v) -> str:
@@ -318,6 +352,8 @@ async def rename_group(name: str) -> dict:
     name = name.strip()
     if not name:
         raise ValueError("分组名称不能为空")
+    if not is_enabled():
+        raise ValueError("写回 App 已关闭，不会改动你的腾讯自选分组")
     sess = McpSession()
     try:
         gid = await _ensure_group(sess)

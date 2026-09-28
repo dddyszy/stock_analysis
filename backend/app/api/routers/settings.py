@@ -154,9 +154,10 @@ def app_sync_status() -> dict:
 
 
 @router.put("/app-sync")
-def set_app_sync(body: AppSyncBody) -> dict:
+async def set_app_sync(body: AppSyncBody) -> dict:
     app_sync.set_enabled(body.enabled)
-    return app_sync.status()
+    restored = None if body.enabled else await app_sync.restore_price_alerts()
+    return {**app_sync.status(), "restored": restored}
 
 
 class RenameBody(BaseModel):

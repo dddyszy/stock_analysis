@@ -111,7 +111,7 @@ onMounted(load)
 
 <template>
   <div class="page" v-loading="loading && !data">
-    <PageHeader title="结构跟踪" subtitle="每天筛出的买点结构，之后是先走出延续（到达目标一）还是例外（跌破认错位），用来核对结构基准率在实盘中是否成立；收益按次日开盘价计算">
+    <PageHeader title="结构跟踪" subtitle="推荐页每天选出的买点股票（主候选与观察池），之后是先走出延续（到达目标一）还是例外（跌破认错位），用来核对历史比例在实盘中是否成立；收益按次日开盘价加滑点计算">
       <el-radio-group v-model="horizon" size="small">
         <el-radio-button value="5">5 日</el-radio-button>
         <el-radio-button value="10">10 日</el-radio-button>
@@ -140,7 +140,7 @@ onMounted(load)
           :value="num(data.ic.mean, 3)"
           :value-class="colorClass(data.ic.mean)"
           :sub="`${data.ic.horizon} 日 · ${data.ic.n_runs} 批 · IC>0 占 ${ratioPct(data.ic.positive_ratio)}`"
-          hint="每批候选中综合分与之后收益的排序相关系数。持续大于 0 说明分数越高的股票表现越好，一般 0.03 以上就有参考价值。"
+          hint="每批候选中综合分与之后收益的排序相关系数，用来检验综合分有没有区分度。回测显示综合分没有稳定的区分度，接近 0 属于预期；只有长期、显著大于 0 才值得重新评估。"
         />
       </div>
 

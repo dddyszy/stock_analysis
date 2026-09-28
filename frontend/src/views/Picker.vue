@@ -25,7 +25,8 @@ const poller = useJobPoller((job) => {
 
 const names = computed<Record<string, string>>(() => data.value?.state_names || {})
 const counts = computed<Record<string, number>>(() => data.value?.counts || {})
-const industries = computed(() => Array.from(new Set<string>((data.value?.items || []).map((i: any) => i.industry).filter(Boolean))).sort())
+const allIndustries = ref<string[]>([])
+const industries = computed(() => allIndustries.value)
 const rows = computed(() =>
   (data.value?.items || []).map((r: any) => ({
     ...r,
@@ -33,16 +34,20 @@ const rows = computed(() =>
     low_dist: r.price && r.lower ? (r.lower / r.price - 1) * 100 : null,
   })),
 )
-const OUTCOME_COLS: Record<string, [string, string]> = { up: ['continue', 'exception'], down: ['continue', 'exception'] }
+// 中枢下方两种状态的延续方向是向下：延续 = 先到下方价位
+const DOWN_STATES = ['below_down', 'below_rebound']
+const MIN_SAMPLES = 50
 const rateRows = computed(() => {
   const all = (rates.value?.rows || []).filter((r: any) => r.regime === 'all' && r.horizon === 10)
   return selected.value
     .map((k) => all.find((r: any) => r.state === k))
     .filter(Boolean)
     .map((r: any) => {
-      const inside = r.state === 'inside'
-      const [a, b] = inside ? ['break_up', 'break_down'] : OUTCOME_COLS.up
-      return { ...r, name: names.value[r.state] || r.state, first: r.outcomes[a], second: r.outcomes[b], inside }
+      const o = r.outcomes
+      const dir = r.state === 'inside' ? '双向' : DOWN_STATES.includes(r.state) ? '向下' : '向上'
+      const [up, down] = r.state === 'inside' ? [o.break_up, o.break_down] : dir === '向下' ? [o.exception, o.continue] : [o.continue, o.exception]
+      const enough = r.n >= MIN_SAMPLES
+      return { ...r, name: names.value[r.state] || r.state, up: enough ? up : null, down: enough ? down : null, dir: enough ? dir : '样本不足' }
     })
 })
 
@@ -56,12 +61,17 @@ function dist(v: number | null) {
   return v == null ? '--' : `${v > 0 ? '+' : ''}${v.toFixed(1)}%`
 }
 
+let seq = 0
 async function load() {
+  const my = ++seq
   loading.value = true
   try {
-    data.value = await api.recommendStructures({ states: selected.value.join(','), industry: industry.value || undefined, exclude_risk: excludeRisk.value })
+    const res = await api.recommendStructures({ states: selected.value.join(','), industry: industry.value || undefined, exclude_risk: excludeRisk.value })
+    if (my !== seq) return
+    data.value = res
+    if (!industry.value) allIndustries.value = Array.from(new Set<string>((res?.items || []).map((i: any) => i.industry).filter(Boolean))).sort()
   } finally {
-    loading.value = false
+    if (my === seq) loading.value = false
   }
 }
 
@@ -129,8 +139,9 @@ onMounted(() => {
       <el-table :data="rateRows" size="small">
         <el-table-column prop="name" label="结构状态" min-width="150" />
         <el-table-column prop="n" label="样本" width="80" />
-        <el-table-column label="延续 / 向上突破" width="130"><template #default="{ row }"><span class="num up">{{ pctOf(row.first) }}</span></template></el-table-column>
-        <el-table-column label="例外 / 向下跌破" width="130"><template #default="{ row }"><span class="num down">{{ pctOf(row.second) }}</span></template></el-table-column>
+        <el-table-column prop="dir" label="延续方向" width="90" />
+        <el-table-column label="先到上方价位" width="120"><template #default="{ row }"><span class="num up">{{ pctOf(row.up) }}</span></template></el-table-column>
+        <el-table-column label="先到下方价位" width="120"><template #default="{ row }"><span class="num down">{{ pctOf(row.down) }}</span></template></el-table-column>
         <el-table-column label="未分出" width="90"><template #default="{ row }"><span class="num">{{ pctOf(row.outcomes.undecided) }}</span></template></el-table-column>
         <el-table-column label="10 日平均收益" width="120"><template #default="{ row }"><span class="num" :class="colorClass(row.mean_ret)">{{ num(row.mean_ret, 2) }}%</span></template></el-table-column>
         <el-table-column label="相对中证 1000" width="120"><template #default="{ row }"><span class="num" :class="colorClass(row.mean_excess)">{{ num(row.mean_excess, 2) }}%</span></template></el-table-column>

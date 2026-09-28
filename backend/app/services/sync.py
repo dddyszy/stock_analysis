@@ -113,6 +113,8 @@ def _set_progress(task: str, code: str, status: str, last_date: date | None = No
             status=stmt.inserted.status,
             last_date=func.coalesce(stmt.inserted.last_date, SyncProgress.last_date),
             error=stmt.inserted.error,
+            # ORM 的 onupdate 对 upsert 不生效，缓存新鲜度靠这个时间判断
+            updated_at=func.now(),
         )
         db.execute(stmt)
 
@@ -140,8 +142,15 @@ async def trading_days_around(provider: DataProvider, today: date | None = None)
     today = today or date.today()
     key = today.toordinal()
     if key not in _calendar_cache:
+        try:
+            days = await provider.trading_days(today - timedelta(days=30), today + timedelta(days=10))
+        except McpAuthError:
+            raise
+        except Exception as exc:  # 交易日历拿不到时按工作日判断，不缓存，下次再试
+            logger.warning("交易日历查询失败，按工作日判断: %s", exc)
+            return []
         _calendar_cache.clear()
-        _calendar_cache[key] = await provider.trading_days(today - timedelta(days=30), today + timedelta(days=10))
+        _calendar_cache[key] = days
     return _calendar_cache[key]
 
 
@@ -301,14 +310,36 @@ async def sync_stock_pool(ctx: JobContext | None = None) -> dict:
 
 
 async def _backfill_one(provider: DataProvider, code: str, start: date, end: date, full: bool) -> int:
-    bars = await provider.kline(code, "day", start=start, end=end, fq="" if code in INDEX_CODES else "qfq")
-    if full:
+    fq = "" if code in INDEX_CODES else "qfq"
+    if not full:
+        # 多拉一根和库里最后一根重叠；收盘价对不上说明缺口期间除过权，前复权序列要整段重拉
         with session_scope() as db:
-            db.execute(delete(KlineDaily).where(KlineDaily.code == code))
+            stored = db.execute(
+                select(KlineDaily.trade_date, KlineDaily.close).where(KlineDaily.code == code, KlineDaily.trade_date < start)
+                .order_by(KlineDaily.trade_date.desc()).limit(1)
+            ).first()
+        bars = await provider.kline(code, "day", start=stored[0] if stored else start, end=end, fq=fq)
+        if stored and fq and stored[1]:
+            overlap = next((b for b in bars if b.dt == stored[0]), None)
+            if overlap and abs(overlap.close - stored[1]) / stored[1] > EXRIGHT_TOLERANCE:
+                return await _backfill_one(provider, code, end - timedelta(days=365 * settings.backfill_years), end, True)
+        bars = [b for b in bars if b.dt >= start]
+        n = upsert_bars(KlineDaily, code, bars)
+        rebuild_weekly(code, since=start)
+        return n
+    bars = await provider.kline(code, "day", start=start, end=end, fq=fq)
+    with session_scope() as db:
+        existing = db.scalar(select(func.count()).select_from(KlineDaily).where(KlineDaily.code == code)) or 0
+    # 接口偶尔返回空或残缺的数据，这时保留原有日线，不能先删
+    if existing and len(bars) < existing * 0.8:
+        raise RuntimeError(f"全量重拉只拿到 {len(bars)} 根（库里 {existing} 根），保留原有日线")
+    if not bars:
+        return 0
+    with session_scope() as db:
+        db.execute(delete(KlineDaily).where(KlineDaily.code == code))
     n = upsert_bars(KlineDaily, code, bars)
-    rebuild_weekly(code, since=None if full else start)
-    if bars:
-        _update_list_date_proxy(code, bars[0].dt, start)
+    rebuild_weekly(code, since=None)
+    _update_list_date_proxy(code, bars[0].dt, start)
     return n
 
 
@@ -395,7 +426,9 @@ async def daily_update(ctx: JobContext) -> dict:
             chunk = codes[i : i + batch]
             try:
                 quotes = await provider.quotes(chunk)
-            except (McpBusinessError, McpRateLimited) as exc:
+            except McpAuthError:
+                raise
+            except Exception as exc:  # 公开接口失败后回退 MCP 也可能失败，只跳过这一批
                 logger.warning("行情批次失败: %s", exc)
                 quotes = {}
             for code in chunk:
@@ -551,7 +584,9 @@ async def sync_scores_and_valuations(ctx: JobContext | None = None, codes: list[
             chunk = codes[i : i + SCORE_BATCH]
             try:
                 scores = await provider.scores(chunk)
-            except (McpBusinessError, McpRateLimited) as exc:
+            except McpAuthError:
+                raise
+            except Exception as exc:
                 logger.warning("诊股评分批次失败: %s", exc)
                 continue
             for c, v in scores.items():
@@ -670,7 +705,9 @@ async def sync_finance_details(codes: list[str], ctx: JobContext | None = None, 
                     with session_scope() as db:
                         stmt = insert(FundamentalQuarterly).values(rows)
                         stmt = stmt.on_duplicate_key_update(
-                            **{k: stmt.inserted[k] for k in rows[0] if k not in ("code", "report_date", "first_seen")},
+                            # 三张报表可能只拿到部分，新值为空时保留缓存里的旧值
+                            **{k: func.coalesce(stmt.inserted[k], getattr(FundamentalQuarterly, k))
+                               for k in rows[0] if k not in ("code", "report_date", "first_seen")},
                             first_seen=func.coalesce(FundamentalQuarterly.first_seen, stmt.inserted.first_seen),
                         )
                         db.execute(stmt)

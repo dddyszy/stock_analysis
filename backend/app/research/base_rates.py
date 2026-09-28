@@ -58,8 +58,8 @@ def _one(args: tuple) -> list[dict]:
         d0, c0 = bars[t].dt, bars[t].close
         fwd = [b.close for b in bars[t + 1 : t + 1 + horizon]]
         b0 = _at(bench, bench_dates, d0)
-        # 市场状态取判定日之前最后一个交易日，与回测口径一致
-        i = bisect.bisect_left(bench_dates, d0)
+        # 市场状态取判定日当天（收盘后已可见），与实盘报告口径一致
+        i = bisect.bisect_right(bench_dates, d0)
         rec = {"state": st.key, "regime": regimes.get(bench_dates[i - 1], "unknown") if i else "unknown", "h": {}}
         for h in HORIZONS:
             ret = fwd[h - 1] / c0 - 1

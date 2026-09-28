@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { api } from '@/api'
 import { num, ratioPct } from '@/utils/format'
 
@@ -22,23 +22,28 @@ const visible = computed({
 const isBj = computed(() => props.code?.startsWith('bj'))
 const riskAmount = computed(() => (plan.value ? quantity.value * (plan.value.entry_price - plan.value.stop) : 0))
 
+let seq = 0
 async function load() {
+  const my = ++seq
   loading.value = true
   plan.value = null
   try {
-    plan.value = await api.entryPreview({ code: props.code, signal_type: props.signalType, signal_date: props.signalDate })
-    quantity.value = plan.value.quantity
+    const res = await api.entryPreview({ code: props.code, signal_type: props.signalType, signal_date: props.signalDate })
+    if (my !== seq) return
+    plan.value = res
+    quantity.value = res.quantity
     price.value = undefined
   } finally {
-    loading.value = false
+    if (my === seq) loading.value = false
   }
 }
 
 watch(
-  () => props.modelValue,
-  (v) => {
+  () => [props.modelValue, props.code],
+  ([v]) => {
     if (v) load()
   },
+  { immediate: true },
 )
 
 async function submit() {
@@ -46,6 +51,14 @@ async function submit() {
   if (!quantity.value || quantity.value % 100) {
     ElMessage.warning('数量必须为 100 的整数倍')
     return
+  }
+  const override = !plan.value.allowed
+  if (override) {
+    await ElMessageBox.confirm(
+      `系统判断不满足开仓条件：${(plan.value.warnings || []).join('；') || '未说明原因'}。确定仍要按 ${quantity.value} 股开仓${placeOrder.value && !isBj.value ? '并提交模拟买单' : ''}吗？`,
+      '不满足开仓条件',
+      { type: 'warning', confirmButtonText: '仍然开仓' },
+    )
   }
   submitting.value = true
   try {
@@ -57,6 +70,7 @@ async function submit() {
       entry_price: price.value,
       place_order: placeOrder.value && !isBj.value,
       linked_sim: placeOrder.value && !isBj.value,
+      override,
     })
     ElMessage.success(res.order ? `已创建持仓计划并提交模拟买单（${res.order.status}）` : '已创建持仓计划')
     emit('done', res)

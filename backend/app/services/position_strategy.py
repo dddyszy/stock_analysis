@@ -342,7 +342,7 @@ def evaluate_plan(plan: PositionPlan, a: StockAnalysis, env: dict | None, params
     if t1_locked and adv.action in ("reduce", "close"):
         adv.warnings.append("T+1：今日买入的仓位不能卖出，建议次日执行")
         adv.action, adv.quantity = "hold", 0
-    if adv.action in ("reduce", "close") and len(day.closes) > 1 and is_limit_down(day.closes[-2], close, plan.code, is_st):
+    if adv.action in ("reduce", "close") and len(day.closes) > 1 and is_limit_down(day.closes[-2], close, plan.code, is_st, day.dates[-1]):
         adv.warnings.append("收盘跌停，可能无法卖出，建议次日开盘执行")
     if not adv.reasons:
         adv.reasons.append("结构未破坏，继续持有")

@@ -8,7 +8,7 @@ from app.services.backtest import diagnose, matched_edge, walk_forward
 
 def _t(sig: str, regime: str, r: float, year: int = 2024, excess: float = 0.0, **tags) -> dict:
     return {
-        "signal_type": sig, "scope": "bi", "entry_date": date(year, 6, 1), "r_multiple": r, "pnl_pct": r * 5,
+        "signal_type": sig, "scope": "bi", "entry_date": date(year, 6, 1), "exit_date": date(year, 6, 15), "r_multiple": r, "pnl_pct": r * 5,
         "excess": excess, "holding_days": 10, "tags": {"regime": regime, **tags},
     }
 

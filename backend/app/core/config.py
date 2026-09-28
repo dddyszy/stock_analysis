@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     analysis_daily_bars: int = 1000
     analysis_weekly_bars: int = 400
 
-    app_sync_enabled: bool = True
+    app_sync_enabled: bool = False  # 写入真实账户必须由用户在设置页主动开启
     app_sync_group_name: str = "缠论结构候选"
 
     @property

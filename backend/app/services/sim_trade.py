@@ -46,10 +46,13 @@ def _norm_status(v: Any, filled: int | None = None, qty: int | None = None) -> s
         return "cancelled"
     if any(x in s for x in ("废", "拒", "reject", "fail", "invalid")):
         return "rejected"
-    if any(x in s for x in ("部成", "partial")):
-        return "partial"
-    if any(x in s for x in ("已成", "全部成交", "filled", "done", "deal", "success", "成交")):
+    # 「未成交」「待成交」都包含「成交」二字，必须先排除；下单返回的 success 只表示委托已受理
+    if any(x in s for x in ("未成", "待成", "未报", "待报", "已报", "pending", "submitted", "open", "success")):
+        return "partial" if filled else "pending"
+    if any(x in s for x in ("全部成交", "已成", "filled", "done", "deal")) or s == "成交":
         return "filled"
+    if any(x in s for x in ("部成", "部分成交", "partial")):
+        return "partial"
     if filled and qty and filled >= qty:
         return "filled"
     if filled:

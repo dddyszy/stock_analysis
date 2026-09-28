@@ -8,7 +8,7 @@ export function useJobPoller(onFinish?: (job: any) => void) {
   let timer: number | undefined
 
   async function tick() {
-    const jobs: any[] = await api.jobs(30)
+    const jobs: any[] = await api.jobs(30, true)
     const latest: Record<string, any> = {}
     for (const j of jobs) if (!latest[j.job_name]) latest[j.job_name] = j
     const next: Record<string, any> = {}

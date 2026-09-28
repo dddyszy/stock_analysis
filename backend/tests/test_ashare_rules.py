@@ -23,9 +23,18 @@ class B:
     close: float
 
 
+@dataclass
+class D(B):
+    dt: date
+
+
 def test_board_and_limit_pct():
     assert board("sh600519") == "main" and limit_pct("sh600519") == 0.10
-    assert limit_pct("sh600519", is_st=True) == 0.05
+    assert limit_pct("sh600519", is_st=True, on=date(2026, 7, 3)) == 0.05
+    assert limit_pct("sh600519", is_st=True, on=date(2026, 7, 6)) == 0.10
+    assert limit_pct("sz300750", on=date(2020, 8, 21)) == 0.10
+    assert limit_pct("sz300750", is_st=True, on=date(2019, 1, 2)) == 0.05
+    assert limit_pct("sz300750", on=date(2020, 8, 24)) == 0.20
     assert board("sz300750") == "gem" and limit_pct("sz300750", is_st=True) == 0.20
     assert board("sh688981") == "star" and limit_pct("sh688981") == 0.20
     assert board("bj830799") == "bj" and limit_pct("bj830799") == 0.30
@@ -50,7 +59,9 @@ def test_limit_detection_and_one_price():
     assert not is_limit_down(10.0, 9.0, "sz300001")
     assert is_one_price_limit_up(B(11, 11, 11, 11), 10.0, "sh600000")
     assert not is_one_price_limit_up(B(10.5, 11, 10.4, 11), 10.0, "sh600000")
-    assert is_one_price_limit_down(B(9.5, 9.5, 9.5, 9.5), 10.0, "sh600000", is_st=True)
+    assert is_one_price_limit_down(D(9.5, 9.5, 9.5, 9.5, date(2026, 7, 3)), 10.0, "sh600000", is_st=True)
+    assert not is_one_price_limit_down(D(9.5, 9.5, 9.5, 9.5, date(2026, 7, 6)), 10.0, "sh600000", is_st=True)
+    assert is_one_price_limit_down(D(9.0, 9.0, 9.0, 9.0, date(2026, 7, 6)), 10.0, "sh600000", is_st=True)
 
 
 def test_clamp_to_limits():

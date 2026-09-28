@@ -134,18 +134,19 @@ const trend = useChart(
 async function load() {
   loading.value = true
   try {
-    const [e, h, r, p, w] = await Promise.all([
+    // 各块分别赋值：一块失败不能让首页误显示「还没有市场环境数据」
+    const [e, h, r, p, w] = await Promise.allSettled([
       api.marketEnv(),
       api.marketEnvHistory(180),
       api.recommendStructures({ limit: 0 }),
       api.plans('open'),
       api.events(10, 'warning'),
     ])
-    env.value = e
-    history.value = h
-    rec.value = r
-    plans.value = p
-    warnings.value = w
+    if (e.status === 'fulfilled') env.value = e.value
+    if (h.status === 'fulfilled') history.value = h.value
+    if (r.status === 'fulfilled') rec.value = r.value
+    if (p.status === 'fulfilled') plans.value = p.value
+    if (w.status === 'fulfilled') warnings.value = w.value
   } finally {
     loading.value = false
   }
