@@ -105,6 +105,12 @@ async def job_value_daily() -> None:
     await _guarded("value_daily", value_daily)
 
 
+async def job_value_finance_nightly() -> None:
+    from app.services.value_data import value_finance_nightly
+
+    await _guarded("value_finance_nightly", value_finance_nightly)
+
+
 async def job_data_check() -> None:
     try:
         await watchdog.check_data_fresh()
@@ -147,6 +153,7 @@ def start_scheduler() -> None:
     scheduler.add_job(job_sim_orders, CronTrigger(day_of_week=weekdays, hour="9-15", minute="*"), id="sim_orders", replace_existing=True)
     scheduler.add_job(job_base_rates, CronTrigger(day_of_week="sat", hour=12), id="base_rates", replace_existing=True)
     scheduler.add_job(job_value_daily, CronTrigger(day_of_week=weekdays, hour=18, minute=30), id="value_daily", replace_existing=True)
+    scheduler.add_job(job_value_finance_nightly, CronTrigger(hour=21, minute=0), id="value_finance_nightly", replace_existing=True)
     scheduler.add_job(job_data_check, CronTrigger(day_of_week=weekdays, hour=16, minute=30), id="data_check", replace_existing=True)
     scheduler.add_job(job_evening_check, CronTrigger(day_of_week=weekdays, hour=17, minute=30), id="evening_check", replace_existing=True)
     scheduler.start()

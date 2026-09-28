@@ -504,6 +504,41 @@ async def value_daily(ctx: JobContext) -> dict:
     return stats
 
 
+NIGHTLY_STOP = (7, 30)
+
+
+def _seconds_until_morning(now: datetime | None = None) -> float:
+    now = now or datetime.now()
+    stop = now.replace(hour=NIGHTLY_STOP[0], minute=NIGHTLY_STOP[1], second=0, microsecond=0)
+    if stop <= now:
+        stop += timedelta(days=1)
+    return (stop - now).total_seconds()
+
+
+async def value_finance_nightly(ctx: JobContext) -> dict:
+    """每晚接口空闲时续拉价值池财报历史，最晚到早上 7:30；拉完后补做核对和策略扫描（已完成的步骤会自动跳过）。"""
+    if _is_mock():
+        return {"skipped": "mock"}
+    out = {"finance": await sync_value_finance(ctx, time_budget=_seconds_until_morning())}
+    if out["finance"].get("deferred"):
+        ctx.update(message=f"财报历史还剩 {out['finance']['deferred']} 只，明晚继续", force=True)
+        return out
+    out["filters"] = await sync_filter_snapshots(ctx)
+    if out["filters"].get("ok") or not (get_state(VALIDATION_KEY) or {}).get("dates"):
+        out["validation"] = await asyncio.to_thread(validate_against_filters, ctx)
+    from app.services.strategy_scan import scan_strategies
+
+    out["strategies"] = await scan_strategies(ctx)
+    return out
+
+
+def finance_coverage() -> float:
+    with session_scope() as db:
+        pool = db.scalar(select(func.count(distinct(KlineDailyRaw.code)))) or 0
+        covered = db.scalar(select(func.count(distinct(FinanceHistory.code)))) or 0
+    return covered / pool if pool else 0.0
+
+
 def value_overview() -> dict:
     with session_scope() as db:
         pool = db.scalar(select(func.count(distinct(KlineDailyRaw.code)))) or 0

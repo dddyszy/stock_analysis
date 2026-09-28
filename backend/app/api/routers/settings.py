@@ -37,6 +37,7 @@ JOBS = {
     "value_backfill": ("补齐价值数据（分红送转 → 日线换算为等比前复权 → 财报历史 → 核对，首次约 3～4 小时）", value_data.value_backfill),
     "value_daily": ("更新价值池数据（完成后自动运行策略扫描）", value_data.value_daily),
     "strategy_scan": ("策略扫描（点金术原版、改良版）", strategy_scan.scan_strategies),
+    "value_finance_nightly": ("夜间续拉价值池财报（到早上 7:30 为止，拉完后核对并扫描策略）", value_data.value_finance_nightly),
     "evaluate_positions": ("评估持仓", evaluate_all),
     "post_close_pipeline": ("收盘后流水线（强制运行）", lambda ctx: post_close_pipeline(ctx, force=True)),
 }

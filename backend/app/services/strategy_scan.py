@@ -11,11 +11,12 @@ from sqlalchemy.dialects.mysql import insert
 from app.db.models import KlineDailyRaw, RecommendItem, RecommendRun, StockBasic, StrategySignalDaily, StructureStateDaily
 from app.db.session import session_scope
 from app.services.jobs import JobContext
-from app.services.value_data import load_series, pool_codes
+from app.services.value_data import finance_coverage, load_series, pool_codes
 from app.strategies.dianjin import VARIANTS, ZONE_NAMES, evaluate
 
 logger = logging.getLogger(__name__)
 
+MIN_FINANCE_COVERAGE = 0.9
 STALE_DAYS = 10  # 最新日线早于扫描日这么多天（长期停牌）的不参与当天判定
 KEEP_DAYS = 400
 BACKTEST_STATUS = "尚未检验：回测检验在多策略第三次交付完成后显示在这里。"
@@ -60,6 +61,12 @@ async def scan_strategies(ctx: JobContext | None = None) -> dict:
         scan_date = db.scalar(select(func.max(KlineDailyRaw.trade_date)))
     if scan_date is None:
         return {"skipped": "价值池还没有数据，请先运行「补齐价值数据」"}
+    coverage = await asyncio.to_thread(finance_coverage)
+    if coverage < MIN_FINANCE_COVERAGE:
+        msg = f"价值池只有 {coverage:.0%} 的股票有财报历史，补齐到 {MIN_FINANCE_COVERAGE:.0%} 以上再扫描（每晚 21:00 自动续拉）"
+        if ctx:
+            ctx.update(message=msg, force=True)
+        return {"skipped": msg}
     codes = pool_codes()
     if ctx:
         ctx.update(done=0, total=len(codes), message=f"策略扫描：价值池 {len(codes)} 只，数据日期 {scan_date}", force=True)
