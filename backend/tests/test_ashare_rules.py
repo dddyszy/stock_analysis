@@ -35,6 +35,7 @@ def test_board_and_limit_pct():
     assert limit_pct("sz300750", on=date(2020, 8, 21)) == 0.10
     assert limit_pct("sz300750", is_st=True, on=date(2019, 1, 2)) == 0.05
     assert limit_pct("sz300750", on=date(2020, 8, 24)) == 0.20
+    assert board("sz302132") == "gem" and limit_pct("sz302132") == 0.20
     assert board("sz300750") == "gem" and limit_pct("sz300750", is_st=True) == 0.20
     assert board("sh688981") == "star" and limit_pct("sh688981") == 0.20
     assert board("bj830799") == "bj" and limit_pct("bj830799") == 0.30
