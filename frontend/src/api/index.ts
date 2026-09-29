@@ -27,6 +27,8 @@ export const api = {
   searchStocks: (q: string) => get('/stocks/search', { q, limit: 15 }),
   stockInfo: (code: string) => get(`/stocks/${code}`),
   stockChan: (code: string, level: string, bars = 400) => get(`/stocks/${code}/chan`, { level, bars }),
+  stockReplay: (code: string, date: string) => get(`/stocks/${code}/replay`, { date }),
+  stockRewriteLog: (code: string) => get(`/stocks/${code}/rewrite-log`),
   stockQuote: (code: string) => get(`/stocks/${code}/quote`, undefined, true),
   stockFundamentals: (code: string) => get(`/stocks/${code}/fundamentals`),
   watchlist: () => get('/watchlist'),

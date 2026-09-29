@@ -19,8 +19,8 @@ export interface ChanLayers {
 }
 
 const props = withDefaults(
-  defineProps<{ data: any; lines?: PriceLine[]; height?: string; layers?: Partial<ChanLayers>; zoomBars?: number }>(),
-  { lines: () => [], height: '600px', layers: () => ({}), zoomBars: 160 },
+  defineProps<{ data: any; lines?: PriceLine[]; height?: string; layers?: Partial<ChanLayers>; zoomBars?: number; overlayBis?: any[] }>(),
+  { lines: () => [], height: '600px', layers: () => ({}), zoomBars: 160, overlayBis: () => [] },
 )
 
 const BI = '#2f6bff'
@@ -160,6 +160,7 @@ function buildOption() {
     series.push(
       { name: '笔', type: 'line', data: biPoints, symbol: 'circle', symbolSize: 3, lineStyle: { color: BI, width: 1.4 }, itemStyle: { color: BI }, z: 5 },
       { name: '笔', type: 'line', data: lastBiPoints, symbol: 'none', lineStyle: { color: BI, width: 1.4, type: 'dashed' }, z: 5 },
+      ...(props.overlayBis.length ? [{ name: '今天回看的笔', type: 'line', data: polyline(props.overlayBis.filter((b: any) => b.end_dt >= first && dateSet.has(b.end_dt))), symbol: 'none', lineStyle: { color: '#9aa3b2', width: 1.2, type: 'dashed' }, z: 4 }] : []),
     )
   }
   if (layer('segment')) {
@@ -225,7 +226,7 @@ function buildOption() {
   }
 }
 
-const chart = useChart(buildOption, () => [props.data, props.lines, props.layers, props.zoomBars])
+const chart = useChart(buildOption, () => [props.data, props.lines, props.layers, props.zoomBars, props.overlayBis])
 </script>
 
 <template>

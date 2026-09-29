@@ -139,3 +139,29 @@ def del_watch(code: str) -> dict:
         if w:
             db.delete(w)
     return {"ok": True}
+
+
+@router.get("/stocks/{code}/replay")
+def stock_replay(code: str, date: str, bars: int = 400) -> dict:
+    from datetime import date as _date
+
+    from app.services.structure_replay import replay
+
+    try:
+        on = _date.fromisoformat(date)
+    except ValueError:
+        raise HTTPException(400, "日期格式应为 YYYY-MM-DD")
+    payload = replay(_code(code), on, bars)
+    if payload is None:
+        raise HTTPException(404, "这一天之前的日线不足 60 根")
+    return payload
+
+
+@router.get("/stocks/{code}/rewrite-log")
+def stock_rewrite_log(code: str) -> dict:
+    from app.services.structure_replay import rewrite_log
+
+    log = rewrite_log(_code(code))
+    if log is None:
+        raise HTTPException(404, "日线不足，无法回放")
+    return log

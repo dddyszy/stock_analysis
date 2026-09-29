@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { api } from '@/api'
 import ChanChart from '@/components/ChanChart.vue'
+import StructureReplay from '@/components/StructureReplay.vue'
 import EntryDialog from '@/components/EntryDialog.vue'
 import { useChart } from '@/composables/useChart'
 import { COLORS } from '@/utils/echartsTheme'
@@ -381,6 +382,8 @@ onMounted(load)
         </el-tab-pane>
       </el-tabs>
     </SectionCard>
+
+    <StructureReplay v-if="chan && level === 'day'" :code="code" :dates="chan.bars.map((b: any[]) => b[0])" :today-bis="chan.bis || []" :auto-open="route.query.replay === '1'" />
 
     <EntryDialog
       v-if="entryPlan"
