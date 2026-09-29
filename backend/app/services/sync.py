@@ -708,7 +708,6 @@ async def sync_finance_details(codes: list[str], ctx: JobContext | None = None, 
         async def worker() -> None:
             while True:
                 if deadline is not None and time.monotonic() > deadline:
-                    stats["skipped"] = queue.qsize() * FINANCE_BATCH
                     return
                 try:
                     chunk = queue.get_nowait()
@@ -723,7 +722,6 @@ async def sync_finance_details(codes: list[str], ctx: JobContext | None = None, 
                 except McpAuthError:
                     raise
                 except asyncio.TimeoutError:
-                    stats["skipped"] = stats.get("skipped", 0) + len(chunk)
                     return
                 except Exception as exc:
                     batch = {}
@@ -754,6 +752,8 @@ async def sync_finance_details(codes: list[str], ctx: JobContext | None = None, 
     if trips >= QUOTA_TRIPS:
         set_cooldown(FINANCE_TOOL, datetime.now() + QUOTA_COOLDOWN, f"一次运行被限频 {trips} 次")
         stats["cooldown_until"] = (datetime.now() + QUOTA_COOLDOWN).isoformat(timespec="minutes")
+    # 多个工作协程各自超时退出，剩下没拉的统一在最后算
+    stats["skipped"] = max(0, len(todo) - stats["ok"] - stats["failed"])
     return stats
 
 
@@ -820,6 +820,11 @@ async def sync_risk_labels(ctx: JobContext | None = None) -> dict:
                 logger.warning("风险标签 %s 获取失败，保留旧数据: %s", label, exc)
                 continue
             with session_scope() as db:
+                old = db.scalar(select(func.count()).select_from(StockRiskLabel).where(StockRiskLabel.label == label)) or 0
+                # 上游偶尔返回空或残缺的名单；先删后插会让 ST 等硬过滤当天失效
+                if (old and not codes) or (old >= 50 and len(codes) < old * 0.3):
+                    logger.warning("风险标签 %s 只拿到 %d 只（原有 %d 只），保留旧数据", label, len(codes), old)
+                    continue
                 db.execute(delete(StockRiskLabel).where(StockRiskLabel.label == label))
                 rows = [{"code": c, "label": label, "name": name, "severity": severity, "snap_date": today} for c in codes]
                 for j in range(0, len(rows), 1000):

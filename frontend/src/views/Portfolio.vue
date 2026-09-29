@@ -66,8 +66,10 @@ async function evaluate() {
 }
 
 async function showDetail(p: any) {
-  drawer.value = { visible: true, plan: await api.plan(p.id), chan: null }
-  api.stockChan(p.code, 'day', 160).then((c) => (drawer.value.chan = c)).catch(() => undefined)
+  const id = p.id
+  drawer.value = { visible: true, plan: await api.plan(id), chan: null }
+  // 快速切换持仓时，只采用当前这只的 K 线
+  api.stockChan(p.code, 'day', 160).then((c) => { if (drawer.value.plan?.id === id) drawer.value.chan = c }).catch(() => undefined)
 }
 
 const drawerLines = computed(() => {
@@ -82,7 +84,16 @@ const drawerLines = computed(() => {
 async function execute(p: any) {
   const a = p.last_advice
   if (!a || a.action === 'hold') return
-  const text = a.action === 'add' ? '按建议加仓' : `卖出 ${a.action === 'close' ? p.remaining_qty : a.quantity} 股`
+  let text: string
+  if (a.action === 'add') {
+    const add = a.add_plan || {}
+    const pv: any = await api.entryPreview({ code: p.code, signal_type: add.signal_type, signal_date: add.signal_date }).catch(() => null)
+    text = pv?.quantity ? `按${add.signal_type || ''}加仓 ${pv.quantity} 股（约 ${num(pv.quantity * pv.entry_price)} 元，参考价 ${num(pv.entry_price)}）` : '按建议加仓（数量为 0，将不会下单）'
+  } else {
+    // 卖出数量按 100 股取整，和后端下单一致
+    const qty = Math.floor(Math.min(p.remaining_qty, a.action === 'close' ? p.remaining_qty : a.quantity) / 100) * 100
+    text = `卖出 ${qty} 股（参考价 ${num(lastPrice(p))}，约 ${num(qty * lastPrice(p))} 元）`
+  }
   await ElMessageBox.confirm(`${p.name || p.code}：${text}？\n原因：${a.reasons.join('；')}`, '确认执行建议', { type: 'warning' })
   const order = await api.executeAdvice(p.id)
   ElMessage.success(`已提交模拟委托，状态 ${order.status}`)

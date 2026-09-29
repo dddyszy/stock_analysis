@@ -30,9 +30,10 @@ const poller = useJobPoller((job) => {
 const running = computed(() => poller.running.value.backtest)
 const expRunning = computed(() => poller.running.value.backtest_experiment)
 const exp = ref<any>(null)
+// 按相对同市场状态随机组的优势标注，不单凭平均 R 下结论
 const bestExp = computed(() => {
-  const items: any[] = exp.value?.items || []
-  return items.length ? items.reduce((a, b) => ((b.avg_r ?? -99) > (a.avg_r ?? -99) ? b : a)) : null
+  const items: any[] = (exp.value?.items || []).filter((x: any) => x.matched_edge?.edge != null)
+  return items.length ? items.reduce((a, b) => (b.matched_edge.edge > a.matched_edge.edge ? b : a)) : null
 })
 const expKinds = ref<any[]>([])
 const expKind = ref('exit')
@@ -268,7 +269,7 @@ onMounted(() => {
             <el-table-column label="规则" min-width="170">
               <template #default="{ row }">
                 {{ row.label }}
-                <el-tag v-if="bestExp && row.id === bestExp.id" size="small" type="success" effect="light">平均 R 最高</el-tag>
+                <el-tag v-if="bestExp && row.id === bestExp.id" size="small" :type="bestExp.matched_edge.significant && bestExp.matched_edge.edge > 0 ? 'success' : 'info'" effect="light">{{ bestExp.matched_edge.significant && bestExp.matched_edge.edge > 0 ? '显著跑赢随机组' : '相对随机组优势最高（不显著）' }}</el-tag>
               </template>
             </el-table-column>
             <el-table-column prop="trades" label="笔数" width="64" />

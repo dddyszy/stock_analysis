@@ -4,6 +4,7 @@
 建议只是建议，真正的数量变化在成交后通过 apply_fill 落到持仓计划上。
 """
 
+import asyncio
 import logging
 from dataclasses import dataclass, field
 from datetime import date, datetime
@@ -412,13 +413,13 @@ async def evaluate_all(ctx: JobContext | None = None) -> dict:
         if p.strategy != "chan":
             from app.services.dianjin_positions import evaluate_and_persist
 
-            res = evaluate_and_persist(p)
+            res = await asyncio.to_thread(evaluate_and_persist, p)
             if res:
                 out.append(res)
                 if ctx:
                     ctx.step(f"{p.code}: {ACTION_NAMES[res['action']]}")
             continue
-        a = analyze_stock(p.code)
+        a = await asyncio.to_thread(analyze_stock, p.code)
         if a is None:
             continue
         today = a.day.dates[-1]

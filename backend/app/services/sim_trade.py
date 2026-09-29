@@ -112,16 +112,20 @@ class TencentMcpSimGateway(SimTradeGateway):
             code = normalize_code(pick(r, "code", "symbol", "stock_code"))
             if not code:
                 continue
+            cost = to_float(pick(r, "cost", "cost_price", "avg_cost", "成本价", "costPrice"))
+            price = to_float(pick(r, "price", "current_price", "last", "现价", "currentPrice"))
+            # 接口的收益率字段是百分数还是小数没有样本可以核对；有成本价和现价时自己算（百分数）
+            pnl_pct = (price / cost - 1) * 100 if cost and price else to_float(pick(r, "profit_rate", "pnl_pct", "profit_pct", "盈亏比例", "profitRate"))
             out.append({
                 "code": code,
                 "name": pick(r, "name", "stock_name"),
                 "quantity": to_int(pick(r, "quantity", "volume", "hold", "position", "持仓数量", "amount", "holdQuantity")) or 0,
                 "available": to_int(pick(r, "available", "can_sell", "enable", "可用数量", "availableQuantity", "sellable")),
-                "cost": to_float(pick(r, "cost", "cost_price", "avg_cost", "成本价", "costPrice")),
-                "price": to_float(pick(r, "price", "current_price", "last", "现价", "currentPrice")),
+                "cost": cost,
+                "price": price,
                 "market_value": to_float(pick(r, "market_value", "marketValue", "市值")),
                 "pnl": to_float(pick(r, "profit", "pnl", "浮动盈亏", "floating_profit")),
-                "pnl_pct": to_float(pick(r, "profit_rate", "pnl_pct", "profit_pct", "盈亏比例", "profitRate")),
+                "pnl_pct": pnl_pct,
                 "raw": r,
             })
         return out

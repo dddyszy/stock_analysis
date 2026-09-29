@@ -182,7 +182,7 @@ async function readAll() {
   window.dispatchEvent(new Event('notify-read'))
 }
 function ranToday(name: string) {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = new Date().toLocaleDateString('sv')  // 本地日期 YYYY-MM-DD，toISOString 是 UTC
   return (overview.value?.jobs || []).some((j: any) => j.job_name === name && j.status === 'success' && (j.started_at || '').startsWith(today))
 }
 async function loadAppSync() {

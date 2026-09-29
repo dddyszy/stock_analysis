@@ -1,9 +1,10 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
 
 from app.db.models import SimOrder
 from app.db.session import session_scope
+from app.providers.parsing import normalize_code
 from app.services import sim_trade
 
 router = APIRouter(prefix="/api/sim", tags=["sim"])
@@ -55,6 +56,11 @@ async def place(req: OrderRequest) -> dict:
 
 @router.get("/limit-price")
 async def limit_price(code: str, direction: str) -> dict:
+    code = normalize_code(code) or ""
+    if not code.startswith(("sh", "sz")):
+        raise HTTPException(400, "只支持沪深 A 股代码")
+    if direction not in ("buy", "sell"):
+        raise HTTPException(400, "方向必须是 buy 或 sell")
     return {"price": await sim_trade.default_limit_price(code, direction)}
 
 

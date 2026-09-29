@@ -30,6 +30,8 @@ function layer(k: keyof ChanLayers) {
   return props.layers[k] ?? true
 }
 
+let lastKey = ''
+
 function buildOption() {
   const d = props.data
   if (!d?.bars?.length) return null
@@ -142,7 +144,16 @@ function buildOption() {
       ? { scale: true, gridIndex: 0, position: 'right', splitNumber: 5 }
       : { scale: true, gridIndex: i, position: 'right', splitNumber: 2, axisLabel: { show: false }, splitLine: { show: false } },
   )
-  const startPct = dates.length > props.zoomBars ? Math.max(0, 100 - (props.zoomBars / dates.length) * 100) : 0
+  let startPct = dates.length > props.zoomBars ? Math.max(0, 100 - (props.zoomBars / dates.length) * 100) : 0
+  let endPct = 100
+  // 同一段 K 线只是价位线或图层变了：沿用用户当前的缩放，不跳回默认范围
+  const key = `${dates[0]}|${dates[dates.length - 1]}|${dates.length}`
+  const cur = (chart?.chart.value?.getOption() as any)?.dataZoom?.[0]
+  if (key === lastKey && cur && cur.start != null) {
+    startPct = cur.start
+    endPct = cur.end ?? 100
+  }
+  lastKey = key
 
   const series: any[] = [
     {
@@ -219,8 +230,8 @@ function buildOption() {
     xAxis: xAxes,
     yAxis: yAxes,
     dataZoom: [
-      { type: 'inside', xAxisIndex: allIdx, start: startPct, end: 100 },
-      { type: 'slider', xAxisIndex: allIdx, start: startPct, end: 100, bottom: 4, height: 16, borderColor: COLORS.border, fillerColor: 'rgba(47,107,255,0.08)' },
+      { type: 'inside', xAxisIndex: allIdx, start: startPct, end: endPct },
+      { type: 'slider', xAxisIndex: allIdx, start: startPct, end: endPct, bottom: 4, height: 16, borderColor: COLORS.border, fillerColor: 'rgba(47,107,255,0.08)' },
     ],
     series,
   }

@@ -587,15 +587,18 @@ def _pick_codes(sample_size: int, codes: list[str] | None, seed: int) -> list[st
 
 
 def _attach_bench(trades: list[dict], bench: dict[date, float], bench_dates: list[date], split_date: date,
-                  regimes: dict[date, str] | None = None) -> None:
+                  regimes: dict[date, str] | None = None, opens: dict[date, float] | None = None) -> None:
     def close_on(d: date) -> float | None:
         if d in bench:
             return bench[d]
         i = bisect.bisect_right(bench_dates, d)
         return bench[bench_dates[i - 1]] if i else None
 
+    opens = opens or {}
     for t in trades:
-        b0, b1 = close_on(t["entry_date"]), close_on(t["exit_date"])
+        # 交易按开盘价进出，基准也从入场日开盘算到出场日开盘
+        b0 = opens.get(t["entry_date"]) or close_on(t["entry_date"])
+        b1 = opens.get(t["exit_date"]) or close_on(t["exit_date"])
         t["bench_ret"] = (b1 / b0 - 1) * 100 if b0 and b1 else None
         t["excess"] = t["pnl_pct"] - t["bench_ret"] if t["bench_ret"] is not None else None
         t["segment"] = "in" if t["entry_date"] < split_date else "out"
@@ -623,6 +626,7 @@ async def run_backtest(ctx: JobContext, sample_size: int = 50, codes: list[str] 
     codes = _pick_codes(sample_size, codes, seed)
     bench_bars = load_bars(KlineDaily, BENCH_CODE, lookback_bars + 350)
     bench = {b.dt: b.close for b in bench_bars}
+    bench_open = {b.dt: b.open for b in bench_bars if b.open}
     regimes = index_regime_map(bench_bars)
     bench_dates = sorted(bench)
     if split_date is None:
@@ -683,9 +687,9 @@ async def run_backtest(ctx: JobContext, sample_size: int = 50, codes: list[str] 
             )
             control = await asyncio.to_thread(_control_pass, spec)
             run_params["control_spec"] = spec.__dict__
-        _attach_bench(trades, bench, bench_dates, split_date, regimes)
+        _attach_bench(trades, bench, bench_dates, split_date, regimes, bench_open)
         if control:
-            _attach_bench(control, bench, bench_dates, split_date, regimes)
+            _attach_bench(control, bench, bench_dates, split_date, regimes, bench_open)
         ctx.update(message=f"{tag}统计与因子研究", force=True)
         summary, by_sig, suggested = await asyncio.to_thread(summarize, trades, control)
         cols = {c.name for c in BacktestTrade.__table__.columns} - {"id", "run_id"}

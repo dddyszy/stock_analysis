@@ -14,6 +14,7 @@ const collapsed = ref(localStorage.getItem('sidebar-collapsed') === '1')
 const unread = ref(0)
 let timer: number | undefined
 let notifyTimer: number | undefined
+let envTimer: number | undefined
 
 const menus = [
   { path: '/', title: '市场总览', icon: 'DataBoard' },
@@ -63,11 +64,13 @@ onMounted(() => {
   loadUnread()
   timer = window.setInterval(loadTicker, 60000)
   notifyTimer = window.setInterval(loadUnread, 60000)
+  envTimer = window.setInterval(() => api.marketEnv().then((e) => (env.value = e)).catch(() => undefined), 300000)
   window.addEventListener('notify-read', loadUnread)
 })
 onBeforeUnmount(() => {
   window.clearInterval(timer)
   window.clearInterval(notifyTimer)
+  window.clearInterval(envTimer)
   window.removeEventListener('notify-read', loadUnread)
 })
 </script>

@@ -67,11 +67,20 @@ async function querySearch(q: string, cb: (items: any[]) => void) {
   const rows = await api.searchStocks(q).catch(() => [])
   cb(rows.filter((r: any) => !r.is_index && !r.code.startsWith('bj')).map((r: any) => ({ value: r.code, name: r.name, industry: r.industry })))
 }
+let pickedCode = ''
 async function onPick(item: any) {
+  pickedCode = item.value
   form.value.code = item.value
   form.value.name = item.name
   await fillPrice()
 }
+// 选完股票后又手动改了代码：上一只的名称和价格不再适用
+watch(() => form.value.code, (c) => {
+  if (c !== pickedCode) {
+    form.value.name = ''
+    form.value.price = undefined
+  }
+})
 async function fillPrice() {
   if (!form.value.code) return
   const r = await api.simLimitPrice(form.value.code, direction.value)
@@ -79,6 +88,7 @@ async function fillPrice() {
 }
 function fromPosition(p: any) {
   direction.value = 'sell'
+  pickedCode = p.code
   form.value = { code: p.code, name: p.name, quantity: Math.floor((p.available ?? p.quantity) / 100) * 100 || 100, price: undefined }
   fillPrice()
 }
@@ -140,7 +150,11 @@ async function submit() {
   if (!f.code.startsWith('sh') && !f.code.startsWith('sz')) return ElMessage.warning('模拟交易仅支持沪深 A 股')
   if (f.quantity % 100) return ElMessage.warning('数量必须为 100 的整数倍')
   const verb = direction.value === 'buy' ? '买入' : '卖出'
-  await ElMessageBox.confirm(`${verb} ${f.name || f.code} ${f.quantity} 股，限价 ${f.price ?? '自动'}，约 ${money(amount.value)} 元？`, '确认模拟下单')
+  // 限价留空时先取系统会使用的自动限价，确认框里显示真实的价格和金额
+  const px = f.price ?? (await api.simLimitPrice(f.code, direction.value).then((r: any) => r.price).catch(() => null))
+  const priceText = f.price != null ? `限价 ${f.price}` : px != null ? `自动限价 ${px}` : '自动限价（暂时取不到）'
+  const amountText = px != null ? `，约 ${money(px * f.quantity)} 元` : ''
+  await ElMessageBox.confirm(`${verb} ${f.name || f.code} ${f.quantity} 股，${priceText}${amountText}？`, '确认模拟下单')
   submitting.value = true
   try {
     const o = await api.simPlace({ code: f.code, direction: direction.value, quantity: f.quantity, price: f.price })
