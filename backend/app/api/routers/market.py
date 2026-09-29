@@ -86,3 +86,10 @@ def env_on(trade_date: date) -> dict | None:
     with session_scope() as db:
         row = db.get(MarketEnvDaily, trade_date)
         return env_to_dict(row) if row else None
+
+
+@router.get("/structure-map")
+def structure_map_view() -> dict:
+    from app.services.structure_map import structure_map
+
+    return structure_map()

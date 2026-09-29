@@ -4,6 +4,7 @@
 （流水线开头会检查日线是否已更新到当天，没更新到会自己跳过）。财报统一放到夜间任务，收盘链里不拉。
 """
 
+import asyncio
 import logging
 
 from app.jobs.pipeline import post_close_pipeline
@@ -12,6 +13,8 @@ from app.providers import create_provider
 from app.services import sync
 from app.services.jobs import JobContext
 from app.services.notify import notify
+from app.services.structure_events import detect_watch_events
+from app.services.structure_map import compute_structure_map
 from app.services.value_data import value_daily
 
 logger = logging.getLogger(__name__)
@@ -21,6 +24,8 @@ STEPS = (
     ("daily_update", "每日增量更新", lambda ctx, force: sync.daily_update(ctx)),
     ("scores", "诊股评分", lambda ctx, force: sync.sync_scores_and_valuations(ctx, with_valuations=False)),
     ("pipeline", "收盘后流水线", lambda ctx, force: post_close_pipeline(ctx, force=force, fetch_finance=False)),
+    ("structure_map", "市场与行业结构地图", lambda ctx, force: asyncio.to_thread(compute_structure_map, ctx)),
+    ("watch_events", "自选股结构异动", lambda ctx, force: detect_watch_events(ctx)),
     ("value_daily", "价值池数据与策略扫描", lambda ctx, force: value_daily(ctx)),
 )
 

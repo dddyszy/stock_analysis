@@ -35,6 +35,8 @@ export const api = {
   // 结构候选
   recommendStructures: (params: Any) => get('/recommend/structures', params),
   strategies: () => get('/strategies'),
+  structureMap: () => get('/market/structure-map'),
+  structureEvents: (params: Any) => get('/structure-events', params),
   strategyBacktest: () => get('/strategies/backtest'),
   dianjinPreview: (key: string, code: string) => post(`/strategies/${key}/entry-preview`, { code }),
   dianjinOpen: (key: string, body: Any) => post(`/strategies/${key}/positions`, body),

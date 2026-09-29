@@ -8,7 +8,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routers import auth, backtest, market, notify, portfolio, recommend, settings as settings_router, sim, stocks, strategies
+from app.api.routers import auth, backtest, market, notify, portfolio, recommend, settings as settings_router, sim, stocks, strategies, events
 from app.core.config import BACKEND_DIR, get_settings
 from app.db.session import ensure_database
 from app.mcp.errors import McpAuthError, McpBusinessError, McpTransportError
@@ -81,7 +81,7 @@ async def _job_running(_: Request, exc: JobAlreadyRunning) -> JSONResponse:
     return JSONResponse(status_code=409, content={"detail": f"任务 {exc} 正在运行", "code": "job_running"})
 
 
-for r in (auth, market, stocks, recommend, portfolio, sim, settings_router, backtest, notify, strategies):
+for r in (auth, market, stocks, recommend, portfolio, sim, settings_router, backtest, notify, strategies, events):
     app.include_router(r.router)
 
 

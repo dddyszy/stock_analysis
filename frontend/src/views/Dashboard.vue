@@ -13,6 +13,11 @@ const router = useRouter()
 const env = ref<any>(null)
 const history = ref<any[]>([])
 const rec = ref<any>(null)
+const smap = ref<any>(null)
+const CAT_COLORS: Record<string, string> = { up: '#e5383b', above: '#f7a1a2', inside: '#e6e9ef', below: '#9fd8b6', down: '#12a150', insufficient: '#f5f5f5' }
+const mapIndices = computed(() => (smap.value?.items || []).filter((x: any) => x.kind === 'index'))
+const mapIndustries = computed(() => (smap.value?.items || []).filter((x: any) => x.kind === 'industry'))
+const mapCounts = computed(() => mapIndustries.value.reduce((m: Record<string, number>, x: any) => ((m[x.category] = (m[x.category] || 0) + 1), m), {}))
 const plans = ref<any[]>([])
 const warnings = ref<any[]>([])
 const series = ref<Record<string, any>>({})
@@ -151,6 +156,7 @@ async function load() {
     loading.value = false
   }
   api.indicesSeries(60).then((s) => (series.value = s)).catch(() => undefined)
+  api.structureMap().then((m) => (smap.value = m)).catch(() => undefined)
   api.indicesLive().then((rows: any[]) => (live.value = Object.fromEntries(rows.map((x) => [x.code, x])))).catch(() => undefined)
 }
 
@@ -253,6 +259,23 @@ onMounted(load)
         </SectionCard>
       </div>
 
+      <SectionCard v-if="smap?.items?.length" title="结构地图" :subtitle="`${smap.date} · 主要指数和申万一级行业等权指数的日线结构；带 ● 的是比上一个交易日有变化的`" class="mt">
+        <div class="map-legend">
+          <span v-for="(n, k) in smap.categories" :key="k" v-show="k !== 'insufficient'" class="legend">
+            <i :style="{ background: CAT_COLORS[k] }" />{{ n }} {{ k === 'insufficient' ? '' : `${mapCounts[k] || 0} 个行业` }}
+          </span>
+        </div>
+        <div class="map-grid">
+          <el-tooltip v-for="x in [...mapIndices, ...mapIndustries]" :key="x.kind + x.key" placement="top"
+            :content="`${x.state_name}${x.changed ? `（上一交易日：${x.prev_state_name}）` : ''} · 近 5 日 ${x.ret5 ?? '--'}% · 上方 ${x.up_dist?.toFixed(1) ?? '--'}% / 下方 ${x.low_dist?.toFixed(1) ?? '--'}%`">
+            <div class="tile" :class="{ idx: x.kind === 'index', dark: x.category === 'up' || x.category === 'down' }" :style="{ background: CAT_COLORS[x.category] }">
+              <div class="t-name">{{ x.name }}<span v-if="x.changed" class="dot">●</span></div>
+              <div class="t-state">{{ x.state_name }}</div>
+            </div>
+          </el-tooltip>
+        </div>
+      </SectionCard>
+
       <!-- 市场画像 + 温度走势 -->
       <div class="grid grid-2 mt">
         <SectionCard title="腾讯市场画像" :subtitle="overview ? `${overview.date} · 总评 ${overview.adj_score}` : ''">
@@ -302,6 +325,53 @@ onMounted(load)
 </template>
 
 <style scoped>
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 12px;
+  color: var(--c-text-2);
+  margin-bottom: 10px;
+}
+.legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 4px;
+  vertical-align: -1px;
+}
+.map-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 6px;
+}
+.tile {
+  border-radius: 6px;
+  padding: 6px 8px;
+  cursor: default;
+}
+.tile.idx {
+  outline: 1.5px solid var(--c-text-3);
+}
+.t-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-text);
+}
+.t-state {
+  font-size: 11px;
+  color: var(--c-text-2);
+}
+.tile.dark .t-name,
+.tile.dark .t-state {
+  color: #fff;
+}
+.dot {
+  color: var(--c-primary);
+  margin-left: 4px;
+  font-size: 10px;
+}
 .hero {
   grid-template-columns: 300px minmax(0, 1fr);
 }

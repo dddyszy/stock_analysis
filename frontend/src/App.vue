@@ -22,6 +22,7 @@ const menus = [
   { path: '/recommend', title: '推荐', icon: 'Medal' },
   { path: '/strategies', title: '策略', icon: 'Collection' },
   { path: '/tracking', title: '结构跟踪', icon: 'DataLine' },
+  { path: '/events', title: '结构异动', icon: 'Bell' },
   { path: '/sim', title: '模拟盘', icon: 'Coin' },
   { path: '/backtest', title: '规律检验', icon: 'TrendCharts' },
   { path: '/settings', title: '设置', icon: 'Setting' },

@@ -156,6 +156,42 @@ class FinanceHistory(Base):
     updated_at: Mapped[datetime] = _updated_col()
 
 
+class StructureMapDaily(Base):
+    """市场与行业结构地图：主要指数和申万一级行业等权指数每天的结构状态。"""
+
+    __tablename__ = "structure_map_daily"
+
+    kind: Mapped[str] = mapped_column(String(16), primary_key=True)  # index / industry
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    trade_date: Mapped[date] = mapped_column(Date, primary_key=True)
+    name: Mapped[str] = mapped_column(String(64))
+    state: Mapped[str] = mapped_column(String(32))
+    price: Mapped[float | None] = mapped_column(Double)
+    upper: Mapped[float | None] = mapped_column(Double)
+    lower: Mapped[float | None] = mapped_column(Double)
+    ret5: Mapped[float | None] = mapped_column(Double)  # 近 5 日涨跌幅 %
+    levels: Mapped[list | None] = mapped_column(JSON)
+
+
+class StructureEvent(Base):
+    """自选股结构异动：和上一个交易日相比的状态切换、买点出现/确认/失效、跌破或突破关键价位、形成新中枢。"""
+
+    __tablename__ = "structure_event"
+    __table_args__ = (
+        UniqueConstraint("code", "trade_date", "event_type", name="uq_structure_event"),
+        Index("ix_structure_event_date", "trade_date"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    code: Mapped[str] = mapped_column(String(16))
+    trade_date: Mapped[date] = mapped_column(Date)
+    event_type: Mapped[str] = mapped_column(String(24))
+    level: Mapped[str] = mapped_column(String(16))  # important / info
+    title: Mapped[str] = mapped_column(String(255))
+    detail: Mapped[dict | None] = mapped_column(JSON)
+    created_at: Mapped[datetime] = _now_col()
+
+
 class StrategySignalDaily(Base):
     """各策略每天对价值池股票的判定：是否通过筛选条件、所处区域和各项数值。"""
 

@@ -1,3 +1,4 @@
+import asyncio
 from datetime import date, datetime, timedelta
 
 from fastapi import APIRouter, HTTPException
@@ -12,7 +13,7 @@ from app.jobs.pipeline import post_close_pipeline
 from app.jobs.scheduler import scheduled_jobs
 from app.mcp.client import limiter_status
 from app.providers.tencent_public import public_limiter_status
-from app.services import app_sync, strategy_config, strategy_scan, sync, value_data
+from app.services import app_sync, strategy_config, strategy_scan, structure_events, structure_map, sync, value_data
 from app.services.jobs import cancel_job, register_labels, running_jobs, start_job
 from app.services.runtime_state import cooldown_until
 from app.services.position_strategy import evaluate_all
@@ -38,6 +39,8 @@ JOBS = {
     "value_backfill": ("补齐价值数据（分红送转 → 日线换算为等比前复权 → 财报历史 → 核对，首次约 3～4 小时）", value_data.value_backfill),
     "value_daily": ("更新价值池数据（完成后自动运行策略扫描）", value_data.value_daily),
     "strategy_scan": ("策略扫描（点金术原版、改良版）", strategy_scan.scan_strategies),
+    "structure_map": ("计算市场与行业结构地图", lambda ctx: asyncio.to_thread(structure_map.compute_structure_map, ctx)),
+    "watch_events": ("检测自选股结构异动", structure_events.detect_watch_events),
     "dianjin_backtest": ("点金术回测（各版本、出场规则、参数热力图、随机对照，约 10～20 分钟）", strategy_scan.run_dianjin_backtest),
     "value_finance_nightly": ("夜间财报（候选股、持仓、自选 → 价值池，到早上 7:30 为止）", value_data.value_finance_nightly),
     "evaluate_positions": ("评估持仓", evaluate_all),
