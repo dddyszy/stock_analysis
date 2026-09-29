@@ -11,6 +11,7 @@ from datetime import time as dtime
 
 from sqlalchemy import select
 
+from app.strategies import strategy_name
 from app.analysis.market_env import latest_market_env
 from app.chan import TYPE_NAMES, ChanResult, Signal
 from app.chan.types import UP
@@ -408,6 +409,15 @@ async def evaluate_all(ctx: JobContext | None = None) -> dict:
     if ctx:
         ctx.update(done=0, total=len(plans), message=f"评估 {len(plans)} 个持仓", force=True)
     for p in plans:
+        if p.strategy != "chan":
+            from app.services.dianjin_positions import evaluate_and_persist
+
+            res = evaluate_and_persist(p)
+            if res:
+                out.append(res)
+                if ctx:
+                    ctx.step(f"{p.code}: {ACTION_NAMES[res['action']]}")
+            continue
         a = analyze_stock(p.code)
         if a is None:
             continue
@@ -439,7 +449,9 @@ async def check_intraday_stops() -> list[dict]:
         return []
     _, params = get_active_config()
     with session_scope() as db:
-        plans = db.execute(select(PositionPlan).where(PositionPlan.status.in_(OPEN_STATUSES), PositionPlan.remaining_qty > 0)).scalars().all()
+        # 只有缠论持仓有止损；点金术按收盘价是否涨破卖出线处理，不做盘中检查
+        plans = db.execute(select(PositionPlan).where(PositionPlan.status.in_(OPEN_STATUSES), PositionPlan.remaining_qty > 0,
+                                                      PositionPlan.strategy == "chan")).scalars().all()
     if not plans:
         return []
     async with create_provider() as provider:
@@ -469,6 +481,7 @@ async def check_intraday_stops() -> list[dict]:
 def plan_to_dict(p: PositionPlan) -> dict:
     return {
         "id": p.id, "code": p.code, "name": p.name, "status": p.status, "status_name": STATUS_NAMES.get(p.status, p.status),
+        "strategy": p.strategy, "strategy_name": strategy_name(p.strategy),
         "entry_signal": p.entry_signal, "entry_signal_name": TYPE_NAMES.get(p.entry_signal or "", p.entry_signal),
         "entry_signal_date": p.entry_signal_date.isoformat() if p.entry_signal_date else None,
         "entry_date": p.entry_date.isoformat(), "entry_price": p.entry_price, "quantity": p.quantity,

@@ -264,7 +264,9 @@ async def sync_price_alerts() -> dict:
         return {"skipped": True}
     with session_scope() as db:
         plans = db.execute(select(PositionPlan).where(PositionPlan.status.in_(OPEN_STATUSES), PositionPlan.remaining_qty > 0)).scalars().all()
-        desired = {p.code: {"low": _fmt(p.current_stop), "high": _fmt(p.target1)} for p in plans if p.code.startswith(("sh", "sz"))}
+        # 点金术不设止损（current_stop 为 0），只写卖出线提醒
+        desired = {p.code: {"low": _fmt(p.current_stop) if p.current_stop and p.current_stop > 0 else "", "high": _fmt(p.target1)}
+                   for p in plans if p.code.startswith(("sh", "sz"))}
     state: dict = _get_state("price_alerts", {}) or {}
     changed = [c for c, v in desired.items() if state.get(c, {}).get("low") != v["low"] or state.get(c, {}).get("high") != v["high"]]
     closed = [c for c in state if c not in desired]

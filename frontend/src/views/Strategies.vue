@@ -6,9 +6,11 @@ import { useJobPoller } from '@/composables/useJobPoller'
 import { num } from '@/utils/format'
 import { EmptyState, PageHeader, SectionCard, StatCard } from '@/components/ui'
 import DianjinBacktest from '@/components/DianjinBacktest.vue'
+import DianjinEntryDialog from '@/components/DianjinEntryDialog.vue'
 
 const list = ref<any[]>([])
 const backtest = ref<any>(null)
+const entry = ref<{ visible: boolean; row: any }>({ visible: false, row: null })
 const active = ref('dianjin_v2')
 const data = ref<any>(null)
 const loading = ref(false)
@@ -138,9 +140,16 @@ onMounted(async () => {
         <el-table-column label="近三年 ROE" min-width="150">
           <template #default="{ row }"><span class="num small">{{ row.roe3 ? row.roe3.map((r: number) => `${r.toFixed(1)}%`).join('、') : '--' }}</span></template>
         </el-table-column>
+        <el-table-column label="操作" width="70" fixed="right">
+          <template #default="{ row }">
+            <el-button v-if="row.passed" link type="danger" @click="entry = { visible: true, row }">开仓</el-button>
+          </template>
+        </el-table-column>
       </el-table>
       <EmptyState v-else-if="!loading" title="还没有策略扫描结果" description="价值数据补齐完成后，每个交易日晚上会自动扫描；也可以点右上角重新扫描。" />
     </SectionCard>
+
+    <DianjinEntryDialog v-if="entry.row" v-model="entry.visible" :strategy="active" :code="entry.row.code" :name="entry.row.name" />
   </div>
 </template>
 

@@ -273,7 +273,13 @@ onMounted(load)
         <el-table-column label="委托" width="130"><template #default="{ row }"><span class="num">{{ row.quantity }} @ {{ num(row.price) }}</span></template></el-table-column>
         <el-table-column label="成交" width="130"><template #default="{ row }"><span class="num">{{ row.filled_qty }} @ {{ num(row.filled_price) }}</span></template></el-table-column>
         <el-table-column label="状态" width="90"><template #default="{ row }"><el-tag size="small" :type="STATUS[row.status]?.type" effect="plain">{{ STATUS[row.status]?.label || row.status }}</el-tag></template></el-table-column>
-        <el-table-column label="信号" width="110"><template #default="{ row }"><SignalBadge v-if="row.signal_type" :type="row.signal_type" size="sm" /><span v-else class="muted">--</span></template></el-table-column>
+        <el-table-column label="策略 / 信号" width="130">
+          <template #default="{ row }">
+            <el-tag v-if="row.strategy && row.strategy !== 'chan'" size="small" effect="plain" type="warning">{{ row.strategy_name }}</el-tag>
+            <SignalBadge v-else-if="row.signal_type" :type="row.signal_type" size="sm" />
+            <span v-else class="muted">--</span>
+          </template>
+        </el-table-column>
         <el-table-column label="来源" width="70"><template #default="{ row }">{{ SOURCE[row.source] || row.source }}</template></el-table-column>
         <el-table-column label="" width="70">
           <template #default="{ row }">

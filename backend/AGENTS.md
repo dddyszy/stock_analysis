@@ -34,6 +34,7 @@
 
 - 策略放在 `app/strategies/`，每个策略提供单只股票的判定函数（如 `dianjin.evaluate(series, params, i)`），实盘扫描（`services/strategy_scan.py`）和回测必须调用同一个函数，第 i 根 K 线的判定只能用到第 i 根及以前的数据。
 - 策略页必须显示该策略的回测结论（未检验时显示「尚未检验」）和幸存者偏差提示；新策略不能进入「推荐」页的综合分。
+- 持仓计划和模拟盘委托都记录 `strategy`（默认 `chan`）。非缠论持仓不设止损（`current_stop` 为 0），不参加盘中止损检查，也不写止损提醒；每日评估走各自策略的规则（点金术见 `services/dianjin_positions.py`）。
 
 ## 价值类指标
 

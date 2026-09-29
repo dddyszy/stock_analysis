@@ -472,6 +472,7 @@ class PositionPlan(Base):
     code: Mapped[str] = mapped_column(String(16))
     name: Mapped[str | None] = mapped_column(String(64))
     status: Mapped[str] = mapped_column(String(16), default="Initial")
+    strategy: Mapped[str] = mapped_column(String(32), default="chan", server_default="chan")  # chan / dianjin_v1 / dianjin_v2
     entry_signal: Mapped[str | None] = mapped_column(String(8))
     entry_signal_date: Mapped[date | None] = mapped_column(Date)
     entry_date: Mapped[date] = mapped_column(Date)
@@ -531,6 +532,7 @@ class SimOrder(Base):
     filled_price: Mapped[float | None] = mapped_column(Double)
     plan_id: Mapped[int | None] = mapped_column(Integer)
     signal_type: Mapped[str | None] = mapped_column(String(8))
+    strategy: Mapped[str | None] = mapped_column(String(32))
     source: Mapped[str] = mapped_column(String(16), default="manual")
     message: Mapped[str | None] = mapped_column(String(500))
     raw: Mapped[dict | None] = mapped_column(JSON)

@@ -15,6 +15,7 @@ from sqlalchemy.dialects.mysql import insert
 from app.chan import TYPE_NAMES
 from app.core.config import get_settings
 from app.db.models import AppSyncState, PositionPlan, SimAccountDaily, SimOrder, SimPositionSnapshot, StockBasic
+from app.strategies import strategy_name
 from app.db.session import session_scope
 from app.mcp.client import McpSession
 from app.providers import create_provider
@@ -281,7 +282,8 @@ def order_to_dict(o: SimOrder) -> dict:
         "id": o.id, "order_id": o.order_id, "code": o.code, "name": o.name, "direction": o.direction, "price": o.price,
         "quantity": o.quantity, "status": o.status, "filled_qty": o.filled_qty, "filled_price": o.filled_price,
         "plan_id": o.plan_id, "signal_type": o.signal_type, "signal_name": TYPE_NAMES.get(o.signal_type or "", o.signal_type),
-        "source": o.source, "message": o.message, "created_at": o.created_at.isoformat() if o.created_at else None,
+        "source": o.source, "strategy": o.strategy, "strategy_name": strategy_name(o.strategy),
+        "message": o.message, "created_at": o.created_at.isoformat() if o.created_at else None,
         # 从 App 同步来的委托，用腾讯记录的成交时间，而不是同步到本地的时间
         "time": (o.raw or {}).get("filledAt") or (o.created_at.isoformat() if o.created_at else None),
         "updated_at": o.updated_at.isoformat() if o.updated_at else None,
@@ -312,7 +314,7 @@ async def default_limit_price(code: str, direction: str) -> float:
 
 
 async def place_order(code: str, direction: str, quantity: int, price: float | None = None, plan_id: int | None = None,
-                      signal_type: str | None = None, source: str = "manual") -> dict:
+                      signal_type: str | None = None, source: str = "manual", strategy: str | None = None) -> dict:
     code = normalize_code(code) or code
     if not code.startswith(("sh", "sz")):
         raise SimTradeError("模拟交易仅支持沪深 A 股（北交所不可下单）")
@@ -339,9 +341,13 @@ async def place_order(code: str, direction: str, quantity: int, price: float | N
         await gw.close()
     with session_scope() as db:
         sb = db.get(StockBasic, code)
+        if strategy is None and plan_id:
+            plan = db.get(PositionPlan, plan_id)
+            strategy = plan.strategy if plan else None
         order = SimOrder(
             order_id=result.get("order_id"), code=code, name=sb.name if sb else None, direction=direction, price=price,
             quantity=quantity, status=result.get("status", "pending"), plan_id=plan_id, signal_type=signal_type, source=source,
+            strategy=strategy,
             raw=result.get("raw") if isinstance(result.get("raw"), dict) else None,
         )
         if order.status == "filled":

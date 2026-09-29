@@ -27,7 +27,9 @@ const poller = useJobPoller((job) => {
 })
 
 const lastPrice = (p: any) => p.last_advice?.close ?? p.entry_price
-const floatingR = (p: any) => (p.r_value ? (lastPrice(p) - p.entry_price) / p.r_value : null)
+const isChan = (p: any) => (p.strategy || 'chan') === 'chan'
+const floatingR = (p: any) => (isChan(p) && p.r_value ? (lastPrice(p) - p.entry_price) / p.r_value : null)
+const toSell = (p: any) => (p.target1 && lastPrice(p) ? (p.target1 / lastPrice(p) - 1) * 100 : null)
 const pnl = (p: any) => (lastPrice(p) - p.entry_price) * p.remaining_qty
 
 const summary = computed(() => {
@@ -71,11 +73,9 @@ async function showDetail(p: any) {
 const drawerLines = computed(() => {
   const p = drawer.value.plan
   if (!p) return []
-  const out = [
-    { name: '止损', value: p.current_stop, color: COLORS.down },
-    { name: '成本', value: p.entry_price, color: COLORS.text2 },
-  ]
-  if (p.target1) out.push({ name: '目标一', value: p.target1, color: COLORS.up })
+  const out = [{ name: '成本', value: p.entry_price, color: COLORS.text2 }]
+  if (p.current_stop > 0) out.unshift({ name: '止损', value: p.current_stop, color: COLORS.down })
+  if (p.target1) out.push({ name: isChan(p) ? '目标一' : '卖出线', value: p.target1, color: COLORS.up })
   return out
 })
 
@@ -134,7 +134,8 @@ onMounted(load)
                   <span class="muted num small">{{ p.code }}</span>
                 </div>
                 <div class="row small muted">
-                  <SignalBadge v-if="p.entry_signal" :type="p.entry_signal" :date="p.entry_signal_date" size="sm" />
+                  <el-tag v-if="!isChan(p)" size="small" effect="plain" type="warning">{{ p.strategy_name }}</el-tag>
+                  <SignalBadge v-else-if="p.entry_signal" :type="p.entry_signal" :date="p.entry_signal_date" size="sm" />
                   <span>开仓 {{ p.entry_date }}</span>
                 </div>
                 <StatusSteps :status="p.status" class="steps" />
@@ -144,11 +145,15 @@ onMounted(load)
                   <div><span>剩余 / 原始</span><b class="num">{{ p.remaining_qty }} / {{ p.quantity }}</b></div>
                   <div><span>成本</span><b class="num">{{ num(p.entry_price) }}</b></div>
                   <div><span>最新</span><b class="num" :class="colorClass(lastPrice(p) - p.entry_price)">{{ num(lastPrice(p)) }}</b></div>
-                  <div><span>浮动 R</span><b class="num" :class="colorClass(floatingR(p))">{{ num(floatingR(p)) }}</b></div>
+                  <div v-if="isChan(p)"><span>浮动 R</span><b class="num" :class="colorClass(floatingR(p))">{{ num(floatingR(p)) }}</b></div>
+                  <div v-else><span>距卖出线</span><b class="num">{{ toSell(p) == null ? '--' : `${toSell(p)!.toFixed(1)}%` }}</b></div>
                   <div><span>浮动盈亏</span><b class="num" :class="colorClass(pnl(p))">{{ num(pnl(p)) }}</b></div>
                 </div>
-                <RiskRewardBar :stop="p.current_stop" :entry="p.entry_price" :price="lastPrice(p)" :target1="p.target1" :target2="p.target2" />
-                <div class="muted small">止损来源：{{ p.stop_source || '--' }}</div>
+                <template v-if="isChan(p)">
+                  <RiskRewardBar :stop="p.current_stop" :entry="p.entry_price" :price="lastPrice(p)" :target1="p.target1" :target2="p.target2" />
+                  <div class="muted small">止损来源：{{ p.stop_source || '--' }}</div>
+                </template>
+                <div v-else class="muted small">卖出线 {{ num(p.target1) }}（MA120 的 112%，每天更新）· {{ p.stop_source }}</div>
               </div>
               <div class="plan-right">
                 <template v-if="p.last_advice">
@@ -227,10 +232,18 @@ onMounted(load)
           <div v-else v-loading="true" style="height: 280px" />
         </div>
         <div class="kv">
-          <div><span>开仓信号</span><b>{{ drawer.plan.entry_signal_name }} · {{ drawer.plan.entry_signal_date }}</b></div>
-          <div><span>1R</span><b class="num">{{ num(drawer.plan.r_value, 3) }}</b></div>
-          <div><span>初始止损 / 当前止损</span><b class="num">{{ num(drawer.plan.initial_stop) }} → {{ num(drawer.plan.current_stop) }}</b></div>
-          <div><span>目标一 / 目标二</span><b class="num">{{ num(drawer.plan.target1) }} / {{ num(drawer.plan.target2) }}</b></div>
+          <div><span>策略</span><b>{{ drawer.plan.strategy_name }}</b></div>
+          <template v-if="isChan(drawer.plan)">
+            <div><span>开仓信号</span><b>{{ drawer.plan.entry_signal_name }} · {{ drawer.plan.entry_signal_date }}</b></div>
+            <div><span>1R</span><b class="num">{{ num(drawer.plan.r_value, 3) }}</b></div>
+            <div><span>初始止损 / 当前止损</span><b class="num">{{ num(drawer.plan.initial_stop) }} → {{ num(drawer.plan.current_stop) }}</b></div>
+            <div><span>目标一 / 目标二</span><b class="num">{{ num(drawer.plan.target1) }} / {{ num(drawer.plan.target2) }}</b></div>
+          </template>
+          <template v-else>
+            <div><span>开仓依据</span><b>收盘价低于 MA120 的 88%（{{ drawer.plan.entry_signal_date }}）</b></div>
+            <div><span>卖出线</span><b class="num">{{ num(drawer.plan.target1) }}</b></div>
+            <div><span>止损</span><b>不设止损</b></div>
+          </template>
           <div><span>已实现盈亏</span><b class="num" :class="colorClass(drawer.plan.realized_pnl)">{{ num(drawer.plan.realized_pnl) }}</b></div>
           <div><span>减仓次数</span><b class="num">{{ drawer.plan.reduce_steps }}</b></div>
         </div>
