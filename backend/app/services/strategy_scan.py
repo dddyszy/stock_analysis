@@ -8,7 +8,7 @@ from datetime import date, timedelta
 from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.mysql import insert
 
-from app.db.models import KlineDailyRaw, RecommendItem, RecommendRun, StockBasic, StrategySignalDaily, StructureStateDaily
+from app.db.models import KlineDailyRaw, RecommendItem, RecommendRun, StockBasic, StrategyBacktest, StrategySignalDaily, StructureStateDaily
 from app.db.session import session_scope
 from app.services.jobs import JobContext
 from app.services.value_data import finance_coverage, load_series, pool_codes
@@ -19,16 +19,39 @@ logger = logging.getLogger(__name__)
 MIN_FINANCE_COVERAGE = 0.9
 STALE_DAYS = 10  # 最新日线早于扫描日这么多天（长期停牌）的不参与当天判定
 KEEP_DAYS = 400
-BACKTEST_STATUS = "尚未检验：回测检验在多策略第三次交付完成后显示在这里。"
+BACKTEST_STATUS = "尚未检验：到设置页运行「点金术回测」后显示在这里。"
+BACKTEST_KEYS = {"dianjin_v2": "v2", "dianjin_v1": "v1"}
 CAVEAT = "判定只用当天已公告、已除权的数据；价值池只含当前在市股票，存在幸存者偏差。"
 
 
+def latest_backtest() -> dict | None:
+    with session_scope() as db:
+        row = db.execute(select(StrategyBacktest).where(StrategyBacktest.strategy == "dianjin").order_by(StrategyBacktest.id.desc()).limit(1)).scalars().first()
+        return {"id": row.id, "created_at": row.created_at.isoformat(), **row.result} if row else None
+
+
+async def run_dianjin_backtest(ctx: JobContext) -> dict:
+    from app.research.dianjin_backtest import run_study
+
+    result = await asyncio.to_thread(run_study, ctx)
+    with session_scope() as db:
+        db.add(StrategyBacktest(strategy="dianjin", result=result))
+    v = result["variants"]
+    msg = "；".join(f"{v[k]['name']} 年化 {v[k]['exits']['base']['cagr']}%" for k in ("v2", "v1") if k in v)
+    ctx.update(message=f"点金术回测完成：{msg}", force=True)
+    return {k: v[k]["exits"]["base"]["cagr"] for k in v}
+
+
 def strategy_list() -> list[dict]:
+    from app.research.dianjin_backtest import summary_text
+
     with session_scope() as db:
         latest = dict(db.execute(select(StrategySignalDaily.strategy, func.max(StrategySignalDaily.trade_date)).group_by(StrategySignalDaily.strategy)).all())
+    bt = latest_backtest()
     return [
         {"key": k, "name": p.name, "rules": p.rules, "latest_date": latest[k].isoformat() if latest.get(k) else None,
-         "backtest": BACKTEST_STATUS, "caveat": CAVEAT}
+         "backtest": (summary_text(bt, BACKTEST_KEYS[k]) if bt and k in BACKTEST_KEYS else None) or BACKTEST_STATUS,
+         "backtest_key": BACKTEST_KEYS.get(k), "caveat": CAVEAT}
         for k, p in VARIANTS.items()
     ]
 

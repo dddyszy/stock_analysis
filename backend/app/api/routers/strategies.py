@@ -10,6 +10,11 @@ def strategies() -> list[dict]:
     return strategy_scan.strategy_list()
 
 
+@router.get("/backtest")
+def backtest() -> dict | None:
+    return strategy_scan.latest_backtest()
+
+
 @router.get("/{key}/screen")
 def screen(key: str, zone: str | None = None, passed_only: bool = True) -> dict:
     try:

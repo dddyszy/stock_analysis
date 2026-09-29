@@ -146,7 +146,7 @@ const initStep = computed(() => {
 const JOB_GROUPS = [
   { title: '初始化', names: ['full_initialize', 'stock_pool', 'backfill'] },
   { title: '日常', names: ['after_close', 'daily_update', 'risk_labels', 'scores', 'fundamentals', 'recommend', 'tracking', 'evaluate_positions', 'post_close_pipeline'] },
-  { title: '研究', names: ['base_rates'] },
+  { title: '研究', names: ['base_rates', 'dianjin_backtest'] },
   { title: '价值数据', names: ['value_backfill', 'value_daily', 'value_finance_nightly', 'strategy_scan'] },
 ]
 const jobLabel = (name: string) => overview.value?.available_jobs?.find((j: any) => j.name === name)?.label || name

@@ -90,6 +90,14 @@ def clamp_to_limits(price: float, prev_close: float | None, code: str, is_st: bo
     return round(min(max(price, down), up), 2)
 
 
+STAMP_TAX_CUT = date(2023, 8, 28)
+
+
+def stamp_tax_rate(on: date) -> float:
+    """卖出印花税：2023-08-28 起由千分之一减半为万分之五。"""
+    return 0.0005 if on >= STAMP_TAX_CUT else 0.001
+
+
 def disclosure_deadline(report_date: date) -> date:
     """定期报告的法定披露截止日：一季报 4 月底、半年报 8 月底、三季报 10 月底、年报次年 4 月底。"""
     md = (report_date.month, report_date.day)

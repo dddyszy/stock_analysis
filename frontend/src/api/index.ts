@@ -35,6 +35,7 @@ export const api = {
   // 结构候选
   recommendStructures: (params: Any) => get('/recommend/structures', params),
   strategies: () => get('/strategies'),
+  strategyBacktest: () => get('/strategies/backtest'),
   strategyScreen: (key: string, params: Any) => get(`/strategies/${key}/screen`, params),
   stockStrategies: (code: string) => get(`/strategies/stock/${code}`, undefined, true),
   baseRates: () => get('/recommend/base-rates'),

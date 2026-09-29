@@ -171,6 +171,17 @@ class StrategySignalDaily(Base):
     criteria: Mapped[list | None] = mapped_column(JSON)
 
 
+class StrategyBacktest(Base):
+    """多策略的回测研究结果（全部版本、出场规则、参数热力图、随机对照与净值曲线）。"""
+
+    __tablename__ = "strategy_backtest"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    strategy: Mapped[str] = mapped_column(String(32), index=True)
+    result: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = _now_col()
+
+
 class FilterSnapshot(Base):
     """腾讯条件选股在历史日期的结果，用来核对自算的估值指标。"""
 

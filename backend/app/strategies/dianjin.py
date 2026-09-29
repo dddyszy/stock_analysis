@@ -52,6 +52,20 @@ def _pct(v: float | None, digits: int = 1) -> str:
     return "--" if v is None else f"{v:.{digits}f}%"
 
 
+def roe_threshold(mv: float | None, p: DianjinParams) -> float | None:
+    if p.roe_small is None:
+        return None
+    return p.roe_big if mv is not None and mv >= BIG_CAP else p.roe_small
+
+
+def passes(p: DianjinParams, pe: float | None, dy: float | None, mv: float | None, roe3: tuple | None) -> bool:
+    """筛选条件（不含买卖线）；实盘判定和回测都用这一个函数。"""
+    if pe is None or not 0 < pe < p.max_pe or dy is None or dy <= p.min_dy or mv is None or mv <= p.min_mv:
+        return False
+    need = roe_threshold(mv, p)
+    return need is None or (roe3 is not None and all(r > need for r in roe3))
+
+
 def zone_of(ratio: float | None, p: DianjinParams) -> str:
     if ratio is None:
         return "insufficient"
@@ -77,12 +91,12 @@ def evaluate(s: ValueSeries, p: DianjinParams, i: int | None = None) -> Evaluati
         Criterion("mv", "总市值", f"> {p.min_mv / 1e8:g} 亿", "--" if mv is None else f"{mv / 1e8:.0f} 亿", None if mv is None else mv > p.min_mv),
     ]
     if p.roe_small is not None:
-        need = p.roe_big if mv is not None and mv >= BIG_CAP else p.roe_small
+        need = roe_threshold(mv, p)
         crit.append(Criterion(
             "roe", "近三年 ROE", f"每年 > {need:g}%", "不足三年" if roe3 is None else "、".join(f"{r:.1f}%" for r in roe3),
             None if roe3 is None else all(r > need for r in roe3),
         ))
-    passed = all(c.passed for c in crit)
+    passed = passes(p, pe, dy, mv, roe3)
     zone = zone_of(ratio, p)
     metrics = {
         "price": round(px, 3), "ma120": round(ma, 3) if ma else None, "ratio": round(ratio, 4) if ratio else None,

@@ -5,8 +5,10 @@ import { api } from '@/api'
 import { useJobPoller } from '@/composables/useJobPoller'
 import { num } from '@/utils/format'
 import { EmptyState, PageHeader, SectionCard, StatCard } from '@/components/ui'
+import DianjinBacktest from '@/components/DianjinBacktest.vue'
 
 const list = ref<any[]>([])
+const backtest = ref<any>(null)
 const active = ref('dianjin_v2')
 const data = ref<any>(null)
 const loading = ref(false)
@@ -62,6 +64,7 @@ watch([active, zone, passedOnly], load)
 onMounted(async () => {
   list.value = await api.strategies()
   load()
+  api.strategyBacktest().then((r) => (backtest.value = r)).catch(() => undefined)
 })
 </script>
 
@@ -86,6 +89,8 @@ onMounted(async () => {
         </div>
       </div>
     </SectionCard>
+
+    <DianjinBacktest v-if="backtest && current?.backtest_key" :result="backtest" :vkey="current.backtest_key" />
 
     <div v-if="data?.date" class="grid grid-4 mt">
       <StatCard v-for="z in ZONE_ORDER" :key="z" :label="data.zone_names[z]" :value="data.counts[z] || 0"
